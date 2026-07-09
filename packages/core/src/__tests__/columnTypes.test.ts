@@ -5,11 +5,24 @@ import {
   defaultConfigFor,
   getColumnType,
 } from '../columnTypes'
-import type { Column, MultiSelectConfig, SingleSelectConfig } from '../types'
+import type { Column, DateConfig, MultiSelectConfig, SingleSelectConfig } from '../types'
 
 function col(id: string, type: Column['type'], config: Column['config']): Column {
   return { id, tableId: 't', name: id, type, config, position: 0, isFrozen: false, width: 160 }
 }
+
+describe('date formatDisplay', () => {
+  const cfg = (format: string): DateConfig => ({ type: 'date', format })
+  const d = getColumnType('date')
+  it('does not clobber month names containing token letters (Dec regression)', () => {
+    expect(d.formatDisplay('2026-12-12', cfg('MMM D, YYYY'))).toBe('Dec 12, 2026')
+    expect(d.formatDisplay('2026-12-05', cfg('MMMM D, YYYY'))).toBe('December 5, 2026')
+  })
+  it('formats other months and the default ISO correctly', () => {
+    expect(d.formatDisplay('2024-01-01', cfg('MMM D, YYYY'))).toBe('Jan 1, 2024')
+    expect(d.formatDisplay('2024-03-09', cfg('YYYY-MM-DD'))).toBe('2024-03-09')
+  })
+})
 
 describe('validate — text-like', () => {
   it('text coerces to string and empties to null', () => {

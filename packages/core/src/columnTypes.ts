@@ -285,13 +285,18 @@ function formatDate(iso: string, format: string): string {
   if (!parts) return iso
   const { y, m, d } = parts
   const pad = (n: number) => String(n).padStart(2, '0')
-  return format
-    .replace(/YYYY/g, String(y))
-    .replace(/MMMM/g, MONTHS_LONG[m - 1] ?? '')
-    .replace(/MMM/g, MONTHS_SHORT[m - 1] ?? '')
-    .replace(/MM/g, pad(m))
-    .replace(/DD/g, pad(d))
-    .replace(/D/g, String(d))
+  // Single-pass tokenise so a substituted value (e.g. the "D" in "Dec") is never
+  // re-scanned by a later token replace. Longer tokens precede shorter ones.
+  const tokens: Record<string, string> = {
+    YYYY: String(y).padStart(4, '0'),
+    MMMM: MONTHS_LONG[m - 1] ?? '',
+    MMM: MONTHS_SHORT[m - 1] ?? '',
+    MM: pad(m),
+    M: String(m),
+    DD: pad(d),
+    D: String(d),
+  }
+  return format.replace(/YYYY|MMMM|MMM|MM|M|DD|D/g, (t) => tokens[t] ?? t)
 }
 
 // ---------------------------------------------------------------------------
