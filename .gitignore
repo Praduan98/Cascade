@@ -1,0 +1,48 @@
+# --- Node / Next.js ---
+node_modules/
+.pnpm-store/
+.next/
+out/
+dist/
+build/
+*.tsbuildinfo
+.turbo/
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.uv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# --- Env / secrets ---
+.env
+.env.*
+!.env.example
+
+# --- Data / uploads / runtime ---
+/backend/uploads/
+/uploads/
+pgdata/
+redisdata/
+
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.log
+
+# --- Test / coverage ---
+coverage/
+.coverage
+htmlcov/
+playwright-report/
+test-results/
+
+# --- Design build artifacts (keep sources in design/src) ---
+# (the large built HTML deliverables are kept intentionally)

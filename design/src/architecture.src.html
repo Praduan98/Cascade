@@ -1,0 +1,724 @@
+<style>
+/*@@FONTS@@*/
+/*@@TOKENS@@*/
+
+/* ============ Architecture page ============ */
+.topbar {
+  position: fixed; inset: 0 0 auto 0; z-index: 50; height: 58px;
+  display: flex; align-items: center; gap: 18px;
+  padding-inline: clamp(16px, 4vw, 40px);
+  background: color-mix(in srgb, var(--ground) 82%, transparent);
+  backdrop-filter: saturate(1.4) blur(14px); -webkit-backdrop-filter: saturate(1.4) blur(14px);
+  border-bottom: 1px solid var(--hairline);
+}
+.brand { display: flex; align-items: center; gap: 11px; font-family: var(--font-display); font-weight: 800; letter-spacing: -.03em; font-size: 1.12rem; }
+.brand .glyph { width: 26px; height: 26px; flex: none; }
+.brand .sub { font-family: var(--font-mono); font-size: var(--fs-2xs); color: var(--text-3); letter-spacing: .12em; text-transform: uppercase; padding: .25em .5em; border: 1px solid var(--border); border-radius: var(--r-full); font-weight: 500; }
+.topbar-spacer { flex: 1; }
+.topnav { display: flex; gap: 3px; }
+.topnav a { font-size: var(--fs-sm); color: var(--text-2); padding: .4em .7em; border-radius: var(--r-sm); font-weight: 500; transition: color var(--dur-2), background var(--dur-2); }
+.topnav a:hover { color: var(--text); background: var(--surface-3); }
+.topnav a.active { color: var(--brand); }
+@media (max-width: 940px) { .topnav { display: none; } }
+.theme-btn { display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: var(--r-md); cursor: pointer; background: var(--surface-2); border: 1px solid var(--border); color: var(--text-2); transition: color var(--dur-2), border-color var(--dur-2); }
+.theme-btn:hover { color: var(--text); border-color: var(--border-strong); }
+.theme-btn svg { width: 17px; height: 17px; }
+.theme-btn .moon { display: none; }
+:root[data-theme="light"] .theme-btn .moon { display: block; }
+:root[data-theme="light"] .theme-btn .sun { display: none; }
+@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) .theme-btn .moon { display: block; } :root:not([data-theme="dark"]) .theme-btn .sun { display: none; } }
+
+main { padding-top: 58px; }
+.block { scroll-margin-top: 70px; }
+.block-head { max-width: 70ch; }
+.block-head .num { font-family: var(--font-mono); font-size: var(--fs-2xs); color: var(--brand); letter-spacing: .12em; }
+.block-head h2 { font-size: var(--fs-h1); margin: 12px 0 0; }
+.block-head p { margin-top: 12px; color: var(--text-2); font-size: 1.02rem; line-height: 1.6; }
+
+/* hero */
+.ahero { position: relative; overflow: hidden; border-bottom: 1px solid var(--hairline); }
+.ahero::before { content: ""; position: absolute; inset: 0; background: var(--grad-flow); opacity: .7; pointer-events: none; }
+.ahero::after { content: ""; position: absolute; inset: 0; background-image: linear-gradient(var(--grid-line) 1px, transparent 1px), linear-gradient(90deg, var(--grid-line) 1px, transparent 1px); background-size: 44px 44px; -webkit-mask-image: radial-gradient(120% 90% at 70% 0%, #000, transparent 70%); mask-image: radial-gradient(120% 90% at 70% 0%, #000, transparent 70%); pointer-events: none; }
+.ahero-inner { position: relative; z-index: 1; display: grid; grid-template-columns: 1.1fr .9fr; gap: clamp(24px, 4vw, 56px); align-items: center; padding-block: clamp(46px, 8vw, 92px); }
+@media (max-width: 920px) { .ahero-inner { grid-template-columns: 1fr; } }
+.ahero h1 { font-size: var(--fs-hero); font-weight: 800; letter-spacing: -.045em; }
+.ahero h1 .flow { background: var(--grad-brand); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.ahero .lead { margin-top: 22px; max-width: 48ch; font-size: 1.1rem; }
+.ahero-stats { display: flex; flex-wrap: wrap; gap: 26px; margin-top: 30px; }
+.ahero-stats .s .n { font-family: var(--font-display); font-weight: 800; font-size: 1.7rem; letter-spacing: -.03em; line-height: 1; }
+.ahero-stats .s .l { font-family: var(--font-mono); font-size: var(--fs-2xs); color: var(--text-3); letter-spacing: .08em; text-transform: uppercase; margin-top: 5px; }
+.ahero-stats .s .n.g { color: var(--gold); }
+
+/* mini stack schematic (hero) */
+.stack { display: flex; flex-direction: column; gap: 10px; }
+.stack .tier-mini { position: relative; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--surface); padding: 12px 14px; box-shadow: var(--shadow-2); }
+.stack .tier-mini .tm-lab { font-family: var(--font-mono); font-size: var(--fs-2xs); color: var(--text-3); letter-spacing: .06em; text-transform: uppercase; margin-bottom: 8px; }
+.stack .tier-mini .tm-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.stack .tier-mini .tm-row span { font-size: var(--fs-2xs); font-family: var(--font-mono); padding: .3em .5em; border-radius: var(--r-xs); background: var(--surface-3); border: 1px solid var(--border); color: var(--text-2); }
+.stack .arrow-mini { display: grid; place-items: center; height: 8px; color: var(--brand); }
+.stack .tier-mini.accent { border-color: var(--brand-line); }
+.stack .tier-mini.accent .tm-row span { background: var(--brand-soft); border-color: var(--brand-line); color: var(--brand); }
+
+/* section nav */
+.secnav { position: sticky; top: 58px; z-index: 20; background: color-mix(in srgb, var(--ground) 88%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom: 1px solid var(--hairline); }
+.secnav .wrap { display: flex; gap: 4px; overflow-x: auto; padding-block: 9px; scrollbar-width: none; }
+.secnav .wrap::-webkit-scrollbar { display: none; }
+.secnav a { white-space: nowrap; font-family: var(--font-mono); font-size: var(--fs-2xs); letter-spacing: .04em; text-transform: uppercase; color: var(--text-3); padding: .45em .7em; border-radius: var(--r-sm); font-weight: 500; }
+.secnav a:hover { color: var(--text); background: var(--surface-3); }
+.secnav a.active { color: var(--brand); background: var(--brand-soft); }
+
+/* founding principles */
+.found-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+@media (max-width: 820px) { .found-grid { grid-template-columns: 1fr; } }
+.found { padding: 20px; border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface); position: relative; overflow: hidden; }
+.found .step { font-family: var(--font-mono); font-size: var(--fs-2xs); color: var(--brand); letter-spacing: .1em; }
+.found h4 { font-size: var(--fs-h4); margin: 8px 0 8px; }
+.found p { font-size: var(--fs-sm); color: var(--text-2); line-height: 1.55; }
+.found .big { position: absolute; right: -6px; bottom: -18px; font-family: var(--font-display); font-weight: 800; font-size: 5rem; color: var(--brand-soft); line-height: 1; pointer-events: none; }
+
+/* roles strip */
+.roles-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.role-cell { padding: 14px; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--surface-2); }
+.role-cell .rn { font-weight: 700; font-size: var(--fs-sm); display: flex; align-items: center; gap: 7px; }
+.role-cell .rd { font-size: var(--fs-xs); color: var(--text-3); margin-top: 5px; line-height: 1.45; }
+.role-cell .rp { font-family: var(--font-mono); font-size: var(--fs-2xs); color: var(--text-faint); margin-top: 8px; }
+.dotc { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+
+/* app shell blueprint */
+.shell { display: grid; grid-template-columns: 190px 1fr; border: 1px solid var(--border); border-radius: var(--r-lg); overflow: hidden; background: var(--surface); box-shadow: var(--shadow-2); min-height: 340px; }
+@media (max-width: 720px) { .shell { grid-template-columns: 1fr; } .shell .sh-side { display: none; } }
+.sh-side { background: var(--surface-2); border-right: 1px solid var(--hairline); padding: 14px 10px; }
+.sh-ws { display: flex; align-items: center; gap: 8px; padding: 6px 8px 12px; border-bottom: 1px solid var(--hairline); margin-bottom: 10px; }
+.sh-ws .wsq { width: 24px; height: 24px; border-radius: var(--r-sm); background: var(--grad-brand); }
+.sh-ws .wsn { font-weight: 700; font-size: var(--fs-sm); }
+.sh-nav a { display: flex; align-items: center; gap: 9px; padding: .5em .6em; border-radius: var(--r-sm); font-size: var(--fs-sm); color: var(--text-2); font-weight: 500; }
+.sh-nav a.on { background: var(--brand-soft); color: var(--brand); }
+.sh-nav a:hover { background: var(--surface-3); }
+.sh-nav a svg { width: 15px; height: 15px; opacity: .8; }
+.sh-nav .grp { font-family: var(--font-mono); font-size: var(--fs-2xs); color: var(--text-faint); letter-spacing: .1em; text-transform: uppercase; margin: 14px 8px 6px; }
+.sh-main { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.sh-toolbar { display: flex; align-items: center; gap: 10px; }
+.sh-skel { height: 10px; border-radius: var(--r-full); background: var(--surface-3); }
+.sh-grid-mini { border: 1px solid var(--hairline); border-radius: var(--r-sm); overflow: hidden; flex: 1; }
+.sh-grid-mini .r { display: grid; grid-template-columns: 30px 1.4fr 1fr 1fr 1.3fr; gap: 0; }
+.sh-grid-mini .r > div { padding: 8px 10px; border-bottom: 1px solid var(--hairline); border-right: 1px solid var(--hairline); font-size: var(--fs-2xs); font-family: var(--font-mono); color: var(--text-3); }
+.sh-grid-mini .r.h > div { background: var(--surface-2); color: var(--text-2); font-weight: 600; }
+
+/* screen inventory table */
+.inv-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--r-lg); }
+table.inv { border-collapse: collapse; width: 100%; min-width: 640px; font-size: var(--fs-sm); }
+table.inv th, table.inv td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--hairline); }
+table.inv th { background: var(--surface-2); font-size: var(--fs-2xs); font-family: var(--font-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--text-3); font-weight: 500; }
+table.inv td:first-child { font-weight: 600; }
+table.inv tr:last-child td { border-bottom: 0; }
+.ph-tag { font-family: var(--font-mono); font-size: var(--fs-2xs); font-weight: 600; padding: .25em .55em; border-radius: var(--r-full); }
+.ph1 { background: var(--brand-soft); color: var(--brand); border: 1px solid var(--brand-line); }
+.ph2 { background: var(--cobalt-soft); color: var(--cobalt); border: 1px solid var(--cobalt-line); }
+.ph3 { background: var(--st-cached-soft); color: var(--st-cached); border: 1px solid color-mix(in srgb, var(--st-cached) 30%, transparent); }
+.ph4 { background: var(--gold-soft); color: var(--gold); border: 1px solid var(--gold-line); }
+
+/* waterfall flow diagram */
+.flow-wrap { overflow-x: auto; padding-bottom: 8px; }
+.flow { display: flex; align-items: stretch; gap: 0; min-width: 760px; }
+.flow-node { flex: 1; min-width: 150px; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--surface); padding: 14px; display: flex; flex-direction: column; gap: 8px; position: relative; }
+.flow-node .fn-lab { font-family: var(--font-mono); font-size: var(--fs-2xs); color: var(--text-3); letter-spacing: .06em; text-transform: uppercase; }
+.flow-node .fn-name { font-weight: 700; font-size: var(--fs-sm); display: flex; align-items: center; gap: 8px; }
+.flow-node .fn-sub { font-size: var(--fs-2xs); color: var(--text-3); font-family: var(--font-mono); }
+.flow-arrow { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0 6px; gap: 4px; flex: none; }
+.flow-arrow .cap { font-family: var(--font-mono); font-size: var(--fs-2xs); color: var(--st-empty); white-space: nowrap; }
+.flow-arrow svg { color: var(--text-faint); }
+.flow-node.input { border-style: dashed; background: var(--surface-2); }
+.flow-node.output { border-color: var(--st-success); background: var(--st-success-soft); }
+.flow-legend { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 16px; font-size: var(--fs-xs); color: var(--text-2); }
+.flow-legend span { display: inline-flex; align-items: center; gap: 7px; }
+
+/* operation pipeline */
+.pipe-wrap { overflow-x: auto; }
+.pipe { display: flex; align-items: center; gap: 0; min-width: 820px; }
+.pipe-stage { flex: 1; text-align: center; padding: 16px 10px; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--surface); position: relative; }
+.pipe-stage .pn { width: 34px; height: 34px; margin: 0 auto 9px; border-radius: var(--r-md); display: grid; place-items: center; background: var(--surface-3); border: 1px solid var(--border); color: var(--brand); }
+.pipe-stage .pt { font-weight: 700; font-size: var(--fs-xs); }
+.pipe-stage .ps { font-size: var(--fs-2xs); color: var(--text-3); margin-top: 4px; font-family: var(--font-mono); }
+.pipe-sep { flex: none; width: 34px; display: grid; place-items: center; color: var(--text-faint); }
+.pipe-note { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.pipe-note .n { font-family: var(--font-mono); font-size: var(--fs-2xs); padding: .35em .6em; border-radius: var(--r-sm); background: var(--surface-2); border: 1px solid var(--border); color: var(--text-2); }
+
+/* system architecture tiers */
+.tiers { display: flex; flex-direction: column; gap: 0; }
+.tier { border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface); overflow: hidden; }
+.tier-hd { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--surface-2); border-bottom: 1px solid var(--hairline); }
+.tier-hd .tk { font-family: var(--font-mono); font-size: var(--fs-2xs); color: var(--text-faint); letter-spacing: .1em; }
+.tier-hd .th { font-weight: 700; font-family: var(--font-display); letter-spacing: -.02em; }
+.tier-hd .tmeta { margin-left: auto; font-size: var(--fs-2xs); font-family: var(--font-mono); color: var(--text-3); }
+.tier-body { padding: 14px 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.node { border: 1px solid var(--border); border-radius: var(--r-md); background: var(--surface-2); padding: 12px; }
+.node .nn { font-weight: 700; font-size: var(--fs-sm); display: flex; align-items: center; gap: 8px; }
+.node .nd { font-size: var(--fs-2xs); color: var(--text-3); margin-top: 5px; line-height: 1.45; font-family: var(--font-mono); }
+.node.brand { border-color: var(--brand-line); } .node.brand .nn { color: var(--brand); }
+.node.cobalt { border-color: var(--cobalt-line); } .node.cobalt .nn { color: var(--cobalt); }
+.node.gold { border-color: var(--gold-line); } .node.gold .nn { color: var(--gold); }
+.tier-link { display: grid; place-items: center; padding: 7px 0; color: var(--brand); position: relative; }
+.tier-link .lab { position: absolute; font-family: var(--font-mono); font-size: var(--fs-2xs); color: var(--text-3); background: var(--ground); padding: 0 8px; }
+
+/* data model */
+.dm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }
+.ent { border: 1px solid var(--border); border-radius: var(--r-md); background: var(--surface); overflow: hidden; }
+.ent .eh { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: var(--surface-2); border-bottom: 1px solid var(--hairline); }
+.ent .eh .en { font-family: var(--font-mono); font-weight: 700; font-size: var(--fs-sm); }
+.ent .ef { padding: 8px 12px; display: flex; flex-direction: column; gap: 3px; }
+.ent .ef div { font-family: var(--font-mono); font-size: var(--fs-2xs); color: var(--text-3); display: flex; justify-content: space-between; gap: 10px; }
+.ent .ef div b { color: var(--text-2); font-weight: 500; }
+.ent .ef div .pk { color: var(--brand); }
+.ent .ef div .fk { color: var(--cobalt); }
+.ent.spine { border-color: var(--brand-line); box-shadow: 0 0 0 1px var(--brand-line); }
+.dm-note { display: flex; align-items: flex-start; gap: 10px; margin-top: 16px; padding: 14px 16px; border-radius: var(--r-md); background: var(--brand-soft); border: 1px solid var(--brand-line); font-size: var(--fs-sm); color: var(--text); }
+
+/* roadmap cascade */
+.roadmap { display: flex; flex-direction: column; gap: 12px; }
+.rm-step { display: grid; grid-template-columns: auto 1fr auto; gap: 18px; align-items: stretch; border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface); overflow: hidden; position: relative; }
+.rm-step .rm-rail { width: 6px; }
+.rm-step .rm-body { padding: 18px 0 18px 0; }
+.rm-step .rm-ph { font-family: var(--font-mono); font-size: var(--fs-2xs); letter-spacing: .1em; }
+.rm-step .rm-title { font-family: var(--font-display); font-weight: 800; font-size: 1.2rem; letter-spacing: -.02em; margin: 4px 0 6px; }
+.rm-step .rm-desc { font-size: var(--fs-sm); color: var(--text-2); max-width: 62ch; line-height: 1.5; }
+.rm-step .rm-eff { padding: 18px 20px; display: flex; flex-direction: column; justify-content: center; gap: 3px; border-left: 1px solid var(--hairline); background: var(--surface-2); text-align: right; min-width: 128px; }
+.rm-step .rm-eff .h { font-family: var(--font-display); font-weight: 800; font-size: 1.5rem; letter-spacing: -.03em; }
+.rm-step .rm-eff .l { font-family: var(--font-mono); font-size: var(--fs-2xs); color: var(--text-3); }
+.rm-step .rm-eff .brk { font-family: var(--font-mono); font-size: var(--fs-2xs); color: var(--text-faint); margin-top: 4px; }
+@media (max-width: 680px) { .rm-step { grid-template-columns: auto 1fr; } .rm-step .rm-eff { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--hairline); text-align: left; align-items: flex-start; } }
+.rm-total { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 12px; padding: 18px 22px; border: 1px dashed var(--border-strong); border-radius: var(--r-lg); background: var(--surface-2); margin-top: 4px; }
+.rm-total .lab { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text-3); letter-spacing: .06em; text-transform: uppercase; }
+.rm-total .val { font-family: var(--font-display); font-weight: 800; font-size: 2rem; letter-spacing: -.03em; }
+
+/* NFR guarantees */
+.nfr-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+.nfr { padding: 18px; border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface); }
+.nfr .ni { width: 34px; height: 34px; border-radius: var(--r-md); display: grid; place-items: center; margin-bottom: 12px; }
+.nfr h4 { font-size: var(--fs-h4); margin-bottom: 6px; }
+.nfr p { font-size: var(--fs-sm); color: var(--text-2); line-height: 1.5; }
+
+/* footer */
+.foot { border-top: 1px solid var(--hairline); padding: 40px 0 64px; margin-top: 20px; }
+.foot .fg { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 20px; align-items: flex-start; }
+.foot .fmeta { font-family: var(--font-mono); font-size: var(--fs-2xs); color: var(--text-3); letter-spacing: .04em; text-align: right; }
+</style>
+
+<div class="topbar">
+  <div class="brand">
+    <svg class="glyph" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+      <path d="M4 7h24M7 13.5h18M10 20h12M13 26.5h6" stroke="url(#bga)" stroke-width="2.6" stroke-linecap="round"/>
+      <defs><linearGradient id="bga" x1="4" y1="7" x2="28" y2="27" gradientUnits="userSpaceOnUse"><stop stop-color="#2fe6c8"/><stop offset="1" stop-color="#6c9bff"/></linearGradient></defs>
+    </svg>
+    Cascade
+    <span class="sub">Architecture</span>
+  </div>
+  <div class="topbar-spacer"></div>
+  <nav class="topnav" id="topnav">
+    <a href="#model">Model</a>
+    <a href="#ia">App shell</a>
+    <a href="#waterfall">Waterfall</a>
+    <a href="#system">System</a>
+    <a href="#data">Data</a>
+    <a href="#roadmap">Roadmap</a>
+  </nav>
+  <button class="theme-btn" id="themeBtn" aria-label="Toggle theme" title="Toggle light / dark">
+    <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.5M12 19.5V22M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2 12h2.5M19.5 12H22M4.2 19.8L6 18M18 6l1.8-1.8"/></svg>
+    <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a6.7 6.7 0 0 0 10.5 10.5z"/></svg>
+  </button>
+</div>
+
+<main>
+  <!-- HERO -->
+  <section class="ahero">
+    <div class="wrap ahero-inner">
+      <div>
+        <span class="eyebrow">Cascade · Program Architecture · v1.0</span>
+        <h1 style="margin-top:18px">One spine.<br>Four phases.<br><span class="flow">Everything cascades.</span></h1>
+        <p class="lead">The blueprint for a lean Clay alternative: a multi-tenant data grid and a provider waterfall, engineered so enrichment, AI, automation, and billing stack onto the same execution, metering, and isolation layer — without rework.</p>
+        <div class="ahero-stats">
+          <div class="s"><div class="n">4</div><div class="l">Phases</div></div>
+          <div class="s"><div class="n">~2,158<span style="font-size:.6em">h</span></div><div class="l">Indicative build</div></div>
+          <div class="s"><div class="n g">1</div><div class="l">Credit ledger · truth</div></div>
+          <div class="s"><div class="n">RLS</div><div class="l">Tenant isolation</div></div>
+        </div>
+      </div>
+      <div class="stack" aria-hidden="true">
+        <div class="tier-mini"><div class="tm-lab">Client · Next.js</div><div class="tm-row"><span>Grid</span><span>Waterfall</span><span>Usage</span><span>Superadmin</span></div></div>
+        <div class="arrow-mini"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M6 13l6 6 6-6"/></svg></div>
+        <div class="tier-mini"><div class="tm-lab">API · FastAPI</div><div class="tm-row"><span>REST</span><span>Auth</span><span>Webhooks</span><span>Orchestration</span></div></div>
+        <div class="arrow-mini"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M6 13l6 6 6-6"/></svg></div>
+        <div class="tier-mini accent"><div class="tm-lab">Data &amp; workers</div><div class="tm-row"><span>PostgreSQL + RLS</span><span>Redis</span><span>Celery</span></div></div>
+        <div class="arrow-mini"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M6 13l6 6 6-6"/></svg></div>
+        <div class="tier-mini"><div class="tm-lab">External adapters</div><div class="tm-row"><span>Providers</span><span>LLMs</span><span>CRMs</span><span>Stripe</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="secnav">
+    <div class="wrap">
+      <a href="#model">01 · Product model</a>
+      <a href="#ia">02 · App shell &amp; IA</a>
+      <a href="#screens">03 · Key screens</a>
+      <a href="#waterfall">04 · Waterfall flow</a>
+      <a href="#pipeline">05 · Operation pipeline</a>
+      <a href="#system">06 · System architecture</a>
+      <a href="#data">07 · Data model</a>
+      <a href="#roadmap">08 · Phase roadmap</a>
+      <a href="#nfr">09 · Guarantees</a>
+    </div>
+  </div>
+
+  <!-- 01 MODEL -->
+  <section class="section block" id="model">
+    <div class="wrap">
+      <div class="block-head">
+        <span class="num">01 — PRODUCT MODEL</span>
+        <h2>Three decisions that set the shape</h2>
+        <p>Cascade is not chasing Clay parity. It builds the two things that make Clay valuable — a grid and a waterfall — and stacks everything else on top. Every architectural choice traces back to these three commitments.</p>
+      </div>
+      <div class="found-grid">
+        <div class="found">
+          <div class="step">DECISION 01</div>
+          <h4>Lean core first</h4>
+          <p>Phase 1 and 2 deliver the spreadsheet grid and the multi-provider waterfall. AI, automation, and billing are deliberately downstream — they plug into the core, never reshape it.</p>
+          <span class="big">01</span>
+        </div>
+        <div class="found">
+          <div class="step">DECISION 02</div>
+          <h4>In-house, then SaaS</h4>
+          <p>Phases 1–3 are an internal operator tool for our own lead-gen. Phase 4 productizes it: signup, usage billing, superadmin, outbound. The metering built early becomes the thing we sell.</p>
+          <span class="big">02</span>
+        </div>
+        <div class="found">
+          <div class="step">DECISION 03</div>
+          <h4>Third-party, then own data</h4>
+          <p>Enrichment starts by orchestrating external provider APIs with cost passthrough. First-party scrapers arrive in Phase 4 as ordinary waterfall steps — reducing dependency and margin leakage.</p>
+          <span class="big">03</span>
+        </div>
+      </div>
+
+      <div class="sub-head" style="font-family:var(--font-mono);font-size:var(--fs-xs);letter-spacing:.12em;text-transform:uppercase;color:var(--text-3);margin:34px 0 16px;display:flex;align-items:center;gap:12px">Roles &amp; access<span style="flex:1;height:1px;background:var(--hairline)"></span></div>
+      <div class="roles-strip">
+        <div class="role-cell"><div class="rn"><span class="dotc" style="background:var(--brand)"></span>Owner</div><div class="rd">Billing &amp; ownership. Transfer or delete the workspace.</div><div class="rp">Phase 1</div></div>
+        <div class="role-cell"><div class="rn"><span class="dotc" style="background:var(--cobalt)"></span>Admin</div><div class="rd">Members, roles, provider keys, credit budget.</div><div class="rp">Phase 1</div></div>
+        <div class="role-cell"><div class="rn"><span class="dotc" style="background:var(--text-2)"></span>Member</div><div class="rd">Full data &amp; table CRUD. Builds and runs enrichment.</div><div class="rp">Phase 1</div></div>
+        <div class="role-cell"><div class="rn"><span class="dotc" style="background:var(--text-3)"></span>Viewer</div><div class="rd">Read &amp; export only. Never mutates.</div><div class="rp">Phase 1</div></div>
+        <div class="role-cell"><div class="rn"><span class="dotc" style="background:var(--gold)"></span>Superadmin</div><div class="rd">SDTC staff. Cross-workspace ops, refunds, analytics.</div><div class="rp">Phase 4 · separate</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 02 IA -->
+  <section class="section block" id="ia" style="border-top:1px solid var(--hairline)">
+    <div class="wrap">
+      <div class="block-head">
+        <span class="num">02 — INFORMATION ARCHITECTURE</span>
+        <h2>The app shell</h2>
+        <p>A workspace-scoped shell: tables on the left, the active surface in the middle. Enrichment, automation, and integrations live where the data does. The superadmin panel is a wholly separate, access-gated application — never reachable through a workspace role.</p>
+      </div>
+      <div class="shell">
+        <div class="sh-side">
+          <div class="sh-ws"><span class="wsq"></span><span class="wsn">InsightsTap</span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="2" style="margin-left:auto"><path d="M6 9l6 6 6-6"/></svg></div>
+          <nav class="sh-nav">
+            <div class="grp">Tables</div>
+            <a class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18"/></svg>Q3 Targets</a>
+            <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18"/></svg>ABM · Enterprise</a>
+            <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>New table</a>
+            <div class="grp">Workspace</div>
+            <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="3.2"/><path d="M5 20a7 7 0 0 1 14 0"/></svg>Members</a>
+            <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h10M4 12h16M4 17h7"/></svg>Providers &amp; keys</a>
+            <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Usage &amp; credits</a>
+            <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 3l1 3h2l1-3M4 10l3 1v2l-3 1"/><circle cx="12" cy="12" r="4"/></svg>Integrations</a>
+          </nav>
+        </div>
+        <div class="sh-main">
+          <div class="sh-toolbar">
+            <span style="font-family:var(--font-display);font-weight:800;letter-spacing:-.02em">Q3 Targets</span>
+            <span class="tag mono">1,240 rows</span>
+            <span style="flex:1"></span>
+            <span class="pill pill-running"><span class="dot"></span>34 running</span>
+            <button class="btn btn-primary btn-sm">Run</button>
+          </div>
+          <div class="sh-grid-mini">
+            <div class="r h"><div>#</div><div>Company</div><div>Domain</div><div>Employees</div><div>Work email ⤶</div></div>
+            <div class="r"><div>01</div><div style="color:var(--text)">Northwind</div><div>northwind.io</div><div>240</div><div style="color:var(--st-success)">● success</div></div>
+            <div class="r"><div>02</div><div style="color:var(--text)">Aperture</div><div>aperture.com</div><div>1,180</div><div style="color:var(--st-running)">● running</div></div>
+            <div class="r"><div>03</div><div style="color:var(--text)">Balto</div><div>baltofreight.co</div><div>63</div><div style="color:var(--st-cached)">● cached</div></div>
+            <div class="r"><div>04</div><div style="color:var(--text)">Vellum</div><div>vellum.design</div><div>—</div><div style="color:var(--st-empty)">● empty</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sub-head" style="font-family:var(--font-mono);font-size:var(--fs-xs);letter-spacing:.12em;text-transform:uppercase;color:var(--text-3);margin:34px 0 16px;display:flex;align-items:center;gap:12px">Screen inventory · mapped to phases<span style="flex:1;height:1px;background:var(--hairline)"></span></div>
+      <div class="inv-wrap">
+        <table class="inv">
+          <thead><tr><th>Surface</th><th>Purpose</th><th>Introduced</th></tr></thead>
+          <tbody>
+            <tr><td>Auth &amp; workspace</td><td>Signup, magic-link sign-in, workspace creation &amp; switching</td><td><span class="ph-tag ph1">Phase 1</span></td></tr>
+            <tr><td>Data grid &amp; views</td><td>Virtualized table, typed columns, filters, sorts, saved views, CSV in/out</td><td><span class="ph-tag ph1">Phase 1</span></td></tr>
+            <tr><td>Members &amp; audit</td><td>Invitations, RBAC, append-only audit log</td><td><span class="ph-tag ph1">Phase 1</span></td></tr>
+            <tr><td>Waterfall builder</td><td>Ordered provider steps, mapping, fall-through, per-cell status</td><td><span class="ph-tag ph2">Phase 2</span></td></tr>
+            <tr><td>Providers &amp; keys</td><td>Platform &amp; bring-your-own credentials, rate limits, TTL</td><td><span class="ph-tag ph2">Phase 2</span></td></tr>
+            <tr><td>Usage &amp; credits</td><td>Balance, budget caps, consumption by table / column / provider</td><td><span class="ph-tag ph2">Phase 2</span></td></tr>
+            <tr><td>AI &amp; agent columns</td><td>Prompt columns, structured output, web-research agent, HTTP / formula</td><td><span class="ph-tag ph3">Phase 3</span></td></tr>
+            <tr><td>Automation &amp; integrations</td><td>Triggers, schedules, webhooks, CRM sync, Slack</td><td><span class="ph-tag ph3">Phase 3</span></td></tr>
+            <tr><td>Billing &amp; plans</td><td>Self-serve signup, Stripe subscriptions, invoices, top-ups</td><td><span class="ph-tag ph4">Phase 4</span></td></tr>
+            <tr><td>Templates &amp; onboarding</td><td>Recipe library, guided first-run, outbound sequencer push</td><td><span class="ph-tag ph4">Phase 4</span></td></tr>
+            <tr><td>Superadmin panel</td><td>Cross-workspace ops, refunds/comps, MRR/margin analytics, platform audit</td><td><span class="ph-tag ph4">Phase 4</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- 03 KEY SCREENS -->
+  <section class="section block" id="screens" style="border-top:1px solid var(--hairline)">
+    <div class="wrap">
+      <div class="block-head">
+        <span class="num">03 — KEY SURFACES</span>
+        <h2>What each surface has to do</h2>
+        <p>Four surfaces carry the product. Each is designed around one job and one primary action.</p>
+      </div>
+      <div class="found-grid" style="grid-template-columns:repeat(2,1fr)">
+        <div class="found"><div class="step">SURFACE · GRID</div><h4>Work the data</h4><p>Scan thousands of rows, edit inline, and watch enrichment resolve in place. Primary action: <b style="color:var(--text)">Run</b>. Density, keyboard flow, and per-cell status carry the experience.</p></div>
+        <div class="found"><div class="step">SURFACE · WATERFALL</div><h4>Compose coverage</h4><p>Order providers, map inputs, set acceptance conditions, see per-step cost. Primary action: <b style="color:var(--text)">Add step</b>. The estimated ceiling is always in view.</p></div>
+        <div class="found"><div class="step">SURFACE · USAGE</div><h4>Hold the budget</h4><p>Balance, caps, and consumption by provider — with real cost visible to Admins for margin. Primary action: <b style="color:var(--text)">Set budget cap</b>. Amber means money, everywhere.</p></div>
+        <div class="found"><div class="step">SURFACE · SUPERADMIN</div><h4>Operate the platform</h4><p>A separate, audited application: workspaces, subscriptions, refunds, MRR and margin. Primary action: <b style="color:var(--text)">Open workspace</b>. Fully logged, role-gated.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 04 WATERFALL FLOW -->
+  <section class="section block" id="waterfall" style="border-top:1px solid var(--hairline)">
+    <div class="wrap">
+      <div class="block-head">
+        <span class="num">04 — CORE MECHANIC</span>
+        <h2>How a waterfall executes</h2>
+        <p>For each row, providers run in order. A step runs only if every step above returned nothing usable; the moment a result passes its acceptance condition, the remaining steps are skipped and never charged. Provenance records exactly which step supplied the value.</p>
+      </div>
+      <div class="flow-wrap">
+        <div class="flow">
+          <div class="flow-node input"><span class="fn-lab">Row input</span><span class="fn-name">name · domain</span><span class="fn-sub">normalized → cache key</span></div>
+          <div class="flow-arrow"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 12h16M14 6l6 6-6 6"/></svg></div>
+          <div class="flow-node"><span class="fn-lab">Step 1</span><span class="fn-name"><span class="prov-mono" style="width:20px;height:20px;font-size:9px;background:#3b82f6;color:#fff;border-radius:4px;display:grid;place-items:center;font-family:var(--font-mono);font-weight:700">PD</span>People Data Labs</span><span class="fn-sub">→ <span style="color:var(--st-empty)">empty</span> · 1 cr</span></div>
+          <div class="flow-arrow"><span class="cap">fall through</span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 12h16M14 6l6 6-6 6"/></svg></div>
+          <div class="flow-node"><span class="fn-lab">Step 2</span><span class="fn-name"><span class="prov-mono" style="width:20px;height:20px;font-size:9px;background:#f97316;color:#fff;border-radius:4px;display:grid;place-items:center;font-family:var(--font-mono);font-weight:700">Hu</span>Hunter.io</span><span class="fn-sub">→ <span style="color:var(--st-success)">email</span> · 1 cr</span></div>
+          <div class="flow-arrow"><span class="cap" style="color:var(--st-success)">verify</span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 12h16M14 6l6 6-6 6"/></svg></div>
+          <div class="flow-node"><span class="fn-lab">Step 3</span><span class="fn-name"><span class="prov-mono" style="width:20px;height:20px;font-size:9px;background:#10b981;color:#fff;border-radius:4px;display:grid;place-items:center;font-family:var(--font-mono);font-weight:700">ZB</span>ZeroBounce</span><span class="fn-sub">deliverable? · 0.5 cr</span></div>
+          <div class="flow-arrow"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 12h16M14 6l6 6-6 6"/></svg></div>
+          <div class="flow-node output"><span class="fn-lab" style="color:var(--st-success)">Output cell</span><span class="fn-name" style="color:var(--st-success)">✓ deliverable</span><span class="fn-sub" style="color:var(--st-success)">provenance: step 2</span></div>
+        </div>
+      </div>
+      <div class="flow-legend">
+        <span><span class="dotc" style="background:var(--st-empty)"></span>Empty triggers fall-through to the next step</span>
+        <span><span class="dotc" style="background:var(--st-success)"></span>A passing result stops the waterfall — later steps unbilled</span>
+        <span><span class="dotc" style="background:var(--st-cached)"></span>A matching cache hit short-circuits the whole chain, free</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 05 PIPELINE -->
+  <section class="section block" id="pipeline" style="border-top:1px solid var(--hairline)">
+    <div class="wrap">
+      <div class="block-head">
+        <span class="num">05 — EXECUTION LAYER</span>
+        <h2>Every operation runs one pipeline</h2>
+        <p>A provider call, an LLM call, an agent run, an HTTP request — all pass through the same metered, cached, rate-limited path built in Phase 2. Phases 3 and 4 add no parallel execution route. This is why cost control and reliability stay uniform.</p>
+      </div>
+      <div class="pipe-wrap">
+        <div class="pipe">
+          <div class="pipe-stage"><div class="pn"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h9"/></svg></div><div class="pt">Normalize</div><div class="ps">clean inputs</div></div>
+          <div class="pipe-sep"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 5l7 7-7 7"/></svg></div>
+          <div class="pipe-stage"><div class="pn"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-9-9" stroke-linecap="round"/><path d="M12 7v5l3 2" stroke-linecap="round"/></svg></div><div class="pt">Cache check</div><div class="ps">TTL window</div></div>
+          <div class="pipe-sep"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 5l7 7-7 7"/></svg></div>
+          <div class="pipe-stage"><div class="pn"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/><circle cx="12" cy="12" r="3"/></svg></div><div class="pt">Rate gate</div><div class="ps">Redis buckets</div></div>
+          <div class="pipe-sep"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 5l7 7-7 7"/></svg></div>
+          <div class="pipe-stage"><div class="pn"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 0 1 8-8 8 8 0 0 1 8 8"/><path d="M20 8v4h-4"/><path d="M20 12a8 8 0 0 1-8 8 8 8 0 0 1-8-8"/><path d="M4 16v-4h4"/></svg></div><div class="pt">Call + retry</div><div class="ps">backoff ×N</div></div>
+          <div class="pipe-sep"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 5l7 7-7 7"/></svg></div>
+          <div class="pipe-stage"><div class="pn" style="color:var(--gold)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div><div class="pt">Meter</div><div class="ps">atomic ledger</div></div>
+          <div class="pipe-sep"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 5l7 7-7 7"/></svg></div>
+          <div class="pipe-stage"><div class="pn" style="color:var(--st-success)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div><div class="pt">Persist</div><div class="ps">status + provenance</div></div>
+        </div>
+      </div>
+      <div class="pipe-note">
+        <span class="n">cache hit → skip call, 0 credits</span>
+        <span class="n">transient fail → retry, never double-charge</span>
+        <span class="n">billable call ⇔ ledger entry, atomic</span>
+        <span class="n">status persisted → survives reload</span>
+        <span class="n">provenance → cell.meta_json</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 06 SYSTEM -->
+  <section class="section block" id="system" style="border-top:1px solid var(--hairline)">
+    <div class="wrap">
+      <div class="block-head">
+        <span class="num">06 — SYSTEM ARCHITECTURE</span>
+        <h2>The stack, top to bottom</h2>
+        <p>A conventional, boring-on-purpose production stack — the novelty is in the orchestration, not the infrastructure. Requests flow down; isolation is enforced at the database, not just the app.</p>
+      </div>
+      <div class="tiers">
+        <div class="tier">
+          <div class="tier-hd"><span class="tk">TIER 01</span><span class="th">Client</span><span class="tmeta">Next.js · React · virtualized grid</span></div>
+          <div class="tier-body">
+            <div class="node brand"><div class="nn">Data grid</div><div class="nd">Glide/TanStack · async cell renderers</div></div>
+            <div class="node"><div class="nn">Waterfall builder</div><div class="nd">drag-order steps · cost preview</div></div>
+            <div class="node"><div class="nn">Usage &amp; billing</div><div class="nd">balance · caps · invoices</div></div>
+            <div class="node"><div class="nn">Superadmin</div><div class="nd">separate app area · gated</div></div>
+          </div>
+        </div>
+        <div class="tier-link"><span class="lab">HTTPS · JSON · workspace-scoped</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M6 13l6 6 6-6"/></svg></div>
+        <div class="tier">
+          <div class="tier-hd"><span class="tk">TIER 02</span><span class="th">API &amp; orchestration</span><span class="tmeta">FastAPI · Python</span></div>
+          <div class="tier-body">
+            <div class="node"><div class="nn">REST API</div><div class="nd">workspace-scoped reads, no unscoped path</div></div>
+            <div class="node"><div class="nn">Auth &amp; sessions</div><div class="nd">JWT / Supabase · revocable</div></div>
+            <div class="node brand"><div class="nn">Waterfall engine</div><div class="nd">order · fall-through · acceptance</div></div>
+            <div class="node"><div class="nn">Webhooks</div><div class="nd">inbound ingest · outbound deliver</div></div>
+          </div>
+        </div>
+        <div class="tier-link"><span class="lab">enqueue · query (RLS) · cache</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M6 13l6 6 6-6"/></svg></div>
+        <div class="tier">
+          <div class="tier-hd"><span class="tk">TIER 03</span><span class="th">Data &amp; execution plane</span><span class="tmeta">PostgreSQL · Redis · Celery</span></div>
+          <div class="tier-body">
+            <div class="node brand"><div class="nn">PostgreSQL</div><div class="nd">Supabase · RLS tenant isolation · append-only audit</div></div>
+            <div class="node cobalt"><div class="nn">Redis</div><div class="nd">cache · token-bucket rate limits · sessions</div></div>
+            <div class="node"><div class="nn">Celery workers</div><div class="nd">async jobs · horizontal scale · per-cell status</div></div>
+            <div class="node"><div class="nn">Beat scheduler</div><div class="nd">next_run_at · triggers &amp; schedules</div></div>
+          </div>
+        </div>
+        <div class="tier-link"><span class="lab">adapter contract · normalized I/O + cost</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M6 13l6 6 6-6"/></svg></div>
+        <div class="tier">
+          <div class="tier-hd"><span class="tk">TIER 04</span><span class="th">External adapters</span><span class="tmeta">one interface · many implementations</span></div>
+          <div class="tier-body">
+            <div class="node"><div class="nn">Data providers</div><div class="nd">PDL · Apollo · Hunter · Prospeo · ZeroBounce</div></div>
+            <div class="node"><div class="nn">LLMs</div><div class="nd">Claude · OpenAI · Gemini · structured output</div></div>
+            <div class="node"><div class="nn">Web research</div><div class="nd">Firecrawl · Exa · bounded agent loop</div></div>
+            <div class="node cobalt"><div class="nn">CRM &amp; Slack</div><div class="nd">HubSpot · Salesforce · Pipedrive</div></div>
+            <div class="node gold"><div class="nn">Stripe</div><div class="nd">subscriptions · invoices (Phase 4)</div></div>
+            <div class="node brand"><div class="nn">Cascade Data</div><div class="nd">first-party scrapers (Phase 4)</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 07 DATA MODEL -->
+  <section class="section block" id="data" style="border-top:1px solid var(--hairline)">
+    <div class="wrap">
+      <div class="block-head">
+        <span class="num">07 — DATA MODEL</span>
+        <h2>The spine, and what hangs off it</h2>
+        <p>Phase 1 sets the schema so later phases add tables without migrating existing data. The reserved <code class="inline">cell.meta_json</code> is the spine — it carries enrichment source, status, and cost from Phase 2 onward. Colour marks the phase each entity arrives in.</p>
+      </div>
+      <div class="dm-grid">
+        <div class="ent spine">
+          <div class="eh"><span class="en">cell</span><span class="ph-tag ph1">P1</span></div>
+          <div class="ef">
+            <div><span class="pk">id</span><b>uuid</b></div>
+            <div><span class="fk">record_id</span><b>fk</b></div>
+            <div><span class="fk">column_id</span><b>fk</b></div>
+            <div><span>value_json</span><b>jsonb</b></div>
+            <div><span style="color:var(--brand)">meta_json</span><b style="color:var(--brand)">↳ spine</b></div>
+          </div>
+        </div>
+        <div class="ent">
+          <div class="eh"><span class="en">workspace</span><span class="ph-tag ph1">P1</span></div>
+          <div class="ef"><div><span class="pk">id</span><b>uuid</b></div><div><span>name</span><b>text</b></div><div><span class="fk">owner_user_id</span><b>fk</b></div></div>
+        </div>
+        <div class="ent">
+          <div class="eh"><span class="en">table · column</span><span class="ph-tag ph1">P1</span></div>
+          <div class="ef"><div><span class="pk">id</span><b>uuid</b></div><div><span>type</span><b>enum</b></div><div><span>config_json</span><b>jsonb</b></div><div><span>is_frozen</span><b>bool</b></div></div>
+        </div>
+        <div class="ent">
+          <div class="eh"><span class="en">view · audit_log</span><span class="ph-tag ph1">P1</span></div>
+          <div class="ef"><div><span>filters_json</span><b>jsonb</b></div><div><span>sorts_json</span><b>jsonb</b></div><div><span>action</span><b>text</b></div><div><span>append-only</span><b>✓</b></div></div>
+        </div>
+        <div class="ent">
+          <div class="eh"><span class="en">provider</span><span class="ph-tag ph2">P2</span></div>
+          <div class="ef"><div><span>category</span><b>text</b></div><div><span>default_ttl</span><b>int</b></div><div><span>cost_config</span><b>jsonb</b></div><div><span>supports_byo</span><b>bool</b></div></div>
+        </div>
+        <div class="ent">
+          <div class="eh"><span class="en">enrichment_*</span><span class="ph-tag ph2">P2</span></div>
+          <div class="ef"><div><span>steps_json</span><b>jsonb</b></div><div><span>status</span><b>enum</b></div><div><span>confidence</span><b>float</b></div><div><span>from_cache</span><b>bool</b></div></div>
+        </div>
+        <div class="ent">
+          <div class="eh"><span class="en">credit_ledger</span><span class="ph-tag ph2">P2</span></div>
+          <div class="ef"><div><span>delta</span><b>int</b></div><div><span>reason</span><b>text</b></div><div><span>balance_after</span><b>int</b></div><div><span style="color:var(--gold)">single truth</span><b style="color:var(--gold)">✓</b></div></div>
+        </div>
+        <div class="ent">
+          <div class="eh"><span class="en">enrichment_cache</span><span class="ph-tag ph2">P2</span></div>
+          <div class="ef"><div><span>cache_key</span><b>text</b></div><div><span>result_json</span><b>jsonb</b></div><div><span>expires_at</span><b>ts</b></div></div>
+        </div>
+        <div class="ent">
+          <div class="eh"><span class="en">ai · agent · http</span><span class="ph-tag ph3">P3</span></div>
+          <div class="ef"><div><span>prompt_template</span><b>text</b></div><div><span>output_schema</span><b>jsonb</b></div><div><span>max_steps</span><b>int</b></div></div>
+        </div>
+        <div class="ent">
+          <div class="eh"><span class="en">automation</span><span class="ph-tag ph3">P3</span></div>
+          <div class="ef"><div><span>type</span><b>enum</b></div><div><span>next_run_at</span><b>ts</b></div><div><span>is_enabled</span><b>bool</b></div></div>
+        </div>
+        <div class="ent">
+          <div class="eh"><span class="en">crm · slack</span><span class="ph-tag ph3">P3</span></div>
+          <div class="ef"><div><span>encrypted_token</span><b>bytea</b></div><div><span>direction</span><b>enum</b></div><div><span>counts_json</span><b>jsonb</b></div></div>
+        </div>
+        <div class="ent">
+          <div class="eh"><span class="en">plan · subscription</span><span class="ph-tag ph4">P4</span></div>
+          <div class="ef"><div><span>included_credits</span><b>int</b></div><div><span>stripe_sub_id</span><b>text</b></div><div><span>overage_policy</span><b>enum</b></div></div>
+        </div>
+        <div class="ent">
+          <div class="eh"><span class="en">platform_*</span><span class="ph-tag ph4">P4</span></div>
+          <div class="ef"><div><span>platform_role</span><b>enum</b></div><div><span>audit</span><b>append-only</b></div><div><span>separate</span><b>from user</b></div></div>
+        </div>
+        <div class="ent">
+          <div class="eh"><span class="en">template · sequencer</span><span class="ph-tag ph4">P4</span></div>
+          <div class="ef"><div><span>definition_json</span><b>jsonb</b></div><div><span>campaign_ref</span><b>text</b></div><div><span>is_published</span><b>bool</b></div></div>
+        </div>
+      </div>
+      <div class="dm-note">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="2" style="flex:none;margin-top:1px"><path d="M12 2v20M5 9l7-7 7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span><b>The reservation pays off:</b> Phase 2 writes provenance into <code class="inline">cell.meta_json</code> with zero migration of Phase 1 data. Phases 3–4 reuse the same ledger, cache, and status machinery — new capabilities, same spine.</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 08 ROADMAP -->
+  <section class="section block" id="roadmap" style="border-top:1px solid var(--hairline)">
+    <div class="wrap">
+      <div class="block-head">
+        <span class="num">08 — DELIVERY</span>
+        <h2>Four phases, each enabling the next</h2>
+        <p>The program is sequenced so each phase is self-contained and shippable, and every later phase builds only on what came before. Effort is indicative, planning-level — QA fixed at 20% and PM at 10% of Design + Dev, per studio standard.</p>
+      </div>
+      <div class="roadmap">
+        <div class="rm-step">
+          <div class="rm-rail" style="background:var(--brand)"></div>
+          <div class="rm-body">
+            <div class="rm-ph" style="color:var(--brand)">PHASE 1 · FOUNDATION</div>
+            <div class="rm-title">Data tables, grid, workspaces &amp; auth</div>
+            <div class="rm-desc">The container: multi-tenant workspaces with RLS, an editable virtualized grid with typed columns, CSV in/out, filters, sorts, and saved views. The schema is built so async enrichment state slots in later without rework.</div>
+          </div>
+          <div class="rm-eff"><div class="h">~494<span style="font-size:.5em">h</span></div><div class="l">D60 · Dev320</div><div class="brk">QA76 · PM38</div></div>
+        </div>
+        <div class="rm-step">
+          <div class="rm-rail" style="background:var(--cobalt)"></div>
+          <div class="rm-body">
+            <div class="rm-ph" style="color:var(--cobalt)">PHASE 2 · ENRICHMENT ENGINE</div>
+            <div class="rm-title">Providers &amp; waterfall orchestration</div>
+            <div class="rm-desc">The differentiator: pluggable provider adapters, waterfall fall-through, async per-cell status, rate limiting, retries, result caching, and an atomic credit ledger with provider-cost tracking for margin.</div>
+          </div>
+          <div class="rm-eff"><div class="h">~533<span style="font-size:.5em">h</span></div><div class="l">D50 · Dev360</div><div class="brk">QA82 · PM41</div></div>
+        </div>
+        <div class="rm-step">
+          <div class="rm-rail" style="background:var(--st-cached)"></div>
+          <div class="rm-body">
+            <div class="rm-ph" style="color:var(--st-cached)">PHASE 3 · INTELLIGENCE &amp; AUTOMATION</div>
+            <div class="rm-title">AI columns, web-research agent, triggers &amp; integrations</div>
+            <div class="rm-desc">Intelligence on top of the engine: prompt-driven AI columns with structured output, a bounded web-research agent with citations, HTTP/formula columns, schedules, triggers, webhooks, CRM sync, and Slack — all on the Phase 2 metered pipeline.</div>
+          </div>
+          <div class="rm-eff"><div class="h">~494<span style="font-size:.5em">h</span></div><div class="l">D40 · Dev340</div><div class="brk">QA76 · PM38</div></div>
+        </div>
+        <div class="rm-step">
+          <div class="rm-rail" style="background:var(--gold)"></div>
+          <div class="rm-body">
+            <div class="rm-ph" style="color:var(--gold)">PHASE 4 · SAAS PRODUCTIZATION</div>
+            <div class="rm-title">Billing, superadmin, outbound &amp; own-data</div>
+            <div class="rm-desc">Turn the internal tool into a commercial SaaS: self-serve signup, Stripe usage billing on the existing ledger, the non-negotiable superadmin panel, templates, outbound sequencer push, and the first first-party scrapers.</div>
+          </div>
+          <div class="rm-eff"><div class="h">~637<span style="font-size:.5em">h</span></div><div class="l">D70 · Dev420</div><div class="brk">QA98 · PM49</div></div>
+        </div>
+      </div>
+      <div class="rm-total">
+        <div><div class="lab">Program total · indicative</div><div style="font-size:var(--fs-sm);color:var(--text-2);margin-top:4px">D220 · Dev1,440 · QA332 · PM166 — sequencing figures, not a line-item estimate</div></div>
+        <div class="val">~2,158<span style="font-size:.5em;color:var(--text-3)"> hrs</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 09 NFR -->
+  <section class="section block" id="nfr" style="border-top:1px solid var(--hairline)">
+    <div class="wrap">
+      <div class="block-head">
+        <span class="num">09 — CROSS-CUTTING GUARANTEES</span>
+        <h2>Non-negotiables that hold in every phase</h2>
+        <p>These apply to every entity introduced, in every phase, and are re-tested as new surfaces land.</p>
+      </div>
+      <div class="nfr-grid">
+        <div class="nfr">
+          <div class="ni" style="background:var(--brand-soft);color:var(--brand)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6z"/></svg></div>
+          <h4>Tenant isolation</h4>
+          <p>No workspace can read or write another's data. Enforced at the database with row-level security and covered by negative tests — not application code alone.</p>
+        </div>
+        <div class="nfr">
+          <div class="ni" style="background:var(--cobalt-soft);color:var(--cobalt)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h12l4 4v12H4z"/><path d="M8 12h8M8 16h5"/></svg></div>
+          <h4>Auditability</h4>
+          <p>Every destructive and billing-relevant action writes to an append-only log that cannot be edited or deleted in-app.</p>
+        </div>
+        <div class="nfr">
+          <div class="ni" style="background:var(--gold-soft);color:var(--gold)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+          <h4>Cost safety</h4>
+          <p>No credit spent without an explicit, metered, attributable deduction. Budget caps and confirmations prevent runaway spend.</p>
+        </div>
+        <div class="nfr">
+          <div class="ni" style="background:var(--st-success-soft);color:var(--st-success)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h7l-1 8 10-12h-7z"/></svg></div>
+          <h4>Performance</h4>
+          <p>The grid stays smooth at 100k+ rows; common interactions respond under ~150ms; first render lands within about two seconds.</p>
+        </div>
+        <div class="nfr">
+          <div class="ni" style="background:var(--st-cached-soft);color:var(--st-cached)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></div>
+          <h4>Observability</h4>
+          <p>Every provider and LLM call is logged with latency, cost, status, and the record it belongs to — from day one.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <div class="wrap fg">
+      <div style="max-width:46ch">
+        <div class="brand" style="margin-bottom:10px"><svg class="glyph" viewBox="0 0 32 32" fill="none"><path d="M4 7h24M7 13.5h18M10 20h12M13 26.5h6" stroke="url(#bgf)" stroke-width="2.6" stroke-linecap="round"/><defs><linearGradient id="bgf" x1="4" y1="7" x2="28" y2="27" gradientUnits="userSpaceOnUse"><stop stop-color="#2fe6c8"/><stop offset="1" stop-color="#6c9bff"/></linearGradient></defs></svg> Cascade</div>
+        <p style="font-size:var(--fs-sm);color:var(--text-2)">Program &amp; system architecture derived from the Cascade Functional Specification — Phases 1–4. A lean, in-house-first GTM enrichment platform engineered to productize without rework.</p>
+      </div>
+      <div class="fmeta">
+        Architecture · v1.0 · Draft<br>
+        SDTC Digital · InsightsTap<br>
+        Technical owner · Swarnendu De (CTO)<br>
+        July 2026
+      </div>
+    </div>
+  </footer>
+</main>
+
+<script>
+(function () {
+  var root = document.documentElement;
+  var btn = document.getElementById('themeBtn');
+  function current() {
+    var t = root.getAttribute('data-theme');
+    if (t) return t;
+    return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  }
+  btn.addEventListener('click', function () { root.setAttribute('data-theme', current() === 'light' ? 'dark' : 'light'); });
+
+  // section nav active state
+  var navLinks = Array.prototype.slice.call(document.querySelectorAll('.secnav a'));
+  var topLinks = Array.prototype.slice.call(document.querySelectorAll('#topnav a'));
+  var map = {};
+  navLinks.forEach(function (l) { map[l.getAttribute('href').slice(1)] = l; });
+  var tmap = {};
+  topLinks.forEach(function (l) { tmap[l.getAttribute('href').slice(1)] = l; });
+  var obs = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) {
+      if (e.isIntersecting) {
+        navLinks.forEach(function (l) { l.classList.remove('active'); });
+        topLinks.forEach(function (l) { l.classList.remove('active'); });
+        var id = e.target.id;
+        if (map[id]) { map[id].classList.add('active'); map[id].scrollIntoView({ inline: 'center', block: 'nearest' }); }
+        if (tmap[id]) tmap[id].classList.add('active');
+      }
+    });
+  }, { rootMargin: '-15% 0px -75% 0px' });
+  document.querySelectorAll('.block').forEach(function (b) { if (b.id) obs.observe(b); });
+})();
+</script>

@@ -1,0 +1,1135 @@
+<style>
+/*@@FONTS@@*/
+/*@@TOKENS@@*/
+
+/* ============ Design System page ============ */
+.topbar {
+  position: fixed; inset: 0 0 auto 0; z-index: 50; height: 58px;
+  display: flex; align-items: center; gap: 18px;
+  padding-inline: clamp(16px, 4vw, 30px);
+  background: color-mix(in srgb, var(--ground) 82%, transparent);
+  backdrop-filter: saturate(1.4) blur(14px);
+  -webkit-backdrop-filter: saturate(1.4) blur(14px);
+  border-bottom: 1px solid var(--hairline);
+}
+.brand { display: flex; align-items: center; gap: 11px; font-family: var(--font-display); font-weight: 800; letter-spacing: -.03em; font-size: 1.12rem; }
+.brand .glyph { width: 26px; height: 26px; flex: none; }
+.brand .sub { font-family: var(--font-mono); font-size: var(--fs-2xs); color: var(--text-3); letter-spacing: .12em; text-transform: uppercase; padding: .25em .5em; border: 1px solid var(--border); border-radius: var(--r-full); font-weight: 500; }
+.topbar-spacer { flex: 1; }
+.topnav { display: flex; gap: 3px; }
+.topnav a { font-size: var(--fs-sm); color: var(--text-2); padding: .4em .7em; border-radius: var(--r-sm); font-weight: 500; transition: color var(--dur-2), background var(--dur-2); }
+.topnav a:hover { color: var(--text); background: var(--surface-3); }
+@media (max-width: 860px) { .topnav { display: none; } }
+.theme-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: .5em;
+  width: 38px; height: 38px; border-radius: var(--r-md); cursor: pointer;
+  background: var(--surface-2); border: 1px solid var(--border); color: var(--text-2);
+  transition: color var(--dur-2), border-color var(--dur-2), background var(--dur-2);
+}
+.theme-btn:hover { color: var(--text); border-color: var(--border-strong); }
+.theme-btn svg { width: 17px; height: 17px; }
+.theme-btn .moon { display: none; }
+:root[data-theme="light"] .theme-btn .moon { display: block; }
+:root[data-theme="light"] .theme-btn .sun { display: none; }
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) .theme-btn .moon { display: block; }
+  :root:not([data-theme="dark"]) .theme-btn .sun { display: none; }
+}
+
+.layout { display: grid; grid-template-columns: 232px minmax(0, 1fr); gap: 0; max-width: 1320px; margin-inline: auto; padding-top: 58px; }
+.toc { position: sticky; top: 58px; align-self: start; height: calc(100vh - 58px); overflow-y: auto; padding: 30px 14px 40px 20px; border-right: 1px solid var(--hairline); }
+.toc-group { margin-bottom: 22px; }
+.toc-group h5 { font-family: var(--font-mono); font-size: var(--fs-2xs); letter-spacing: .18em; text-transform: uppercase; color: var(--text-3); margin: 0 0 8px 8px; font-weight: 500; }
+.toc a { display: block; font-size: var(--fs-sm); color: var(--text-2); padding: .34em .6em; border-radius: var(--r-sm); font-weight: 500; border-left: 2px solid transparent; transition: color var(--dur-2), background var(--dur-2), border-color var(--dur-2); }
+.toc a:hover { color: var(--text); background: var(--surface-3); }
+.toc a.active { color: var(--brand); border-left-color: var(--brand); background: var(--brand-soft); }
+.main { min-width: 0; padding: 0 clamp(18px, 4vw, 52px) 60px; }
+@media (max-width: 1000px) { .layout { grid-template-columns: 1fr; } .toc { display: none; } }
+
+/* hero */
+.hero { position: relative; padding: clamp(46px, 8vw, 96px) 0 clamp(30px, 5vw, 54px); overflow: hidden; }
+#current { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; opacity: .9; pointer-events: none; -webkit-mask-image: linear-gradient(180deg, #000 40%, transparent); mask-image: linear-gradient(180deg, #000 40%, transparent); }
+.hero-inner { position: relative; z-index: 1; display: grid; grid-template-columns: 1.15fr .85fr; gap: clamp(24px, 4vw, 56px); align-items: center; }
+@media (max-width: 900px) { .hero-inner { grid-template-columns: 1fr; } }
+.hero h1 { font-size: var(--fs-hero); font-weight: 800; letter-spacing: -.045em; }
+.hero h1 .flow { background: var(--grad-brand); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.hero .kicker { margin-bottom: 20px; }
+.hero .lead { margin-top: 22px; max-width: 46ch; font-size: 1.12rem; }
+.hero-meta { display: flex; flex-wrap: wrap; gap: 10px 22px; margin-top: 30px; }
+.hero-meta div { display: flex; flex-direction: column; gap: 2px; }
+.hero-meta .k { font-family: var(--font-mono); font-size: var(--fs-2xs); letter-spacing: .1em; text-transform: uppercase; color: var(--text-3); }
+.hero-meta .v { font-weight: 600; font-size: var(--fs-sm); color: var(--text); }
+
+/* hero live demo — a row cascading through a waterfall */
+.demo-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-xl); box-shadow: var(--shadow-3); overflow: hidden; }
+.demo-head { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--hairline); background: var(--surface-2); }
+.demo-head .dots { display: flex; gap: 6px; }
+.demo-head .dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--border-strong); }
+.demo-head .title { font-family: var(--font-mono); font-size: var(--fs-2xs); color: var(--text-3); letter-spacing: .08em; }
+.demo-body { padding: 16px; }
+.demo-row { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 10px; padding: 9px 12px; border-radius: var(--r-sm); font-size: var(--fs-sm); }
+.demo-row + .demo-row { margin-top: 4px; }
+.demo-row .label { display: flex; align-items: center; gap: 9px; color: var(--text-2); }
+.demo-row .prov { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text); }
+.demo-row.step { background: var(--surface-2); border: 1px solid var(--hairline); }
+.demo-row.step.active { border-color: var(--brand-line); background: var(--brand-soft); }
+.demo-out { margin-top: 12px; padding: 13px 14px; border-radius: var(--r-md); border: 1px dashed var(--border-strong); display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.demo-out .val { font-family: var(--font-mono); font-size: var(--fs-sm); color: var(--text); }
+.demo-out .val.pending { color: var(--text-faint); }
+.stepnum { width: 20px; height: 20px; border-radius: var(--r-full); display: grid; place-items: center; font-family: var(--font-mono); font-size: var(--fs-2xs); font-weight: 700; background: var(--surface-3); color: var(--text-3); border: 1px solid var(--border); flex: none; }
+.demo-row.done .stepnum { background: var(--st-success-soft); color: var(--st-success); border-color: color-mix(in srgb, var(--st-success) 30%, transparent); }
+.demo-row.skip { opacity: .5; }
+
+/* section building blocks */
+.block { padding-block: clamp(40px, 6vw, 70px); border-top: 1px solid var(--hairline); scroll-margin-top: 72px; }
+.block:first-of-type { border-top: 0; }
+.block-head { margin-bottom: 30px; max-width: 68ch; }
+.block-head .num { font-family: var(--font-mono); font-size: var(--fs-2xs); color: var(--brand); letter-spacing: .12em; }
+.block-head h2 { font-size: var(--fs-h1); margin: 12px 0 0; }
+.block-head p { margin-top: 12px; color: var(--text-2); font-size: 1.02rem; line-height: 1.6; }
+.sub-head { font-family: var(--font-mono); font-size: var(--fs-xs); letter-spacing: .12em; text-transform: uppercase; color: var(--text-3); margin: 34px 0 16px; display: flex; align-items: center; gap: 12px; }
+.sub-head::after { content: ""; flex: 1; height: 1px; background: var(--hairline); }
+
+/* swatches */
+.swatch-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.swatch { border-radius: var(--r-md); border: 1px solid var(--border); overflow: hidden; background: var(--surface); cursor: pointer; transition: transform var(--dur-2) var(--ease), box-shadow var(--dur-2); }
+.swatch:hover { transform: translateY(-3px); box-shadow: var(--shadow-2); }
+.swatch .chipc { height: 62px; position: relative; }
+.swatch .meta { padding: 9px 11px; }
+.swatch .name { font-size: var(--fs-sm); font-weight: 600; }
+.swatch .hex { font-family: var(--font-mono); font-size: var(--fs-2xs); color: var(--text-3); text-transform: uppercase; margin-top: 1px; }
+.ramp { display: flex; border-radius: var(--r-md); overflow: hidden; border: 1px solid var(--border); }
+.ramp > div { flex: 1; height: 74px; display: flex; align-items: flex-end; padding: 7px; }
+.ramp .lbl { font-family: var(--font-mono); font-size: var(--fs-2xs); letter-spacing: .02em; }
+
+/* status legend */
+.status-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; }
+.status-card { padding: 15px; border-radius: var(--r-md); border: 1px solid var(--border); background: var(--surface); display: flex; flex-direction: column; gap: 9px; }
+.status-card .top { display: flex; align-items: center; justify-content: space-between; }
+.status-card p { font-size: var(--fs-sm); color: var(--text-2); line-height: 1.5; }
+
+/* type specimens */
+.type-spec { border: 1px solid var(--border); border-radius: var(--r-lg); overflow: hidden; }
+.type-spec + .type-spec { margin-top: 14px; }
+.type-spec .tstrip { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; padding: 13px 18px; background: var(--surface-2); border-bottom: 1px solid var(--hairline); }
+.type-spec .tstrip .fam { font-size: var(--fs-h4); font-weight: 700; }
+.type-spec .tstrip .role { font-family: var(--font-mono); font-size: var(--fs-2xs); color: var(--text-3); letter-spacing: .1em; text-transform: uppercase; }
+.type-spec .sample { padding: 22px 18px; }
+.type-spec .weights { display: flex; flex-wrap: wrap; gap: 16px; padding: 0 18px 18px; }
+.type-spec .weights span { color: var(--text-2); font-size: var(--fs-sm); }
+.scale-row { display: flex; align-items: baseline; gap: 18px; padding: 11px 0; border-bottom: 1px solid var(--hairline); }
+.scale-row .tok { font-family: var(--font-mono); font-size: var(--fs-2xs); color: var(--text-3); width: 92px; flex: none; }
+.scale-row .demo { color: var(--text); font-family: var(--font-display); font-weight: 700; line-height: 1; letter-spacing: -.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* generic component gallery */
+.gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+.g-wide { grid-column: 1 / -1; }
+.demo-tile { border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface); overflow: hidden; }
+.demo-tile .cap { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid var(--hairline); background: var(--surface-2); }
+.demo-tile .cap .t { font-size: var(--fs-sm); font-weight: 600; }
+.demo-tile .cap .n { font-family: var(--font-mono); font-size: var(--fs-2xs); color: var(--text-3); }
+.demo-tile .stage { padding: 20px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.demo-tile .stage.col { flex-direction: column; align-items: stretch; }
+
+/* inputs */
+.field { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+.field label { font-size: var(--fs-xs); font-weight: 600; color: var(--text-2); display: flex; align-items: center; gap: 6px; }
+.field label .ty { font-family: var(--font-mono); font-size: var(--fs-2xs); color: var(--text-3); font-weight: 500; padding: .1em .4em; border: 1px solid var(--border); border-radius: var(--r-xs); }
+.input, .select, textarea.input {
+  font-family: var(--font-body); font-size: var(--fs-sm); color: var(--text);
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-md);
+  padding: .6em .75em; width: 100%; transition: border-color var(--dur-2), box-shadow var(--dur-2), background var(--dur-2);
+}
+.input::placeholder { color: var(--text-faint); }
+.input:focus, .select:focus, textarea.input:focus { outline: none; border-color: var(--brand-line); box-shadow: 0 0 0 3px var(--brand-soft); background: var(--surface); }
+.input.ok { border-color: color-mix(in srgb, var(--st-success) 45%, transparent); }
+.input.err { border-color: color-mix(in srgb, var(--st-failed) 55%, transparent); }
+.field .hint { font-size: var(--fs-2xs); color: var(--text-3); }
+.field .hint.err { color: var(--st-failed); }
+.select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5' stroke='%23607783' stroke-width='1.4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right .7em center; padding-right: 2em; }
+
+/* toggle + switch */
+.switch { position: relative; width: 40px; height: 23px; border-radius: var(--r-full); background: var(--surface-3); border: 1px solid var(--border); cursor: pointer; transition: background var(--dur-2); flex: none; }
+.switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 17px; height: 17px; border-radius: 50%; background: var(--text-3); transition: transform var(--dur-2) var(--ease), background var(--dur-2); }
+.switch.on { background: var(--brand-soft); border-color: var(--brand-line); }
+.switch.on::after { transform: translateX(17px); background: var(--brand); }
+
+/* provider chips */
+.prov-chip { display: inline-flex; align-items: center; gap: 8px; padding: .5em .75em; border-radius: var(--r-md); background: var(--surface-2); border: 1px solid var(--border); font-size: var(--fs-sm); font-weight: 600; }
+.prov-mono { width: 22px; height: 22px; border-radius: var(--r-sm); display: grid; place-items: center; font-family: var(--font-mono); font-weight: 700; font-size: var(--fs-2xs); color: #fff; flex: none; }
+
+/* ===== the data grid (signature) ===== */
+.grid-wrap { border: 1px solid var(--border); border-radius: var(--r-lg); overflow: hidden; box-shadow: var(--shadow-2); background: var(--surface); }
+.grid-toolbar { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--hairline); background: var(--surface-2); flex-wrap: wrap; }
+.grid-toolbar .tname { font-weight: 700; font-family: var(--font-display); letter-spacing: -.02em; display: flex; align-items: center; gap: 8px; }
+.grid-toolbar .flex { flex: 1; }
+.grid-scroll { overflow-x: auto; }
+table.grid { border-collapse: separate; border-spacing: 0; width: 100%; min-width: 720px; font-size: var(--fs-sm); }
+table.grid th, table.grid td { text-align: left; padding: 0; border-bottom: 1px solid var(--hairline); border-right: 1px solid var(--hairline); }
+table.grid thead th { background: var(--surface-2); position: sticky; top: 0; z-index: 2; }
+table.grid th .cell, table.grid td .cell { padding: 9px 12px; min-height: 38px; display: flex; align-items: center; gap: 7px; }
+table.grid th .cell { color: var(--text-2); font-weight: 600; font-size: var(--fs-xs); }
+table.grid th .cell .ty { font-family: var(--font-mono); font-size: var(--fs-2xs); color: var(--text-faint); }
+.col-frozen { position: sticky; left: 0; z-index: 3; background: var(--surface); box-shadow: 1px 0 0 var(--border); }
+thead .col-frozen { z-index: 4; background: var(--surface-2); }
+table.grid tbody tr:hover td { background: color-mix(in srgb, var(--brand) 4%, var(--surface)); }
+table.grid tbody tr:hover .col-frozen { background: color-mix(in srgb, var(--brand) 5%, var(--surface)); }
+.gcell-val { font-family: var(--font-mono); color: var(--text); }
+.gcell-muted { color: var(--text-faint); }
+.rowhead { font-family: var(--font-mono); font-size: var(--fs-2xs); color: var(--text-faint); width: 34px; text-align: center; justify-content: center; }
+td.enrich { position: relative; }
+.enrich-cell { display: flex; align-items: center; gap: 8px; padding: 9px 12px; }
+.enrich-cell .running-bar { position: absolute; left: 0; bottom: 0; height: 2px; width: 40%; background: var(--st-running); animation: run-slide 1.3s var(--ease-inout) infinite; }
+@keyframes run-slide { 0% { left: -40%; } 100% { left: 100%; } }
+.cell-shimmer { flex: 1; height: 9px; border-radius: var(--r-full); background: linear-gradient(90deg, var(--surface-3) 25%, var(--surface) 50%, var(--surface-3) 75%); background-size: 200% 100%; animation: shimmer 1.4s linear infinite; }
+@keyframes shimmer { to { background-position: -200% 0; } }
+.mini-dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+
+/* ===== waterfall builder (signature) ===== */
+.waterfall { display: flex; flex-direction: column; gap: 0; }
+.wf-step { position: relative; display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center; padding: 14px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md); }
+.wf-step + .wf-connector { margin: 0; }
+.wf-connector { display: flex; align-items: center; gap: 10px; padding: 6px 0 6px 30px; color: var(--text-3); font-size: var(--fs-xs); }
+.wf-connector .line { width: 1px; height: 20px; background: var(--border-strong); position: relative; }
+.wf-connector .cond { font-family: var(--font-mono); font-size: var(--fs-2xs); padding: .3em .6em; border-radius: var(--r-full); background: var(--gold-soft); color: var(--gold); border: 1px solid var(--gold-line); }
+.wf-handle { color: var(--text-faint); cursor: grab; display: flex; flex-direction: column; gap: 2px; }
+.wf-handle span { width: 12px; height: 2px; border-radius: 2px; background: currentColor; }
+.wf-body .pname { font-weight: 700; font-size: var(--fs-sm); display: flex; align-items: center; gap: 9px; }
+.wf-body .pmap { font-family: var(--font-mono); font-size: var(--fs-2xs); color: var(--text-3); margin-top: 4px; }
+.wf-body .pmap b { color: var(--text-2); font-weight: 500; }
+.wf-cost { text-align: right; }
+.wf-cost .c { font-family: var(--font-mono); font-weight: 700; font-size: var(--fs-sm); color: var(--gold); }
+.wf-cost .u { font-family: var(--font-mono); font-size: var(--fs-2xs); color: var(--text-3); }
+
+/* ===== credit meter ===== */
+.meter-card { display: grid; gap: 16px; }
+.meter-top { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
+.meter-top .bal { font-family: var(--font-display); font-weight: 800; font-size: 2rem; letter-spacing: -.03em; line-height: 1; }
+.meter-top .bal small { font-family: var(--font-mono); font-size: .5em; color: var(--text-3); font-weight: 500; letter-spacing: .05em; }
+.meter-bar { height: 12px; border-radius: var(--r-full); background: var(--surface-3); overflow: hidden; display: flex; }
+.meter-bar i { height: 100%; display: block; }
+.meter-legend { display: flex; flex-wrap: wrap; gap: 8px 18px; }
+.meter-legend span { display: inline-flex; align-items: center; gap: 7px; font-size: var(--fs-xs); color: var(--text-2); }
+.meter-legend .k { width: 9px; height: 9px; border-radius: 2px; }
+.breakdown { display: grid; gap: 8px; }
+.bd-row { display: grid; grid-template-columns: 1fr auto auto; gap: 12px; align-items: center; font-size: var(--fs-sm); padding: 8px 0; border-top: 1px solid var(--hairline); }
+.bd-row .b-track { grid-column: 1/-1; height: 5px; border-radius: var(--r-full); background: var(--surface-3); overflow: hidden; }
+.bd-row .b-track i { display: block; height: 100%; background: var(--brand); }
+
+/* AI column */
+.ai-prompt { font-family: var(--font-mono); font-size: var(--fs-sm); line-height: 1.7; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-md); padding: 14px; color: var(--text-2); }
+.ref { display: inline-flex; align-items: center; padding: .05em .4em; border-radius: var(--r-xs); background: var(--cobalt-soft); color: var(--cobalt); border: 1px solid var(--cobalt-line); font-weight: 500; }
+
+/* toasts & alerts */
+.alert { display: flex; gap: 12px; padding: 13px 15px; border-radius: var(--r-md); border: 1px solid var(--border); background: var(--surface); align-items: flex-start; }
+.alert .ico { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; flex: none; font-size: 12px; font-weight: 700; margin-top: 1px; }
+.alert .msg { font-size: var(--fs-sm); }
+.alert .msg .h { font-weight: 700; display: block; margin-bottom: 2px; }
+.alert .msg p { color: var(--text-2); }
+.alert-info { border-left: 3px solid var(--cobalt); } .alert-info .ico { background: var(--cobalt-soft); color: var(--cobalt); }
+.alert-success { border-left: 3px solid var(--st-success); } .alert-success .ico { background: var(--st-success-soft); color: var(--st-success); }
+.alert-warn { border-left: 3px solid var(--st-empty); } .alert-warn .ico { background: var(--st-empty-soft); color: var(--st-empty); }
+.alert-error { border-left: 3px solid var(--st-failed); } .alert-error .ico { background: var(--st-failed-soft); color: var(--st-failed); }
+
+/* modal preview */
+.modal-demo { border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface); box-shadow: var(--shadow-3); overflow: hidden; max-width: 420px; }
+.modal-demo .m-head { padding: 16px 18px 6px; }
+.modal-demo h4 { font-size: var(--fs-h4); }
+.modal-demo .m-body { padding: 4px 18px 16px; font-size: var(--fs-sm); color: var(--text-2); }
+.modal-demo .cost-line { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; margin: 12px 0; border-radius: var(--r-md); background: var(--gold-soft); border: 1px solid var(--gold-line); }
+.modal-demo .cost-line .lab { font-size: var(--fs-xs); color: var(--text-2); }
+.modal-demo .cost-line .amt { font-family: var(--font-mono); font-weight: 700; color: var(--gold); }
+.modal-demo .m-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 18px; border-top: 1px solid var(--hairline); background: var(--surface-2); }
+
+/* tabs / segmented */
+.seg { display: inline-flex; padding: 3px; background: var(--surface-3); border: 1px solid var(--border); border-radius: var(--r-md); gap: 2px; }
+.seg button { font-family: var(--font-body); font-weight: 600; font-size: var(--fs-xs); padding: .45em .8em; border-radius: var(--r-sm); border: 0; background: transparent; color: var(--text-2); cursor: pointer; transition: color var(--dur-2), background var(--dur-2); }
+.seg button.on { background: var(--surface); color: var(--text); box-shadow: var(--shadow-1); }
+
+/* roles / members */
+.member { display: flex; align-items: center; gap: 11px; padding: 10px 4px; border-bottom: 1px solid var(--hairline); }
+.avatar { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: var(--fs-xs); color: var(--brand-ink); flex: none; }
+.member .who { flex: 1; min-width: 0; }
+.member .who .nm { font-weight: 600; font-size: var(--fs-sm); }
+.member .who .em { font-size: var(--fs-2xs); color: var(--text-3); font-family: var(--font-mono); }
+.role-badge { font-family: var(--font-mono); font-size: var(--fs-2xs); font-weight: 600; padding: .3em .6em; border-radius: var(--r-sm); text-transform: uppercase; letter-spacing: .05em; }
+.role-owner { background: var(--brand-soft); color: var(--brand); border: 1px solid var(--brand-line); }
+.role-admin { background: var(--cobalt-soft); color: var(--cobalt); border: 1px solid var(--cobalt-line); }
+.role-member { background: var(--surface-3); color: var(--text-2); border: 1px solid var(--border); }
+.role-viewer { background: transparent; color: var(--text-3); border: 1px dashed var(--border-strong); }
+
+/* spacing & radius viz */
+.space-row { display: flex; align-items: center; gap: 14px; padding: 6px 0; }
+.space-row .box { background: var(--brand-soft); border: 1px solid var(--brand-line); border-radius: var(--r-xs); height: 22px; }
+.space-row .lbl { font-family: var(--font-mono); font-size: var(--fs-2xs); color: var(--text-3); width: 78px; }
+.radius-grid { display: flex; flex-wrap: wrap; gap: 14px; }
+.radius-grid .rb { width: 78px; }
+.radius-grid .box { height: 62px; background: var(--surface-3); border: 1px solid var(--border-strong); }
+.radius-grid .lbl { font-family: var(--font-mono); font-size: var(--fs-2xs); color: var(--text-3); margin-top: 6px; text-align: center; }
+.elev-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px; }
+.elev-grid .eb { height: 92px; border-radius: var(--r-md); background: var(--surface); border: 1px solid var(--border); display: grid; place-items: center; font-family: var(--font-mono); font-size: var(--fs-2xs); color: var(--text-3); }
+
+/* principles / voice */
+.principle-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }
+.principle { padding: 18px; border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface); }
+.principle .pi { width: 32px; height: 32px; border-radius: var(--r-sm); background: var(--brand-soft); border: 1px solid var(--brand-line); display: grid; place-items: center; margin-bottom: 12px; color: var(--brand); }
+.principle h4 { font-size: var(--fs-h4); margin-bottom: 6px; }
+.principle p { font-size: var(--fs-sm); color: var(--text-2); line-height: 1.55; }
+
+/* footer */
+.foot { border-top: 1px solid var(--hairline); padding: 40px 0 60px; margin-top: 30px; }
+.foot .fg { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 20px; align-items: center; }
+.foot .fmeta { font-family: var(--font-mono); font-size: var(--fs-2xs); color: var(--text-3); letter-spacing: .04em; }
+
+.motion-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
+.motion-card { padding: 15px; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--surface); }
+.motion-card .mtok { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--brand); }
+.motion-card .mval { font-family: var(--font-mono); font-size: var(--fs-2xs); color: var(--text-3); margin-top: 3px; }
+.motion-card p { font-size: var(--fs-xs); color: var(--text-2); margin-top: 8px; }
+
+.copytoast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--text); color: var(--ground); font-family: var(--font-mono); font-size: var(--fs-xs); padding: .6em 1em; border-radius: var(--r-md); opacity: 0; pointer-events: none; transition: opacity var(--dur-2), transform var(--dur-2); z-index: 100; box-shadow: var(--shadow-pop); }
+.copytoast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+
+<div class="topbar">
+  <div class="brand">
+    <svg class="glyph" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+      <path d="M4 7h24M7 13.5h18M10 20h12M13 26.5h6" stroke="url(#bg)" stroke-width="2.6" stroke-linecap="round"/>
+      <defs><linearGradient id="bg" x1="4" y1="7" x2="28" y2="27" gradientUnits="userSpaceOnUse"><stop stop-color="#2fe6c8"/><stop offset="1" stop-color="#6c9bff"/></linearGradient></defs>
+    </svg>
+    Cascade
+    <span class="sub">Design System</span>
+  </div>
+  <div class="topbar-spacer"></div>
+  <nav class="topnav">
+    <a href="#foundations">Foundations</a>
+    <a href="#color">Color</a>
+    <a href="#type">Type</a>
+    <a href="#components">Components</a>
+    <a href="#patterns">Patterns</a>
+  </nav>
+  <button class="theme-btn" id="themeBtn" aria-label="Toggle theme" title="Toggle light / dark">
+    <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.5M12 19.5V22M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2 12h2.5M19.5 12H22M4.2 19.8L6 18M18 6l1.8-1.8"/></svg>
+    <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a6.7 6.7 0 0 0 10.5 10.5z"/></svg>
+  </button>
+</div>
+
+<div class="layout">
+  <aside class="toc" id="toc">
+    <div class="toc-group">
+      <h5>Overview</h5>
+      <a href="#top">Introduction</a>
+      <a href="#principles">Design principles</a>
+      <a href="#voice">Voice &amp; tone</a>
+    </div>
+    <div class="toc-group">
+      <h5>Foundations</h5>
+      <a href="#color">Color</a>
+      <a href="#status">Status system</a>
+      <a href="#type">Typography</a>
+      <a href="#space">Spacing &amp; radius</a>
+      <a href="#elevation">Elevation</a>
+      <a href="#motion">Motion</a>
+    </div>
+    <div class="toc-group">
+      <h5>Components</h5>
+      <a href="#actions">Buttons &amp; actions</a>
+      <a href="#forms">Forms &amp; fields</a>
+      <a href="#pills">Pills &amp; badges</a>
+      <a href="#grid">The data grid</a>
+      <a href="#waterfall">Waterfall builder</a>
+      <a href="#credits">Credits &amp; usage</a>
+      <a href="#ai">AI &amp; agent columns</a>
+      <a href="#feedback">Feedback &amp; overlays</a>
+      <a href="#roles">Members &amp; roles</a>
+    </div>
+  </aside>
+
+  <main class="main" id="top">
+    <!-- HERO -->
+    <section class="hero">
+      <canvas id="current"></canvas>
+      <div class="hero-inner">
+        <div class="hero-copy">
+          <span class="eyebrow kicker">Cascade · GTM Enrichment Platform</span>
+          <h1>The design system<br>for a data tool that<br><span class="flow">flows downhill.</span></h1>
+          <p class="lead">Cascade is a lean, operator-first Clay alternative — a spreadsheet grid wired to a multi-provider enrichment waterfall. This is its visual language: precise, dense, and honest about what every cell is doing and what it costs.</p>
+          <div class="hero-meta">
+            <div><span class="k">Codename</span><span class="v">Deep Current</span></div>
+            <div><span class="k">Version</span><span class="v mono">1.0 · Draft</span></div>
+            <div><span class="k">Themes</span><span class="v">Dark-first · Light</span></div>
+            <div><span class="k">Owner</span><span class="v">SDTC Digital</span></div>
+          </div>
+        </div>
+        <div class="hero-demo">
+          <div class="demo-card">
+            <div class="demo-head">
+              <div class="dots"><i></i><i></i><i></i></div>
+              <span class="title">waterfall · find_work_email</span>
+            </div>
+            <div class="demo-body">
+              <div class="demo-row step" data-step="0">
+                <span class="label"><span class="stepnum">1</span><span class="prov">People Data Labs</span></span>
+                <span class="pill pill-queued" data-pill="0"><span class="dot"></span>Queued</span>
+              </div>
+              <div class="wf-mini"></div>
+              <div class="demo-row step" data-step="1">
+                <span class="label"><span class="stepnum">2</span><span class="prov">Hunter.io</span></span>
+                <span class="pill pill-queued" data-pill="1"><span class="dot"></span>Queued</span>
+              </div>
+              <div class="demo-row step" data-step="2">
+                <span class="label"><span class="stepnum">3</span><span class="prov">ZeroBounce · verify</span></span>
+                <span class="pill pill-queued" data-pill="2"><span class="dot"></span>Queued</span>
+              </div>
+              <div class="demo-out">
+                <span class="val pending" id="demoOut">awaiting run…</span>
+                <span class="pill pill-queued" id="demoOutPill"><span class="dot"></span>Idle</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PRINCIPLES -->
+    <section class="block" id="principles">
+      <div class="block-head">
+        <span class="num">01 — OVERVIEW</span>
+        <h2>Principles that shape every pixel</h2>
+        <p>Cascade is built lean-core first: the grid and the waterfall are the product; everything else stacks on top. The interface reflects that discipline — it earns density, it never hides cost, and it treats an async cell as a first-class citizen.</p>
+      </div>
+      <div class="principle-grid">
+        <div class="principle">
+          <div class="pi"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3v18h18M7 15l4-4 3 3 5-6"/></svg></div>
+          <h4>Density is a feature</h4>
+          <p>This is an operator tool. Rows per screen, fast scanning, and keyboard flow beat marketing whitespace. Speed under ~150ms is a design constraint, not an aspiration.</p>
+        </div>
+        <div class="principle">
+          <div class="pi"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M5 9l7-7 7 7"/><path d="M5 15l7 7 7-7" opacity=".5"/></svg></div>
+          <h4>The waterfall is visible</h4>
+          <p>Provider fall-through is the core mechanic. The UI shows the order, where a row fell through, and which step supplied each value — never a black box.</p>
+        </div>
+        <div class="principle">
+          <div class="pi"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+          <h4>State, always legible</h4>
+          <p>Every enrichment cell wears its status: Queued, Running, Success, Empty, Failed, or Cached. Colour and form carry meaning before a single word is read.</p>
+        </div>
+        <div class="principle">
+          <div class="pi"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+          <h4>Cost is never hidden</h4>
+          <p>Credits and provider spend are surfaced before a run, during a run, and in provenance after. The amber money accent means one thing everywhere: this consumes budget.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- VOICE -->
+    <section class="block" id="voice">
+      <div class="block-head">
+        <span class="num">02 — OVERVIEW</span>
+        <h2>Voice &amp; tone</h2>
+        <p>Cascade speaks like a sharp colleague on the RevOps team: exact, unfussy, and transparent about money and state. Controls say what they do; results say what happened.</p>
+      </div>
+      <div class="gallery">
+        <div class="demo-tile">
+          <div class="cap"><span class="t">Say the outcome</span><span class="n">buttons &amp; toasts</span></div>
+          <div class="stage col">
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button class="btn btn-primary">Run 1,240 rows</button><span style="color:var(--text-3)">→</span><span class="tag" style="color:var(--st-success);border-color:color-mix(in srgb,var(--st-success) 30%,transparent)">Enriched 1,181 · 59 empty</span></div>
+            <p style="font-size:var(--fs-xs);color:var(--text-3);margin-top:4px">Not "Submit" and "Success." Name the scope and report the counts.</p>
+          </div>
+        </div>
+        <div class="demo-tile">
+          <div class="cap"><span class="t">Explain the cost</span><span class="n">confirmation</span></div>
+          <div class="stage col">
+            <p style="font-size:var(--fs-sm);color:var(--text)">"This waterfall will cost up to <b class="mono" style="color:var(--gold)">2,480 credits</b> across 1,240 rows. Cached and empty-input rows are free."</p>
+            <p style="font-size:var(--fs-xs);color:var(--text-3)">Estimate the ceiling, name what's free, then let them confirm.</p>
+          </div>
+        </div>
+        <div class="demo-tile">
+          <div class="cap"><span class="t">Errors that help</span><span class="n">failed cell</span></div>
+          <div class="stage col">
+            <p style="font-size:var(--fs-sm);color:var(--text)"><span class="pill pill-failed"><span class="dot"></span>Failed</span> &nbsp;"Provider timeout after 3 retries. The row kept its previous value — retry just this cell?"</p>
+            <p style="font-size:var(--fs-xs);color:var(--text-3)">What broke, what it means for the data, what to do next.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- COLOR -->
+    <section class="block" id="color">
+      <div class="block-head">
+        <span class="num">03 — FOUNDATIONS</span>
+        <h2>Color</h2>
+        <p>A deep blue-green ink evokes still water; a single luminous aqua is the current running through it. Neutrals are biased toward the accent, never flat grey. Amber is reserved exclusively for credits and cost. Click any swatch to copy its value.</p>
+      </div>
+
+      <div class="sub-head">Surfaces &amp; ink · dark</div>
+      <div class="ramp" id="rampDark">
+        <div style="background:#0a1017"><span class="lbl" style="color:#9db2bd">ground</span></div>
+        <div style="background:#0f1a23"><span class="lbl" style="color:#9db2bd">surface</span></div>
+        <div style="background:#14212c"><span class="lbl" style="color:#9db2bd">surface-2</span></div>
+        <div style="background:#1a2a36"><span class="lbl" style="color:#9db2bd">surface-3</span></div>
+        <div style="background:#263a49"><span class="lbl" style="color:#e9f1f3">border</span></div>
+        <div style="background:#607783"><span class="lbl" style="color:#0a1017">text-3</span></div>
+        <div style="background:#9db2bd"><span class="lbl" style="color:#0a1017">text-2</span></div>
+        <div style="background:#e9f1f3"><span class="lbl" style="color:#0a1017">text</span></div>
+      </div>
+
+      <div class="sub-head">Accents</div>
+      <div class="swatch-grid">
+        <button class="swatch" data-hex="#2FE6C8"><div class="chipc" style="background:#2fe6c8"></div><div class="meta"><div class="name">Brand · Aqua</div><div class="hex">#2FE6C8</div></div></button>
+        <button class="swatch" data-hex="#16B79E"><div class="chipc" style="background:#16b79e"></div><div class="meta"><div class="name">Brand deep</div><div class="hex">#16B79E</div></div></button>
+        <button class="swatch" data-hex="#6C9BFF"><div class="chipc" style="background:#6c9bff"></div><div class="meta"><div class="name">Cobalt · info</div><div class="hex">#6C9BFF</div></div></button>
+        <button class="swatch" data-hex="#F5B544"><div class="chipc" style="background:#f5b544"></div><div class="meta"><div class="name">Gold · credits</div><div class="hex">#F5B544</div></div></button>
+      </div>
+
+      <div class="sub-head">Semantic — reserved meanings</div>
+      <div class="swatch-grid">
+        <button class="swatch" data-hex="#38D08C"><div class="chipc" style="background:#38d08c"></div><div class="meta"><div class="name">Success</div><div class="hex">#38D08C</div></div></button>
+        <button class="swatch" data-hex="#F5B544"><div class="chipc" style="background:#f5b544"></div><div class="meta"><div class="name">Empty / warn</div><div class="hex">#F5B544</div></div></button>
+        <button class="swatch" data-hex="#F2666B"><div class="chipc" style="background:#f2666b"></div><div class="meta"><div class="name">Failed / danger</div><div class="hex">#F2666B</div></div></button>
+        <button class="swatch" data-hex="#AB8CFB"><div class="chipc" style="background:#ab8cfb"></div><div class="meta"><div class="name">Cached</div><div class="hex">#AB8CFB</div></div></button>
+      </div>
+    </section>
+
+    <!-- STATUS SYSTEM -->
+    <section class="block" id="status">
+      <div class="block-head">
+        <span class="num">04 — FOUNDATIONS</span>
+        <h2>The status system</h2>
+        <p>The single most important pattern in the product. Every asynchronous cell — enrichment, AI, agent, HTTP — moves through this exact state machine. Colour, a dot, and one word. Nothing else competes with it.</p>
+      </div>
+      <div class="status-grid">
+        <div class="status-card">
+          <div class="top"><span class="pill pill-queued"><span class="dot"></span>Queued</span><span class="swatch-note">#8698A4</span></div>
+          <p>Accepted, waiting for a worker. Neutral slate — present but inert. No spend yet.</p>
+        </div>
+        <div class="status-card">
+          <div class="top"><span class="pill pill-running"><span class="dot"></span>Running</span><span class="swatch-note">#2FE6C8</span></div>
+          <p>A provider call is in flight. Brand aqua with a pulsing dot — the only status that animates.</p>
+        </div>
+        <div class="status-card">
+          <div class="top"><span class="pill pill-success"><span class="dot"></span>Success</span><span class="swatch-note">#38D08C</span></div>
+          <p>A usable value was written. Green. Provenance records which step and provider supplied it.</p>
+        </div>
+        <div class="status-card">
+          <div class="top"><span class="pill pill-empty"><span class="dot"></span>Empty</span><span class="swatch-note">#F5B544</span></div>
+          <p>No data found — distinct from failure. Amber, not red. Consumed no credit if input was missing.</p>
+        </div>
+        <div class="status-card">
+          <div class="top"><span class="pill pill-failed"><span class="dot"></span>Failed</span><span class="swatch-note">#F2666B</span></div>
+          <p>Errored after retries. Red. Hover reveals the reason; the prior value is left intact.</p>
+        </div>
+        <div class="status-card">
+          <div class="top"><span class="pill pill-cached"><span class="dot"></span>Cached</span><span class="swatch-note">#AB8CFB</span></div>
+          <p>Served from cache within its freshness window. Violet — the "you didn't pay for this" state.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- TYPE -->
+    <section class="block" id="type">
+      <div class="block-head">
+        <span class="num">05 — FOUNDATIONS</span>
+        <h2>Typography</h2>
+        <p>Three voices. Bricolage Grotesque brings engineered character to display. Hanken Grotesk is the calm, readable workhorse for interface copy. JetBrains Mono handles everything that is data — cell values, credits, IDs, keys — where tabular alignment matters.</p>
+      </div>
+
+      <div class="type-spec">
+        <div class="tstrip"><span class="fam" style="font-family:var(--font-display)">Bricolage Grotesque</span><span class="role">Display · headings</span></div>
+        <div class="sample" style="font-family:var(--font-display);font-weight:800;font-size:clamp(2rem,5vw,3.4rem);letter-spacing:-.04em;line-height:1.02">Enrich, don't guess.</div>
+        <div class="weights"><span style="font-family:var(--font-display);font-weight:500">Medium 500</span><span style="font-family:var(--font-display);font-weight:700">Bold 700</span><span style="font-family:var(--font-display);font-weight:800">Extrabold 800</span></div>
+      </div>
+      <div class="type-spec">
+        <div class="tstrip"><span class="fam" style="font-family:var(--font-body)">Hanken Grotesk</span><span class="role">Body · UI</span></div>
+        <div class="sample" style="font-family:var(--font-body);font-size:1.05rem;color:var(--text-2);line-height:1.6;max-width:60ch">A waterfall runs providers in a defined order and only falls through to the next when the previous returns nothing — maximising coverage while minimising spend. Interface copy stays in Hanken at 400–600.</div>
+        <div class="weights"><span style="font-weight:400">Regular 400</span><span style="font-weight:500">Medium 500</span><span style="font-weight:600">Semibold 600</span><span style="font-weight:700">Bold 700</span></div>
+      </div>
+      <div class="type-spec">
+        <div class="tstrip"><span class="fam mono">JetBrains Mono</span><span class="role">Data · code · numerals</span></div>
+        <div class="sample mono" style="font-size:1rem;color:var(--text);line-height:1.7">jordan@northwind.io &nbsp; <span style="color:var(--gold)">2,480 cr</span> &nbsp; <span style="color:var(--st-success)">deliverable</span><br>rec_9fK2x7Lp &nbsp; +1 415 555 0132 &nbsp; <span style="color:var(--brand)">from_cache</span></div>
+        <div class="weights mono"><span>Regular 400</span><span style="font-weight:500">Medium 500</span><span style="font-weight:700">Bold 700</span></div>
+      </div>
+
+      <div class="sub-head">Type scale</div>
+      <div>
+        <div class="scale-row"><span class="tok">fs-hero</span><span class="demo" style="font-size:2.6rem">Cascade</span></div>
+        <div class="scale-row"><span class="tok">fs-h1</span><span class="demo" style="font-size:2rem">Enrichment engine</span></div>
+        <div class="scale-row"><span class="tok">fs-h2</span><span class="demo" style="font-size:1.55rem">Waterfall builder</span></div>
+        <div class="scale-row"><span class="tok">fs-h3</span><span class="demo" style="font-size:1.2rem">Provider steps</span></div>
+        <div class="scale-row"><span class="tok">fs-body</span><span class="demo" style="font-size:.95rem;font-family:var(--font-body);font-weight:400;color:var(--text-2)">Body copy for interface surfaces</span></div>
+        <div class="scale-row"><span class="tok">fs-xs</span><span class="demo mono" style="font-size:.72rem;font-weight:500;color:var(--text-3);letter-spacing:.1em;text-transform:uppercase">Label / caption</span></div>
+      </div>
+    </section>
+
+    <!-- SPACING & RADIUS -->
+    <section class="block" id="space">
+      <div class="block-head">
+        <span class="num">06 — FOUNDATIONS</span>
+        <h2>Spacing &amp; radius</h2>
+        <p>A strict 4px base grid keeps a dense interface aligned. Radii stay tight — cells are nearly sharp so a grid reads as a grid; only chrome and cards soften.</p>
+      </div>
+      <div class="sub-head">Space scale · 4px base</div>
+      <div>
+        <div class="space-row"><span class="lbl">4 · xs</span><span class="box" style="width:4px"></span></div>
+        <div class="space-row"><span class="lbl">8 · sm</span><span class="box" style="width:8px"></span></div>
+        <div class="space-row"><span class="lbl">12 · md</span><span class="box" style="width:12px"></span></div>
+        <div class="space-row"><span class="lbl">16 · lg</span><span class="box" style="width:16px"></span></div>
+        <div class="space-row"><span class="lbl">24 · xl</span><span class="box" style="width:24px"></span></div>
+        <div class="space-row"><span class="lbl">32 · 2xl</span><span class="box" style="width:32px"></span></div>
+        <div class="space-row"><span class="lbl">48 · 3xl</span><span class="box" style="width:48px"></span></div>
+        <div class="space-row"><span class="lbl">64 · 4xl</span><span class="box" style="width:64px"></span></div>
+      </div>
+      <div class="sub-head">Radius</div>
+      <div class="radius-grid">
+        <div class="rb"><div class="box" style="border-radius:3px"></div><div class="lbl">3 · cell</div></div>
+        <div class="rb"><div class="box" style="border-radius:5px"></div><div class="lbl">5 · sm</div></div>
+        <div class="rb"><div class="box" style="border-radius:8px"></div><div class="lbl">8 · md</div></div>
+        <div class="rb"><div class="box" style="border-radius:12px"></div><div class="lbl">12 · card</div></div>
+        <div class="rb"><div class="box" style="border-radius:18px"></div><div class="lbl">18 · xl</div></div>
+        <div class="rb"><div class="box" style="border-radius:999px"></div><div class="lbl">full · pill</div></div>
+      </div>
+    </section>
+
+    <!-- ELEVATION -->
+    <section class="block" id="elevation">
+      <div class="block-head">
+        <span class="num">07 — FOUNDATIONS</span>
+        <h2>Elevation</h2>
+        <p>Depth is quiet and cool. Surfaces layer by lightness first; shadow only appears when something genuinely lifts off the plane — a popover, a modal, a dragged step.</p>
+      </div>
+      <div class="elev-grid">
+        <div class="eb" style="box-shadow:var(--shadow-1)">shadow-1 · rest</div>
+        <div class="eb" style="box-shadow:var(--shadow-2)">shadow-2 · card</div>
+        <div class="eb" style="box-shadow:var(--shadow-3)">shadow-3 · popover</div>
+        <div class="eb" style="box-shadow:var(--shadow-pop)">shadow-pop · modal</div>
+      </div>
+    </section>
+
+    <!-- MOTION -->
+    <section class="block" id="motion">
+      <div class="block-head">
+        <span class="num">08 — FOUNDATIONS</span>
+        <h2>Motion</h2>
+        <p>Motion follows water — it eases out, it flows downward, and it stays out of the way. The running state is the only persistent animation in the product; everything else is a brief, purposeful transition. All of it respects <code class="inline">prefers-reduced-motion</code>.</p>
+      </div>
+      <div class="motion-grid">
+        <div class="motion-card"><div class="mtok">--ease</div><div class="mval">cubic-bezier(.22,.61,.36,1)</div><p>Default flow — decelerating ease-out for reveals and hovers.</p></div>
+        <div class="motion-card"><div class="mtok">--dur-1 → 4</div><div class="mval">120 · 220 · 360 · 640 ms</div><p>Interaction, transition, entrance, ambient. Rarely longer.</p></div>
+        <div class="motion-card"><div class="mtok">running-bar</div><div class="mval">1.3s · infinite</div><p>The in-flight sweep beneath a Running cell. Loops until terminal.</p></div>
+        <div class="motion-card"><div class="mtok">pulse-dot</div><div class="mval">1.1s · ease-inout</div><p>The breathing status dot. Signals "live" without shouting.</p></div>
+      </div>
+    </section>
+
+    <!-- BUTTONS -->
+    <section class="block" id="actions">
+      <div class="block-head">
+        <span class="num">09 — COMPONENTS</span>
+        <h2>Buttons &amp; actions</h2>
+        <p>One primary per view — usually the run. Everything destructive or spend-related states its consequence in the label. Sizes track density: small in toolbars, default in panels.</p>
+      </div>
+      <div class="gallery">
+        <div class="demo-tile">
+          <div class="cap"><span class="t">Variants</span><span class="n">.btn</span></div>
+          <div class="stage">
+            <button class="btn btn-primary">Run enrichment</button>
+            <button class="btn btn-secondary">Add column</button>
+            <button class="btn btn-ghost">Cancel</button>
+            <button class="btn btn-danger">Delete table</button>
+          </div>
+        </div>
+        <div class="demo-tile">
+          <div class="cap"><span class="t">With icons &amp; sizes</span><span class="n">.btn-sm / lg</span></div>
+          <div class="stage">
+            <button class="btn btn-primary btn-sm"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3l14 9-14 9z"/></svg>Run</button>
+            <button class="btn btn-secondary"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>New view</button>
+            <button class="btn btn-primary btn-lg">Confirm run · 2,480 cr</button>
+          </div>
+        </div>
+        <div class="demo-tile">
+          <div class="cap"><span class="t">Loading &amp; disabled</span><span class="n">states</span></div>
+          <div class="stage">
+            <button class="btn btn-primary" style="opacity:.8"><span class="cell-shimmer" style="width:14px;height:14px;border-radius:50%"></span>Running…</button>
+            <button class="btn btn-secondary" disabled style="opacity:.45;cursor:not-allowed">Budget reached</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FORMS -->
+    <section class="block" id="forms">
+      <div class="block-head">
+        <span class="num">10 — COMPONENTS</span>
+        <h2>Forms &amp; fields</h2>
+        <p>Every field knows its column type, and validates on that type — Email rejects a bad shape, Number rejects letters. Validation is inline, specific, and never blocks the rest of the row.</p>
+      </div>
+      <div class="gallery">
+        <div class="demo-tile">
+          <div class="cap"><span class="t">Typed inputs</span><span class="n">column types</span></div>
+          <div class="stage col">
+            <div class="field"><label>Company domain <span class="ty">URL</span></label><input class="input ok" value="northwind.io"><span class="hint">Normalised before caching · strips protocol &amp; www</span></div>
+            <div class="field"><label>Work email <span class="ty">Email</span></label><input class="input err" value="jordan@northwind"><span class="hint err">Not a valid email shape — value not saved</span></div>
+            <div class="field"><label>Employees <span class="ty">Number</span></label><input class="input" placeholder="e.g. 240"></div>
+          </div>
+        </div>
+        <div class="demo-tile">
+          <div class="cap"><span class="t">Select &amp; toggles</span><span class="n">controls</span></div>
+          <div class="stage col">
+            <div class="field"><label>Fall-through condition <span class="ty">Select</span></label><select class="select"><option>Previous step returned empty</option><option>Email marked deliverable</option><option>Confidence ≥ 0.8</option></select></div>
+            <div style="display:flex;align-items:center;justify-content:space-between"><span style="font-size:var(--fs-sm)">Auto-run on new rows</span><span class="switch on" data-switch></span></div>
+            <div style="display:flex;align-items:center;justify-content:space-between"><span style="font-size:var(--fs-sm)">Only enrich empty cells</span><span class="switch" data-switch></span></div>
+          </div>
+        </div>
+        <div class="demo-tile">
+          <div class="cap"><span class="t">Select-option chips</span><span class="n">multi-select cells</span></div>
+          <div class="stage">
+            <span class="tag" style="color:var(--brand);border-color:var(--brand-line);background:var(--brand-soft)">SaaS</span>
+            <span class="tag" style="color:var(--cobalt);border-color:var(--cobalt-line);background:var(--cobalt-soft)">Series B</span>
+            <span class="tag" style="color:var(--gold);border-color:var(--gold-line);background:var(--gold-soft)">Priority</span>
+            <span class="tag" style="color:var(--st-cached);border-color:color-mix(in srgb,var(--st-cached) 30%,transparent);background:var(--st-cached-soft)">Fintech</span>
+            <button class="btn btn-ghost btn-sm" style="border:1px dashed var(--border-strong)">+ option</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PILLS -->
+    <section class="block" id="pills">
+      <div class="block-head">
+        <span class="num">11 — COMPONENTS</span>
+        <h2>Pills, badges &amp; provider chips</h2>
+        <p>Status pills are the load-bearing badge. Tags label data; provider chips identify sources with a monogram so a waterfall reads at a glance.</p>
+      </div>
+      <div class="sub-head">Status pills</div>
+      <div class="stage" style="display:flex;flex-wrap:wrap;gap:10px;padding:0">
+        <span class="pill pill-queued"><span class="dot"></span>Queued</span>
+        <span class="pill pill-running"><span class="dot"></span>Running</span>
+        <span class="pill pill-success"><span class="dot"></span>Success</span>
+        <span class="pill pill-empty"><span class="dot"></span>Empty</span>
+        <span class="pill pill-failed"><span class="dot"></span>Failed</span>
+        <span class="pill pill-cached"><span class="dot"></span>Cached</span>
+      </div>
+      <div class="sub-head">Provider chips</div>
+      <div class="stage" style="display:flex;flex-wrap:wrap;gap:10px;padding:0">
+        <span class="prov-chip"><span class="prov-mono" style="background:#3b82f6">PD</span>People Data Labs</span>
+        <span class="prov-chip"><span class="prov-mono" style="background:#f97316">Hu</span>Hunter.io</span>
+        <span class="prov-chip"><span class="prov-mono" style="background:#8b5cf6">Pr</span>Prospeo</span>
+        <span class="prov-chip"><span class="prov-mono" style="background:#10b981">ZB</span>ZeroBounce</span>
+        <span class="prov-chip"><span class="prov-mono" style="background:#ec4899">Ap</span>Apollo</span>
+        <span class="prov-chip"><span class="prov-mono" style="background:var(--brand);color:var(--brand-ink)">Cs</span>Cascade Data</span>
+      </div>
+    </section>
+
+    <!-- DATA GRID -->
+    <section class="block" id="grid">
+      <div class="block-head">
+        <span class="num">12 — COMPONENTS · SIGNATURE</span>
+        <h2>The data grid</h2>
+        <p>The product's face. A virtualized spreadsheet with typed columns, a frozen first column, inline editing, and — critically — enrichment columns whose cells render their own async state. Hover a row; scroll it sideways.</p>
+      </div>
+      <div class="grid-wrap">
+        <div class="grid-toolbar">
+          <span class="tname"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg> Outbound · Q3 Targets</span>
+          <span class="tag mono">1,240 rows</span>
+          <span class="flex"></span>
+          <span class="seg"><button class="on">All</button><button>Empty only</button><button>Failed</button></span>
+          <button class="btn btn-secondary btn-sm"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg>Filter</button>
+          <button class="btn btn-primary btn-sm">Run selected</button>
+        </div>
+        <div class="grid-scroll">
+          <table class="grid">
+            <thead>
+              <tr>
+                <th class="col-frozen"><div class="cell rowhead">#</div></th>
+                <th class="col-frozen" style="left:34px;min-width:180px"><div class="cell">Company <span class="ty">Aa</span></div></th>
+                <th style="min-width:150px"><div class="cell">Domain <span class="ty">URL</span></div></th>
+                <th style="min-width:110px"><div class="cell">Employees <span class="ty">#</span></div></th>
+                <th style="min-width:230px"><div class="cell" style="color:var(--brand)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v18M6 9l6-6 6 6"/></svg> Work email <span class="ty" style="color:var(--brand);opacity:.7">waterfall</span></div></th>
+                <th style="min-width:140px"><div class="cell">Verified <span class="ty">Aa</span></div></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="col-frozen"><div class="cell rowhead">01</div></td>
+                <td class="col-frozen" style="left:34px"><div class="cell"><span style="font-weight:600">Northwind Labs</span></div></td>
+                <td><div class="cell"><span class="gcell-val">northwind.io</span></div></td>
+                <td><div class="cell"><span class="gcell-val tnum">240</span></div></td>
+                <td class="enrich"><div class="enrich-cell"><span class="mini-dot" style="background:var(--st-success)"></span><span class="gcell-val">jordan@northwind.io</span></div></td>
+                <td><div class="cell"><span class="pill pill-success"><span class="dot"></span>Deliverable</span></div></td>
+              </tr>
+              <tr>
+                <td class="col-frozen"><div class="cell rowhead">02</div></td>
+                <td class="col-frozen" style="left:34px"><div class="cell"><span style="font-weight:600">Aperture Systems</span></div></td>
+                <td><div class="cell"><span class="gcell-val">aperture.com</span></div></td>
+                <td><div class="cell"><span class="gcell-val tnum">1,180</span></div></td>
+                <td class="enrich"><div class="enrich-cell"><span class="cell-shimmer"></span><span class="pill pill-running" style="flex:none"><span class="dot"></span>Running</span></div><span class="running-bar"></span></td>
+                <td><div class="cell"><span class="gcell-muted">—</span></div></td>
+              </tr>
+              <tr>
+                <td class="col-frozen"><div class="cell rowhead">03</div></td>
+                <td class="col-frozen" style="left:34px"><div class="cell"><span style="font-weight:600">Balto Freight</span></div></td>
+                <td><div class="cell"><span class="gcell-val">baltofreight.co</span></div></td>
+                <td><div class="cell"><span class="gcell-val tnum">63</span></div></td>
+                <td class="enrich"><div class="enrich-cell"><span class="mini-dot" style="background:var(--st-cached)"></span><span class="gcell-val">rosa@baltofreight.co</span> <span class="pill pill-cached" style="flex:none"><span class="dot"></span>Cached</span></div></td>
+                <td><div class="cell"><span class="pill pill-success"><span class="dot"></span>Deliverable</span></div></td>
+              </tr>
+              <tr>
+                <td class="col-frozen"><div class="cell rowhead">04</div></td>
+                <td class="col-frozen" style="left:34px"><div class="cell"><span style="font-weight:600">Vellum Studio</span></div></td>
+                <td><div class="cell"><span class="gcell-val">vellum.design</span></div></td>
+                <td><div class="cell"><span class="gcell-muted tnum">—</span></div></td>
+                <td class="enrich"><div class="enrich-cell"><span class="mini-dot" style="background:var(--st-empty)"></span><span class="gcell-muted">no match found</span> <span class="pill pill-empty" style="flex:none"><span class="dot"></span>Empty</span></div></td>
+                <td><div class="cell"><span class="gcell-muted">—</span></div></td>
+              </tr>
+              <tr>
+                <td class="col-frozen"><div class="cell rowhead">05</div></td>
+                <td class="col-frozen" style="left:34px"><div class="cell"><span style="font-weight:600">Corsair Cloud</span></div></td>
+                <td><div class="cell"><span class="gcell-val">corsair.cloud</span></div></td>
+                <td><div class="cell"><span class="gcell-val tnum">512</span></div></td>
+                <td class="enrich"><div class="enrich-cell" title="Provider timeout after 3 retries"><span class="mini-dot" style="background:var(--st-failed)"></span><span class="gcell-muted">timeout · retried ×3</span> <span class="pill pill-failed" style="flex:none"><span class="dot"></span>Failed</span></div></td>
+                <td><div class="cell"><span class="gcell-muted">—</span></div></td>
+              </tr>
+              <tr>
+                <td class="col-frozen"><div class="cell rowhead">06</div></td>
+                <td class="col-frozen" style="left:34px"><div class="cell"><span style="font-weight:600">Meridian Health</span></div></td>
+                <td><div class="cell"><span class="gcell-val">meridianhealth.org</span></div></td>
+                <td><div class="cell"><span class="gcell-val tnum">3,400</span></div></td>
+                <td class="enrich"><div class="enrich-cell"><span class="mini-dot" style="background:var(--st-queued)"></span><span class="gcell-muted">queued</span> <span class="pill pill-queued" style="flex:none"><span class="dot"></span>Queued</span></div></td>
+                <td><div class="cell"><span class="gcell-muted">—</span></div></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <p style="font-size:var(--fs-xs);color:var(--text-3);margin-top:12px;font-family:var(--font-mono)">↳ frozen columns pin left · the "Work email" column is a 3-step waterfall · each cell owns its status &amp; provenance in <code class="inline">cell.meta_json</code></p>
+    </section>
+
+    <!-- WATERFALL -->
+    <section class="block" id="waterfall">
+      <div class="block-head">
+        <span class="num">13 — COMPONENTS · SIGNATURE</span>
+        <h2>Waterfall builder</h2>
+        <p>An ordered list of provider steps with input mapping, an acceptance condition on each fall-through, and the per-step credit cost made explicit. Drag to reorder; a row only reaches a step if every step above returned nothing usable.</p>
+      </div>
+      <div class="card" style="padding:20px;max-width:720px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <span style="font-weight:700;font-family:var(--font-display)">find_work_email</span>
+          <span class="tag mono">3 steps · est. ≤ 2 cr/row</span>
+        </div>
+        <div class="waterfall">
+          <div class="wf-step">
+            <span class="wf-handle"><span></span><span></span><span></span></span>
+            <div class="wf-body">
+              <div class="pname"><span class="prov-mono" style="background:#3b82f6">PD</span> People Data Labs · person enrich</div>
+              <div class="pmap">in <b>first_name · last_name · domain</b> → out <b>work_email</b></div>
+            </div>
+            <div class="wf-cost"><div class="c">1 cr</div><div class="u">~$0.008</div></div>
+          </div>
+          <div class="wf-connector"><span class="line"></span><span>fall through if</span><span class="cond">email is empty</span></div>
+          <div class="wf-step">
+            <span class="wf-handle"><span></span><span></span><span></span></span>
+            <div class="wf-body">
+              <div class="pname"><span class="prov-mono" style="background:#f97316">Hu</span> Hunter.io · email finder</div>
+              <div class="pmap">in <b>full_name · domain</b> → out <b>work_email · confidence</b></div>
+            </div>
+            <div class="wf-cost"><div class="c">1 cr</div><div class="u">~$0.010</div></div>
+          </div>
+          <div class="wf-connector"><span class="line"></span><span>then verify &amp; accept only if</span><span class="cond">deliverable</span></div>
+          <div class="wf-step" style="border-color:var(--brand-line);background:var(--brand-soft)">
+            <span class="wf-handle"><span></span><span></span><span></span></span>
+            <div class="wf-body">
+              <div class="pname"><span class="prov-mono" style="background:#10b981">ZB</span> ZeroBounce · verify</div>
+              <div class="pmap">in <b>work_email</b> → out <b>verify_status</b> · else fall through</div>
+            </div>
+            <div class="wf-cost"><div class="c">0.5 cr</div><div class="u">~$0.004</div></div>
+          </div>
+        </div>
+        <button class="btn btn-ghost btn-sm" style="border:1px dashed var(--border-strong);margin-top:14px;width:100%">+ Add provider step</button>
+      </div>
+    </section>
+
+    <!-- CREDITS -->
+    <section class="block" id="credits">
+      <div class="block-head">
+        <span class="num">14 — COMPONENTS</span>
+        <h2>Credits &amp; usage</h2>
+        <p>The money surface. Balance, budget consumed, and a breakdown by table, column, and provider — all in amber, all reconciling to a single append-only ledger. Cache hits and empty-input rows are shown as free.</p>
+      </div>
+      <div class="gallery">
+        <div class="demo-tile g-wide">
+          <div class="cap"><span class="t">Workspace credit meter</span><span class="n">this billing period</span></div>
+          <div class="stage col" style="gap:18px">
+            <div class="meter-card">
+              <div class="meter-top">
+                <div><div class="mono" style="font-size:var(--fs-2xs);color:var(--text-3);letter-spacing:.1em;text-transform:uppercase">Balance</div><div class="bal">18,240 <small>cr</small></div></div>
+                <div style="text-align:right"><div class="mono" style="font-size:var(--fs-2xs);color:var(--text-3)">31,760 / 50,000 used</div><div style="font-size:var(--fs-sm);color:var(--text-2);margin-top:4px">renews Aug 1 · est. next charge <b class="mono" style="color:var(--gold)">$180</b></div></div>
+              </div>
+              <div class="meter-bar">
+                <i style="width:44%;background:var(--brand)"></i>
+                <i style="width:14%;background:var(--cobalt)"></i>
+                <i style="width:6%;background:var(--st-cached)"></i>
+              </div>
+              <div class="meter-legend">
+                <span><span class="k" style="background:var(--brand)"></span>Enrichment · 22,100</span>
+                <span><span class="k" style="background:var(--cobalt)"></span>AI &amp; agent · 7,020</span>
+                <span><span class="k" style="background:var(--st-cached)"></span>Cache saved · 2,640</span>
+                <span><span class="k" style="background:var(--surface-3)"></span>Remaining · 18,240</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="demo-tile g-wide">
+          <div class="cap"><span class="t">Consumption by provider</span><span class="n">margin visible to Admin</span></div>
+          <div class="stage col">
+            <div class="breakdown" style="width:100%">
+              <div class="bd-row" style="border-top:0"><span>People Data Labs</span><span class="mono tnum" style="color:var(--text-2)">11,400 cr</span><span class="mono tnum" style="color:var(--gold)">$91.20</span><span class="b-track"><i style="width:62%"></i></span></div>
+              <div class="bd-row"><span>Hunter.io</span><span class="mono tnum" style="color:var(--text-2)">6,300 cr</span><span class="mono tnum" style="color:var(--gold)">$63.00</span><span class="b-track"><i style="width:38%"></i></span></div>
+              <div class="bd-row"><span>ZeroBounce · verify</span><span class="mono tnum" style="color:var(--text-2)">4,400 cr</span><span class="mono tnum" style="color:var(--gold)">$17.60</span><span class="b-track"><i style="width:24%"></i></span></div>
+              <div class="bd-row"><span>Claude · AI columns</span><span class="mono tnum" style="color:var(--text-2)">7,020 cr</span><span class="mono tnum" style="color:var(--gold)">$42.10</span><span class="b-track"><i style="width:40%"></i></span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- AI -->
+    <section class="block" id="ai">
+      <div class="block-head">
+        <span class="num">15 — COMPONENTS</span>
+        <h2>AI &amp; agent columns</h2>
+        <p>An LLM call is just another metered, cached, retryable operation. Prompts reference cells with typed chips; a web-research agent returns structured fields with source citations. Same status machine, same ledger.</p>
+      </div>
+      <div class="gallery">
+        <div class="demo-tile">
+          <div class="cap"><span class="t">AI column · prompt</span><span class="n">references cells</span></div>
+          <div class="stage col">
+            <div class="ai-prompt">Summarise what <span class="ref">{{Company}}</span> sells in one line, then classify its <span class="ref">{{Industry}}</span> into one of: SaaS, Fintech, Health, Commerce.</div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:4px">
+              <span class="tag"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg> Claude</span>
+              <span class="tag mono">2 output fields</span>
+              <span class="tag mono" style="color:var(--gold);border-color:var(--gold-line)">~3 cr/row</span>
+            </div>
+          </div>
+        </div>
+        <div class="demo-tile">
+          <div class="cap"><span class="t">Agent column · result</span><span class="n">with citations</span></div>
+          <div class="stage col">
+            <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-weight:600;font-size:var(--fs-sm)">Recent funding</span><span class="pill pill-success"><span class="dot"></span>Success</span></div>
+            <p style="font-size:var(--fs-sm);color:var(--text)">Series B · $40M · led by Ascend Capital <span class="mono" style="color:var(--text-3);font-size:var(--fs-2xs)">(Mar 2026)</span></p>
+            <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="chip" style="background:var(--cobalt-soft);color:var(--cobalt);border-color:var(--cobalt-line)">↗ techcrunch.com</span><span class="chip" style="background:var(--cobalt-soft);color:var(--cobalt);border-color:var(--cobalt-line)">↗ sec.gov</span></div>
+            <p style="font-size:var(--fs-2xs);color:var(--text-3);font-family:var(--font-mono)">bounded · max 6 pages · 4 steps · Firecrawl + Exa</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FEEDBACK -->
+    <section class="block" id="feedback">
+      <div class="block-head">
+        <span class="num">16 — COMPONENTS</span>
+        <h2>Feedback &amp; overlays</h2>
+        <p>Alerts, run confirmations, and tabs. Spend-gating confirmations are non-negotiable: no billable run starts without an estimated ceiling and an explicit click.</p>
+      </div>
+      <div class="gallery">
+        <div class="demo-tile">
+          <div class="cap"><span class="t">Alerts</span><span class="n">4 intents</span></div>
+          <div class="stage col">
+            <div class="alert alert-info"><span class="ico">i</span><span class="msg"><span class="h">Auto-run is on</span><p>New rows with a domain will enrich automatically.</p></span></div>
+            <div class="alert alert-success"><span class="ico">✓</span><span class="msg"><span class="h">Run complete</span><p>1,181 enriched · 59 empty · 2,410 credits used.</p></span></div>
+            <div class="alert alert-warn"><span class="ico">!</span><span class="msg"><span class="h">Approaching budget</span><p>92% of the workspace budget consumed this period.</p></span></div>
+            <div class="alert alert-error"><span class="ico">✕</span><span class="msg"><span class="h">Provider key invalid</span><p>Hunter.io returned 401 — update the key in provider settings.</p></span></div>
+          </div>
+        </div>
+        <div class="demo-tile">
+          <div class="cap"><span class="t">Run confirmation</span><span class="n">spend gate</span></div>
+          <div class="stage" style="justify-content:center">
+            <div class="modal-demo">
+              <div class="m-head"><h4>Run waterfall on 1,240 rows?</h4></div>
+              <div class="m-body">
+                <p>Providers run in order and stop as soon as a deliverable email is found. Cached and empty-input rows are free.</p>
+                <div class="cost-line"><span class="lab">Estimated maximum</span><span class="amt">≤ 2,480 credits</span></div>
+              </div>
+              <div class="m-foot"><button class="btn btn-ghost btn-sm">Cancel</button><button class="btn btn-primary btn-sm">Confirm &amp; run</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ROLES -->
+    <section class="block" id="roles">
+      <div class="block-head">
+        <span class="num">17 — COMPONENTS</span>
+        <h2>Members &amp; roles</h2>
+        <p>Four workspace roles, enforced server-side and at the database with row-level security. The badge colour signals authority; Viewers can read and export but never mutate.</p>
+      </div>
+      <div class="card" style="padding:6px 18px;max-width:560px">
+        <div class="member">
+          <span class="avatar" style="background:var(--brand)">SD</span>
+          <span class="who"><div class="nm">Swarnendu De</div><div class="em">swarnendu@insightstap.com</div></span>
+          <span class="role-badge role-owner">Owner</span>
+        </div>
+        <div class="member">
+          <span class="avatar" style="background:var(--cobalt);color:#fff">RA</span>
+          <span class="who"><div class="nm">Rhea Advani</div><div class="em">rhea@insightstap.com</div></span>
+          <span class="role-badge role-admin">Admin</span>
+        </div>
+        <div class="member">
+          <span class="avatar" style="background:var(--surface-3);color:var(--text-2)">MK</span>
+          <span class="who"><div class="nm">Marco Klein</div><div class="em">marco@insightstap.com</div></span>
+          <span class="role-badge role-member">Member</span>
+        </div>
+        <div class="member" style="border-bottom:0">
+          <span class="avatar" style="background:transparent;border:1px dashed var(--border-strong);color:var(--text-3)">JP</span>
+          <span class="who"><div class="nm">Priya Nair <span class="tag" style="font-size:var(--fs-2xs);padding:.1em .4em">pending</span></div><div class="em">priya@client.com</div></span>
+          <span class="role-badge role-viewer">Viewer</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="foot" id="patterns">
+      <div class="fg">
+        <div style="max-width:44ch">
+          <div class="brand" style="margin-bottom:10px"><svg class="glyph" viewBox="0 0 32 32" fill="none"><path d="M4 7h24M7 13.5h18M10 20h12M13 26.5h6" stroke="url(#bg2)" stroke-width="2.6" stroke-linecap="round"/><defs><linearGradient id="bg2" x1="4" y1="7" x2="28" y2="27" gradientUnits="userSpaceOnUse"><stop stop-color="#2fe6c8"/><stop offset="1" stop-color="#6c9bff"/></linearGradient></defs></svg> Cascade</div>
+          <p style="font-size:var(--fs-sm);color:var(--text-2)">Deep Current — the design language for an operator-first GTM enrichment platform. Built to make async, metered, provider-driven data feel calm and honest.</p>
+        </div>
+        <div class="fmeta">
+          Design System v1.0 · Draft<br>
+          SDTC Digital · InsightsTap<br>
+          Bricolage Grotesque · Hanken Grotesk · JetBrains Mono
+        </div>
+      </div>
+    </footer>
+  </main>
+</div>
+
+<div class="copytoast" id="copytoast">copied</div>
+
+<script>
+(function () {
+  var root = document.documentElement;
+  // theme toggle
+  var btn = document.getElementById('themeBtn');
+  function current() {
+    var t = root.getAttribute('data-theme');
+    if (t) return t;
+    return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  }
+  btn.addEventListener('click', function () {
+    root.setAttribute('data-theme', current() === 'light' ? 'dark' : 'light');
+  });
+
+  // copy swatch hex
+  var toast = document.getElementById('copytoast'), tt;
+  document.querySelectorAll('.swatch[data-hex]').forEach(function (s) {
+    s.addEventListener('click', function () {
+      var hex = s.getAttribute('data-hex');
+      if (navigator.clipboard) navigator.clipboard.writeText(hex).catch(function(){});
+      toast.textContent = hex + ' copied';
+      toast.classList.add('show');
+      clearTimeout(tt); tt = setTimeout(function () { toast.classList.remove('show'); }, 1200);
+    });
+  });
+
+  // switches
+  document.querySelectorAll('[data-switch]').forEach(function (sw) {
+    sw.addEventListener('click', function () { sw.classList.toggle('on'); });
+  });
+  // segmented
+  document.querySelectorAll('.seg').forEach(function (seg) {
+    seg.querySelectorAll('button').forEach(function (b) {
+      b.addEventListener('click', function () {
+        seg.querySelectorAll('button').forEach(function (x) { x.classList.remove('on'); });
+        b.classList.add('on');
+      });
+    });
+  });
+
+  // scrollspy for TOC
+  var links = Array.prototype.slice.call(document.querySelectorAll('.toc a'));
+  var map = {};
+  links.forEach(function (l) { var id = l.getAttribute('href').slice(1); map[id] = l; });
+  var obs = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) {
+      if (e.isIntersecting) {
+        links.forEach(function (l) { l.classList.remove('active'); });
+        var l = map[e.target.id];
+        if (l) l.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+  document.querySelectorAll('.block, .hero, .foot').forEach(function (b) { if (b.id) obs.observe(b); });
+
+  // hero waterfall demo loop
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var pills = [0,1,2].map(function (i) { return document.querySelector('[data-pill="'+i+'"]'); });
+  var rows = [0,1,2].map(function (i) { return document.querySelector('[data-step="'+i+'"]'); });
+  var out = document.getElementById('demoOut'), outPill = document.getElementById('demoOutPill');
+  function setPill(el, cls, txt) { el.className = 'pill ' + cls; el.innerHTML = '<span class="dot"></span>' + txt; }
+  function reset() {
+    pills.forEach(function (p) { setPill(p, 'pill-queued', 'Queued'); });
+    rows.forEach(function (r) { r.classList.remove('active','done','skip'); });
+    out.textContent = 'awaiting run…'; out.className = 'val pending';
+    setPill(outPill, 'pill-queued', 'Idle');
+  }
+  var timeline = [
+    function () { rows[0].classList.add('active'); setPill(pills[0], 'pill-running', 'Running'); },
+    function () { rows[0].classList.remove('active'); rows[0].classList.add('skip'); setPill(pills[0], 'pill-empty', 'Empty'); },
+    function () { rows[1].classList.add('active'); setPill(pills[1], 'pill-running', 'Running'); },
+    function () { rows[1].classList.remove('active'); rows[1].classList.add('done'); setPill(pills[1], 'pill-success', 'Found'); out.textContent = 'rosa@aperture.com'; out.className = 'val'; },
+    function () { rows[2].classList.add('active'); setPill(pills[2], 'pill-running', 'Running'); },
+    function () { rows[2].classList.remove('active'); rows[2].classList.add('done'); setPill(pills[2], 'pill-success', 'Deliverable'); setPill(outPill, 'pill-success', 'Success'); }
+  ];
+  if (!reduce) {
+    var step = 0;
+    reset();
+    setInterval(function () {
+      if (step === 0) reset();
+      timeline[step]();
+      step = (step + 1) % (timeline.length + 2);
+      if (step > timeline.length) step = 0;
+    }, 1050);
+  } else {
+    // static resolved state
+    setPill(pills[0], 'pill-empty', 'Empty'); rows[0].classList.add('skip');
+    setPill(pills[1], 'pill-success', 'Found'); rows[1].classList.add('done');
+    setPill(pills[2], 'pill-success', 'Deliverable'); rows[2].classList.add('done');
+    out.textContent = 'rosa@aperture.com'; out.className = 'val';
+    setPill(outPill, 'pill-success', 'Success');
+  }
+
+  // hero canvas — descending "current" streaks
+  var cv = document.getElementById('current');
+  if (cv && !reduce) {
+    var ctx = cv.getContext('2d'), W, H, streaks = [], raf;
+    function size() {
+      var r = cv.getBoundingClientRect(), dpr = Math.min(window.devicePixelRatio || 1, 2);
+      W = cv.width = r.width * dpr; H = cv.height = r.height * dpr;
+      ctx.scale(dpr, dpr); ctx.setTransform(dpr,0,0,dpr,0,0);
+      W = r.width; H = r.height;
+    }
+    size();
+    for (var i = 0; i < 26; i++) {
+      streaks.push({ x: Math.random(), y: Math.random(), len: 40 + Math.random()*120, sp: .25 + Math.random()*.7, w: Math.random()<.3?1.4:.7 });
+    }
+    function tick() {
+      ctx.clearRect(0,0,W,H);
+      var light = current() === 'light';
+      streaks.forEach(function (s) {
+        s.y += s.sp / H;
+        if (s.y > 1.2) { s.y = -0.2; s.x = Math.random(); }
+        var px = s.x * W, py = s.y * H;
+        var g = ctx.createLinearGradient(px, py - s.len, px, py);
+        var c = light ? '12,154,132' : '47,230,200';
+        g.addColorStop(0, 'rgba('+c+',0)');
+        g.addColorStop(1, 'rgba('+c+',' + (light?0.18:0.26) + ')');
+        ctx.strokeStyle = g; ctx.lineWidth = s.w;
+        ctx.beginPath(); ctx.moveTo(px, py - s.len); ctx.lineTo(px, py); ctx.stroke();
+      });
+      raf = requestAnimationFrame(tick);
+    }
+    tick();
+    window.addEventListener('resize', function () { cancelAnimationFrame(raf); size(); tick(); });
+  }
+})();
+</script>
