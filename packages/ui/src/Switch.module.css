@@ -1,0 +1,38 @@
+/* Ported from design-system.src.html — .switch / .switch.on */
+.switch {
+  position: relative;
+  width: 40px;
+  height: 23px;
+  border-radius: var(--r-full);
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: background var(--dur-2), border-color var(--dur-2);
+  flex: none;
+  padding: 0;
+  margin: 0;
+  appearance: none;
+}
+.switch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: var(--text-3);
+  transition: transform var(--dur-2) var(--ease), background var(--dur-2);
+}
+.switch.on {
+  background: var(--brand-soft);
+  border-color: var(--brand-line);
+}
+.switch.on::after {
+  transform: translateX(17px);
+  background: var(--brand);
+}
+.switch:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

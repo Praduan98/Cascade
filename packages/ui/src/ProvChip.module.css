@@ -1,0 +1,24 @@
+/* Ported from design-system.src.html — .prov-chip / .prov-mono */
+.prov-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0.5em 0.75em;
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+.prov-mono {
+  width: 22px;
+  height: 22px;
+  border-radius: var(--r-sm);
+  display: grid;
+  place-items: center;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: var(--fs-2xs);
+  color: #fff;
+  flex: none;
+}

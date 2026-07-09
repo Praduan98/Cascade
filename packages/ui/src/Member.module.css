@@ -1,0 +1,27 @@
+/* Ported from design-system.src.html — .member */
+.member {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 10px 4px;
+  border-bottom: 1px solid var(--hairline);
+}
+.member.last {
+  border-bottom: 0;
+}
+.who {
+  flex: 1;
+  min-width: 0;
+}
+.who .nm {
+  font-weight: 600;
+  font-size: var(--fs-sm);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.who .em {
+  font-size: var(--fs-2xs);
+  color: var(--text-3);
+  font-family: var(--font-mono);
+}

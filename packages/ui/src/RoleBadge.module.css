@@ -1,0 +1,31 @@
+/* Ported from design-system.src.html — .role-badge + role variants */
+.role-badge {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  font-weight: 600;
+  padding: 0.3em 0.6em;
+  border-radius: var(--r-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: inline-block;
+}
+.role-owner {
+  background: var(--brand-soft);
+  color: var(--brand);
+  border: 1px solid var(--brand-line);
+}
+.role-admin {
+  background: var(--cobalt-soft);
+  color: var(--cobalt);
+  border: 1px solid var(--cobalt-line);
+}
+.role-member {
+  background: var(--surface-3);
+  color: var(--text-2);
+  border: 1px solid var(--border);
+}
+.role-viewer {
+  background: transparent;
+  color: var(--text-3);
+  border: 1px dashed var(--border-strong);
+}

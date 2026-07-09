@@ -1,0 +1,63 @@
+/* Radix DropdownMenu — Deep Current popover surface */
+.content {
+  min-width: 190px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-pop);
+  padding: 5px;
+  z-index: 95;
+  animation: menu-in var(--dur-1) var(--ease);
+}
+.item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  color: var(--text-2);
+  padding: 0.5em 0.65em;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  outline: none;
+  user-select: none;
+}
+.item svg {
+  width: 15px;
+  height: 15px;
+  opacity: 0.85;
+}
+.item[data-highlighted] {
+  background: var(--surface-3);
+  color: var(--text);
+}
+.item[data-disabled] {
+  color: var(--text-faint);
+  pointer-events: none;
+}
+.item.danger {
+  color: var(--st-failed);
+}
+.item.danger[data-highlighted] {
+  background: var(--st-failed-soft);
+  color: var(--st-failed);
+}
+.sep {
+  height: 1px;
+  background: var(--hairline);
+  margin: 5px 4px;
+}
+.label {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  padding: 6px 8px 4px;
+}
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}

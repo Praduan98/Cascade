@@ -1,0 +1,36 @@
+/* Ported from design-system.src.html — .input / textarea.input */
+.input {
+  font-family: var(--font-body);
+  font-size: var(--fs-sm);
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 0.6em 0.75em;
+  width: 100%;
+  transition: border-color var(--dur-2), box-shadow var(--dur-2), background var(--dur-2);
+}
+.input::placeholder {
+  color: var(--text-faint);
+}
+.input:focus {
+  outline: none;
+  border-color: var(--brand-line);
+  box-shadow: 0 0 0 3px var(--brand-soft);
+  background: var(--surface);
+}
+.input.ok {
+  border-color: color-mix(in srgb, var(--st-success) 45%, transparent);
+}
+.input.err {
+  border-color: color-mix(in srgb, var(--st-failed) 55%, transparent);
+}
+.input:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.area {
+  min-height: 78px;
+  resize: vertical;
+  line-height: 1.55;
+}

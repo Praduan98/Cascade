@@ -1,0 +1,43 @@
+/* Built from Deep Current tokens — empty-state placeholder */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+  padding: clamp(28px, 6vw, 56px) 24px;
+}
+.icon {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--r-lg);
+  display: grid;
+  place-items: center;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-3);
+}
+.icon svg {
+  width: 24px;
+  height: 24px;
+}
+.title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--fs-h4);
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+.desc {
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+  max-width: 42ch;
+  line-height: 1.55;
+}
+.action {
+  margin-top: 6px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}

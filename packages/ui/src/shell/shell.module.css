@@ -1,0 +1,182 @@
+/* Ported from architecture.src.html — app shell chrome (.topbar / .shell / .sh-*) */
+
+/* ---- Topbar ---- */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  height: 58px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding-inline: clamp(16px, 4vw, 40px);
+  background: color-mix(in srgb, var(--ground) 82%, transparent);
+  backdrop-filter: saturate(1.4) blur(14px);
+  -webkit-backdrop-filter: saturate(1.4) blur(14px);
+  border-bottom: 1px solid var(--hairline);
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  font-size: 1.12rem;
+  color: var(--text);
+}
+.brand .glyph {
+  width: 26px;
+  height: 26px;
+  flex: none;
+}
+.brand .sub {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  color: var(--text-3);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 0.25em 0.5em;
+  border: 1px solid var(--border);
+  border-radius: var(--r-full);
+  font-weight: 500;
+}
+.spacer {
+  flex: 1;
+}
+.topnav {
+  display: flex;
+  gap: 3px;
+}
+.topnav a {
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+  padding: 0.4em 0.7em;
+  border-radius: var(--r-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: color var(--dur-2), background var(--dur-2);
+}
+.topnav a:hover {
+  color: var(--text);
+  background: var(--surface-3);
+}
+.topnav a.active {
+  color: var(--brand);
+}
+@media (max-width: 940px) {
+  .topnav {
+    display: none;
+  }
+}
+
+/* ---- App shell ---- */
+.shell {
+  display: grid;
+  grid-template-columns: 190px 1fr;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  background: var(--surface);
+  box-shadow: var(--shadow-2);
+  min-height: 340px;
+}
+@media (max-width: 720px) {
+  .shell {
+    grid-template-columns: 1fr;
+  }
+  .shell .sh-side {
+    display: none;
+  }
+}
+.sh-side {
+  background: var(--surface-2);
+  border-right: 1px solid var(--hairline);
+  padding: 14px 10px;
+}
+.sh-main {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+/* ---- Workspace switcher ---- */
+.sh-ws {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px 12px;
+  border: 0;
+  border-bottom: 1px solid var(--hairline);
+  margin-bottom: 10px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+}
+.sh-ws .wsq {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--r-sm);
+  background: var(--grad-brand);
+  flex: none;
+}
+.sh-ws .wsn {
+  font-weight: 700;
+  font-size: var(--fs-sm);
+}
+.sh-ws .wscaret {
+  margin-left: auto;
+  color: var(--text-3);
+  flex: none;
+}
+
+/* ---- Side nav ---- */
+.sh-nav a {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0.5em 0.6em;
+  border-radius: var(--r-sm);
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+  font-weight: 500;
+  cursor: pointer;
+  transition: color var(--dur-2), background var(--dur-2);
+}
+.sh-nav a.on {
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+.sh-nav a:hover {
+  background: var(--surface-3);
+}
+.sh-nav a.on:hover {
+  background: var(--brand-soft);
+}
+.sh-nav a svg {
+  width: 15px;
+  height: 15px;
+  opacity: 0.8;
+  flex: none;
+}
+.sh-nav a.disabled {
+  color: var(--text-faint);
+  pointer-events: none;
+  opacity: 0.6;
+}
+.sh-nav .grp {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  color: var(--text-faint);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin: 14px 8px 6px;
+}
+.sh-nav .grp:first-child {
+  margin-top: 0;
+}

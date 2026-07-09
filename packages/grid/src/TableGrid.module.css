@@ -1,0 +1,63 @@
+/* Host chrome around the grid canvas. The grid SURFACE is themed via Glide's
+   canvas Theme (see useGlideTheme); these rules only style the wrapper and the
+   inline conflict/validation banner, from the global token layer. */
+
+.wrap {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-2);
+}
+
+.grid {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+/* Glide fills its parent; keep its border-radius clipped to the wrapper. */
+.grid :global(.gdg-wmyidgi) {
+  border-radius: 0;
+}
+
+.warning {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  font-size: var(--fs-sm);
+  color: var(--st-empty);
+  background: var(--st-empty-soft);
+  border-bottom: 1px solid color-mix(in srgb, var(--st-empty) 26%, transparent);
+}
+
+.warning span {
+  flex: 1;
+  min-width: 0;
+}
+
+.dismiss {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--r-sm);
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.dismiss:hover {
+  background: color-mix(in srgb, var(--st-empty) 18%, transparent);
+}

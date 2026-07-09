@@ -1,0 +1,31 @@
+/* Ported from design-system.src.html — .field */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+.field label {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--text-2);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.field label .ty {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  color: var(--text-3);
+  font-weight: 500;
+  padding: 0.1em 0.4em;
+  border: 1px solid var(--border);
+  border-radius: var(--r-xs);
+}
+.hint {
+  font-size: var(--fs-2xs);
+  color: var(--text-3);
+}
+.hint.err {
+  color: var(--st-failed);
+}

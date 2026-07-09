@@ -1,0 +1,23 @@
+/* Radix Popover — Deep Current card surface */
+.content {
+  max-width: 320px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-pop);
+  padding: 14px;
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+  z-index: 95;
+  animation: pop-in var(--dur-1) var(--ease);
+}
+.arrow {
+  fill: var(--surface);
+  stroke: var(--border);
+}
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}

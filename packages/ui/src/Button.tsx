@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, ReactNode } from 'react'
+import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 'react'
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger'
 export type ButtonSize = 'sm' | 'md' | 'lg'
@@ -10,11 +10,15 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 // Uses the global primitive classes shipped by the token layer (.btn, .btn-*).
-export function Button({ variant = 'secondary', size = 'md', className = '', children, ...rest }: ButtonProps) {
+// forwardRef so it composes as a Radix `asChild` trigger/close element.
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
+  { variant = 'secondary', size = 'md', className = '', children, ...rest },
+  ref,
+) {
   const cls = ['btn', `btn-${variant}`, size !== 'md' ? `btn-${size}` : '', className].filter(Boolean).join(' ')
   return (
-    <button className={cls} {...rest}>
+    <button ref={ref} className={cls} {...rest}>
       {children}
     </button>
   )
-}
+})

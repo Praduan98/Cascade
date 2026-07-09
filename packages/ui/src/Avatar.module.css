@@ -1,0 +1,12 @@
+/* Ported from design-system.src.html — .avatar */
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: var(--fs-xs);
+  color: var(--brand-ink);
+  flex: none;
+}

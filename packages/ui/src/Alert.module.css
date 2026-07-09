@@ -1,0 +1,60 @@
+/* Ported from design-system.src.html — .alert (4 intents) */
+.alert {
+  display: flex;
+  gap: 12px;
+  padding: 13px 15px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  align-items: flex-start;
+}
+.ico {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  flex: none;
+  font-size: 12px;
+  font-weight: 700;
+  margin-top: 1px;
+}
+.msg {
+  font-size: var(--fs-sm);
+}
+.msg .h {
+  font-weight: 700;
+  display: block;
+  margin-bottom: 2px;
+}
+.msg p {
+  color: var(--text-2);
+}
+.alert-info {
+  border-left: 3px solid var(--cobalt);
+}
+.alert-info .ico {
+  background: var(--cobalt-soft);
+  color: var(--cobalt);
+}
+.alert-success {
+  border-left: 3px solid var(--st-success);
+}
+.alert-success .ico {
+  background: var(--st-success-soft);
+  color: var(--st-success);
+}
+.alert-warn {
+  border-left: 3px solid var(--st-empty);
+}
+.alert-warn .ico {
+  background: var(--st-empty-soft);
+  color: var(--st-empty);
+}
+.alert-error {
+  border-left: 3px solid var(--st-failed);
+}
+.alert-error .ico {
+  background: var(--st-failed-soft);
+  color: var(--st-failed);
+}

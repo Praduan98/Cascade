@@ -1,0 +1,40 @@
+/* Ported from design-system.src.html — .copytoast, extended into a stack. */
+.viewport {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  z-index: 100;
+  pointer-events: none;
+}
+.toast {
+  background: var(--text);
+  color: var(--ground);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  padding: 0.6em 1em;
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-pop);
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity var(--dur-2), transform var(--dur-2);
+  pointer-events: auto;
+  max-width: min(92vw, 420px);
+}
+.toast.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+.toast.success {
+  box-shadow: var(--shadow-pop), inset 3px 0 0 var(--st-success);
+}
+.toast.warn {
+  box-shadow: var(--shadow-pop), inset 3px 0 0 var(--st-empty);
+}
+.toast.error {
+  box-shadow: var(--shadow-pop), inset 3px 0 0 var(--st-failed);
+}
