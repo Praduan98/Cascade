@@ -1,0 +1,81 @@
+name: cascade
+
+# Phase 1 local runtime. Postgres 16 + Redis 7 are the only services needed for
+# day-to-day dev — the backend and Celery worker are normally run on the host via
+# `uv run` for fast reload. The api/worker services are defined for parity and
+# CI, and use the in-network hostnames (postgres/redis) via env overrides.
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD:-postgres}
+      POSTGRES_DB: cascade
+      # consumed by the init script to create the 3 RLS roles
+      CASCADE_OWNER_PASSWORD: ${CASCADE_OWNER_PASSWORD:-owner_dev_pw}
+      CASCADE_APP_PASSWORD: ${CASCADE_APP_PASSWORD:-app_dev_pw}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./backend/db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d cascade"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build: ./backend
+    profiles: ["full"]
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://cascade_app:${CASCADE_APP_PASSWORD:-app_dev_pw}@postgres:5432/cascade
+      OWNER_DATABASE_URL: postgresql+psycopg://cascade_owner:${CASCADE_OWNER_PASSWORD:-owner_dev_pw}@postgres:5432/cascade
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - uploads:/app/uploads
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  worker:
+    build: ./backend
+    profiles: ["full"]
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://cascade_app:${CASCADE_APP_PASSWORD:-app_dev_pw}@postgres:5432/cascade
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    volumes:
+      - ./backend:/app
+      - uploads:/app/uploads
+    command: celery -A app.workers.celery_app worker -l info
+
+volumes:
+  pgdata:
+  redisdata:
+  uploads:
