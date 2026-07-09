@@ -32,7 +32,10 @@ export default function Home() {
           system.
         </p>
         <div className={styles.actions}>
-          <Link href="/kitchen-sink" className="btn btn-primary btn-lg">
+          <Link href="/tables" className="btn btn-primary btn-lg">
+            Enter the app
+          </Link>
+          <Link href="/kitchen-sink" className="btn btn-secondary btn-lg">
             View the component gallery
           </Link>
         </div>

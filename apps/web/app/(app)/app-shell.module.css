@@ -1,0 +1,255 @@
+/* The authenticated app frame: a fixed-viewport column (Topbar → optional
+   banner → shell) where the sidebar and main region scroll independently.
+   The `.body > div / aside / aside + div` selectors reach into @cascade/ui's
+   <AppShell> markup to make its bordered demo box fill the screen edge to edge. */
+
+.root {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.topActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+/* AppShell root (.shell) — strip the card chrome, fill the frame. */
+.body > div {
+  flex: 1;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: var(--ground);
+  grid-template-columns: 248px minmax(0, 1fr);
+}
+/* Sidebar (.sh-side) — scrolls on its own. */
+.body aside {
+  overflow-y: auto;
+}
+/* Main region (.sh-main) — page content owns its padding. */
+.body aside + div {
+  overflow-y: auto;
+  min-height: 0;
+  padding: 0;
+  gap: 0;
+}
+
+/* ---- Loading / redirecting placeholder ---- */
+.loading {
+  height: 100dvh;
+  display: grid;
+  place-items: center;
+  background: var(--ground);
+}
+.spinner {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 3px solid var(--border);
+  border-top-color: var(--brand);
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---- Verify-email banner ---- */
+.banner {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 9px clamp(16px, 4vw, 40px);
+  background: var(--gold-soft);
+  border-bottom: 1px solid var(--gold-line);
+  color: var(--text);
+  font-size: var(--fs-sm);
+}
+.bannerIcon {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--gold);
+  color: var(--ground);
+  font-weight: 800;
+  font-size: var(--fs-2xs);
+}
+.bannerText {
+  flex: 1;
+  min-width: 0;
+}
+.bannerAction {
+  flex: none;
+  font-weight: 700;
+  color: var(--gold-2);
+  white-space: nowrap;
+}
+
+/* ---- Topbar user menu ---- */
+.userBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px 4px 4px;
+  border-radius: var(--r-full);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  transition: border-color var(--dur-2) var(--ease), background var(--dur-2) var(--ease);
+}
+.userBtn:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-3);
+}
+.userName {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.userCaret {
+  color: var(--text-3);
+  flex: none;
+}
+@media (max-width: 560px) {
+  .userName {
+    display: none;
+  }
+}
+
+.menu {
+  min-width: 244px;
+}
+.menuHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px 10px;
+}
+.menuName {
+  font-weight: 700;
+  font-size: var(--fs-sm);
+}
+.menuEmail {
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.menuBadge {
+  margin-top: 4px;
+}
+.switchRow {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+}
+.switchWho {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.switchName {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+.switchRole {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.current {
+  margin-left: auto;
+  font-size: var(--fs-2xs);
+  color: var(--text-3);
+  font-style: italic;
+}
+
+/* ---- Sidebar workspace switcher menu ---- */
+.wsWrap {
+  position: relative;
+}
+.wsMenu {
+  position: absolute;
+  top: calc(100% - 4px);
+  left: 0;
+  right: 0;
+  z-index: 60;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-pop);
+  padding: 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.wsItem {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 8px;
+  border-radius: var(--r-sm);
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--fs-sm);
+  text-align: left;
+  width: 100%;
+}
+.wsItem:hover {
+  background: var(--surface-3);
+}
+.wsDot {
+  width: 20px;
+  height: 20px;
+  border-radius: var(--r-sm);
+  background: var(--grad-brand);
+  flex: none;
+}
+.wsName {
+  font-weight: 600;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.wsCheck {
+  color: var(--brand);
+  flex: none;
+}
+
+/* ---- Sidebar nav hints ---- */
+.navHint {
+  display: block;
+  padding: 6px 8px;
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+}
+.navDisabled {
+  display: block;
+}

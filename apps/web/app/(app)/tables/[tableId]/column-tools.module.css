@@ -1,0 +1,353 @@
+/* Shared chrome for the column + row management surfaces (add / edit column,
+   the config editor, the columns manager, the bulk-delete panel). All from the
+   global token layer so it matches the Deep Current dialogs. */
+
+/* ---- Type picker grid ---- */
+.typeGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+.typeBtn {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  color: var(--text-2);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  transition: border-color var(--dur-2) var(--ease), background var(--dur-2) var(--ease),
+    color var(--dur-2) var(--ease);
+}
+.typeBtn:hover:not(:disabled) {
+  border-color: var(--border-strong);
+  background: var(--surface-3);
+}
+.typeBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.typeBtn.active {
+  border-color: var(--brand-line);
+  background: var(--brand-soft);
+  color: var(--text);
+}
+.typeBadge {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-sm);
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--text-2);
+}
+.typeBtn.active .typeBadge {
+  background: var(--brand);
+  color: var(--brand-ink, var(--ground));
+  border-color: transparent;
+}
+.typeLabel {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---- Config section ---- */
+.config {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.row2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* ---- Select options editor ---- */
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.optionRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.swatch {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border-strong);
+  cursor: pointer;
+  padding: 0;
+  position: relative;
+}
+.swatch:disabled {
+  cursor: not-allowed;
+}
+.swatchGrid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 7px;
+  padding: 2px;
+}
+.swatchDot {
+  width: 26px;
+  height: 26px;
+  border-radius: var(--r-sm);
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+  transition: transform var(--dur-1) var(--ease);
+}
+.swatchDot:hover {
+  transform: scale(1.1);
+}
+.swatchDot.sel {
+  border-color: var(--text);
+}
+.iconBtn {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-3);
+  cursor: pointer;
+  transition: color var(--dur-2) var(--ease), border-color var(--dur-2) var(--ease);
+}
+.iconBtn:hover:not(:disabled) {
+  color: var(--st-failed, #ef4444);
+  border-color: var(--border-strong);
+}
+.iconBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.iconBtn svg {
+  width: 15px;
+  height: 15px;
+}
+.optAdd {
+  align-self: flex-start;
+  margin-top: 2px;
+}
+.optHint {
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+}
+
+/* ---- Columns manager ---- */
+.colList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: min(52vh, 460px);
+  overflow-y: auto;
+  margin: -2px -2px 0;
+  padding: 2px;
+}
+.colRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+.colRow.frozen {
+  border-color: var(--brand-line);
+  background: var(--brand-soft);
+}
+.reorder {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: none;
+}
+.reorder button {
+  width: 20px;
+  height: 15px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: var(--text-3);
+  cursor: pointer;
+  border-radius: var(--r-xs);
+}
+.reorder button:hover:not(:disabled) {
+  color: var(--brand);
+  background: var(--surface-3);
+}
+.reorder button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+.reorder svg {
+  width: 12px;
+  height: 12px;
+}
+.colMeta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.colName {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.colType {
+  font-size: var(--fs-2xs);
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  white-space: nowrap;
+}
+.colCtrls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+}
+.freezeLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-2xs);
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* ---- Coercion warning ---- */
+.warnBox {
+  margin-top: 2px;
+}
+
+/* ---- Bulk delete rows ---- */
+.rowsHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+.selectAll {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+  cursor: pointer;
+  user-select: none;
+}
+.selCount {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+}
+.rowList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: min(46vh, 400px);
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 5px;
+}
+.rowItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: background var(--dur-1) var(--ease);
+}
+.rowItem:hover {
+  background: var(--surface-3);
+}
+.rowItem.on {
+  background: var(--brand-soft);
+}
+.rowPos {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  color: var(--text-3);
+  flex: none;
+  width: 46px;
+}
+.rowLabel {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--fs-sm);
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rowLabel.empty {
+  color: var(--text-faint);
+  font-style: italic;
+}
+.check {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--r-xs);
+  border: 1.5px solid var(--border-strong);
+  display: grid;
+  place-items: center;
+  color: transparent;
+}
+.check.on {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: var(--brand-ink, var(--ground));
+}
+.check svg {
+  width: 12px;
+  height: 12px;
+}
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+}
+.pageInfo {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+}
+.confirmText {
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+  margin-right: auto;
+  align-self: center;
+}

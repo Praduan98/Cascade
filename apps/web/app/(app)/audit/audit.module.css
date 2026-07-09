@@ -1,0 +1,169 @@
+.page {
+  width: 100%;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: clamp(20px, 3.2vw, 36px);
+}
+
+.header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.headTitle h1 {
+  font-size: var(--fs-h1);
+}
+.count {
+  margin-top: 6px;
+  color: var(--text-3);
+  font-size: var(--fs-sm);
+  font-family: var(--font-mono);
+}
+
+.filters {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.filters :where(select) {
+  min-width: 150px;
+}
+.spacer {
+  flex: 1;
+}
+.resultCount {
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  font-family: var(--font-mono);
+}
+
+.state {
+  margin-top: 8px;
+}
+
+/* ---- Log table ---- */
+.tableWrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+}
+.table {
+  min-width: 720px;
+}
+.headRow,
+.row {
+  display: grid;
+  grid-template-columns: minmax(190px, 1.4fr) minmax(150px, 1fr) minmax(160px, 1.6fr) 176px;
+  gap: 14px;
+  align-items: center;
+  padding: 12px 18px;
+}
+.headRow {
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-2);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+.th {
+  font-size: var(--fs-2xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-3);
+  font-family: var(--font-mono);
+}
+.row {
+  border-bottom: 1px solid var(--hairline);
+}
+.row:last-child {
+  border-bottom: 0;
+}
+.row:hover {
+  background: var(--surface-2);
+}
+
+.actor {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.actorName {
+  font-weight: 600;
+  font-size: var(--fs-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.action {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--r-full);
+  flex: none;
+}
+.verb {
+  font-size: var(--fs-sm);
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.target {
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+  font-family: var(--font-mono);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.targetEmpty {
+  color: var(--text-faint);
+}
+
+.when {
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  text-align: right;
+}
+
+/* ---- Skeletons ---- */
+.skelRow {
+  display: grid;
+  grid-template-columns: minmax(190px, 1.4fr) minmax(150px, 1fr) minmax(160px, 1.6fr) 176px;
+  gap: 14px;
+  align-items: center;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--hairline);
+}
+.skelBlock {
+  border-radius: var(--r-sm);
+  background: linear-gradient(90deg, var(--surface-2), var(--surface-3), var(--surface-2));
+  background-size: 200% 100%;
+  animation: shimmer 1.3s ease-in-out infinite;
+  height: 12px;
+}
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}

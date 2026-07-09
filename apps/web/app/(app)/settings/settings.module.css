@@ -1,0 +1,84 @@
+.page {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: clamp(20px, 3.2vw, 36px);
+}
+.header {
+  margin-bottom: 24px;
+}
+.header h1 {
+  font-size: var(--fs-h1);
+}
+.header p {
+  margin-top: 6px;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+}
+
+.card {
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.card + .card {
+  margin-top: 18px;
+}
+.cardHead {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.cardHead h2 {
+  font-size: var(--fs-h4);
+  font-family: var(--font-display);
+}
+.cardHead p {
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+}
+
+.formRow {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+.formRow > :first-child {
+  flex: 1;
+}
+
+.details {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1px;
+  background: var(--hairline);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  overflow: hidden;
+}
+.detailRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 14px;
+  background: var(--surface);
+}
+.detailKey {
+  color: var(--text-3);
+  font-size: var(--fs-sm);
+}
+.detailVal {
+  color: var(--text);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.mono {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--text-2);
+  font-weight: 500;
+}

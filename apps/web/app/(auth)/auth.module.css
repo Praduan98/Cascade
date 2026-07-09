@@ -1,0 +1,178 @@
+.wrap {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 48px 20px;
+  position: relative;
+  background:
+    radial-gradient(60% 55% at 50% -10%, var(--brand-soft), transparent 70%),
+    var(--ground);
+}
+.themeToggle {
+  position: fixed;
+  top: 16px;
+  right: clamp(16px, 4vw, 32px);
+  z-index: 10;
+}
+.column {
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
+}
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 11px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  font-size: 1.32rem;
+  color: var(--text);
+}
+.brand:hover {
+  color: var(--text);
+}
+.foot {
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  text-align: center;
+  max-width: 34ch;
+  line-height: 1.5;
+}
+
+/* ---- Card contents (shared by every auth page) ---- */
+.card {
+  width: 100%;
+  padding: 28px 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: center;
+}
+.head h1 {
+  font-size: 1.5rem;
+  letter-spacing: -0.03em;
+}
+.head p {
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.submit {
+  width: 100%;
+  margin-top: 2px;
+}
+
+/* ---- Demo account picker ---- */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--hairline);
+}
+.demoGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.demoBtn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  text-align: left;
+  padding: 9px 11px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color var(--dur-2) var(--ease), background var(--dur-2) var(--ease), transform var(--dur-1);
+  font: inherit;
+}
+.demoBtn:hover:not(:disabled) {
+  border-color: var(--border-strong);
+  background: var(--surface-3);
+}
+.demoBtn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.demoBtn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.demoRole {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--brand);
+  font-weight: 600;
+}
+.demoName {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+.demoEmail {
+  font-size: var(--fs-2xs);
+  color: var(--text-3);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---- Footer link row under the card ---- */
+.altLinks {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 8px;
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+}
+.altLinks a {
+  font-weight: 600;
+}
+.center {
+  text-align: center;
+}
+.iconCircle {
+  align-self: center;
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-full);
+  background: var(--brand-soft);
+  color: var(--brand);
+  border: 1px solid var(--brand-line);
+}
+.iconCircle svg {
+  width: 24px;
+  height: 24px;
+}

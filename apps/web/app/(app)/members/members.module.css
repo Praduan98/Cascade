@@ -1,0 +1,189 @@
+.page {
+  width: 100%;
+  max-width: 880px;
+  margin: 0 auto;
+  padding: clamp(20px, 3.2vw, 36px);
+}
+
+.header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.headTitle h1 {
+  font-size: var(--fs-h1);
+}
+.count {
+  margin-top: 6px;
+  color: var(--text-3);
+  font-size: var(--fs-sm);
+  font-family: var(--font-mono);
+}
+
+/* ---- Cards / sections ---- */
+.card {
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.card + .card {
+  margin-top: 18px;
+}
+.sectionHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.sectionHead h2 {
+  font-size: var(--fs-h4);
+  font-family: var(--font-display);
+}
+.sectionHint {
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  font-family: var(--font-mono);
+}
+
+.state {
+  margin-bottom: 18px;
+}
+
+/* ---- List ---- */
+.list {
+  display: flex;
+  flex-direction: column;
+}
+
+.rowActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.youTag {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  font-weight: 600;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.kebab {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-3);
+  cursor: pointer;
+}
+.kebab:hover {
+  background: var(--surface-3);
+  color: var(--text);
+  border-color: var(--border);
+}
+.kebab svg {
+  width: 17px;
+  height: 17px;
+}
+
+/* ---- Pending invites ---- */
+.pendingActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.linkBtn {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-2);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  padding: 5px 9px;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  font-family: var(--font-body);
+}
+.linkBtn:hover {
+  background: var(--surface-3);
+  color: var(--text);
+  border-color: var(--border);
+}
+.linkBtn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.linkBtn.danger:hover {
+  color: var(--st-failed);
+  border-color: color-mix(in srgb, var(--st-failed) 40%, transparent);
+  background: var(--st-failed-soft);
+}
+
+/* ---- Roles legend ---- */
+.roleGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1px;
+  background: var(--hairline);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  overflow: hidden;
+}
+.roleRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px;
+  background: var(--surface);
+}
+.roleRow > :first-child {
+  flex: none;
+  width: 66px;
+}
+.roleDesc {
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+}
+
+/* ---- Skeletons ---- */
+.skelRow {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 11px 4px;
+  border-bottom: 1px solid var(--hairline);
+}
+.skelDot {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--r-full);
+  flex: none;
+}
+.skelLines {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.skelBlock {
+  border-radius: var(--r-sm);
+  background: linear-gradient(90deg, var(--surface-2), var(--surface-3), var(--surface-2));
+  background-size: 200% 100%;
+  animation: shimmer 1.3s ease-in-out infinite;
+}
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
