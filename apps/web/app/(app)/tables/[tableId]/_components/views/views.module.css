@@ -1,0 +1,438 @@
+/* View system chrome — the saved-view switcher plus the filter / sort / fields
+   builders that hang off the grid toolbar. All from the global token layer so it
+   sits flush with the Deep Current toolbar (.grid-toolbar) and the existing
+   column-tools dialogs. */
+
+/* ---- Toolbar cluster ---- */
+.cluster {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* A count pill riding on a Filter / Sort / Fields trigger button. */
+.count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 5px;
+  margin-left: 6px;
+  border-radius: var(--r-full);
+  background: var(--brand);
+  color: var(--brand-ink, var(--ground));
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  vertical-align: 1px;
+}
+.triggerActive {
+  border-color: var(--brand-line) !important;
+  background: var(--brand-soft) !important;
+  color: var(--text) !important;
+}
+
+/* ---- View switcher trigger ---- */
+.switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 220px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-full);
+  background: var(--surface-2);
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  transition: border-color var(--dur-2) var(--ease), background var(--dur-2) var(--ease);
+}
+.switcher:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-3);
+}
+.switcher[data-state='open'] {
+  border-color: var(--brand-line);
+}
+.switcherIcon {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  color: var(--text-3);
+}
+.switcherName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.caret {
+  flex: none;
+  width: 13px;
+  height: 13px;
+  color: var(--text-3);
+}
+
+/* ---- View menu (dropdown) ---- */
+.menu {
+  min-width: 248px;
+  max-width: 300px;
+}
+.menuScroll {
+  max-height: min(46vh, 340px);
+  overflow-y: auto;
+  margin: 0 -4px;
+  padding: 0 4px;
+}
+.viewItem {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.viewCheck {
+  flex: none;
+  width: 15px;
+  height: 15px;
+  color: var(--brand);
+}
+.viewCheck.hidden {
+  visibility: hidden;
+}
+.viewItemName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.defaultBadge {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xs);
+  padding: 1px 5px;
+}
+.menuActionIcon {
+  flex: none;
+  width: 15px;
+  height: 15px;
+  opacity: 0.85;
+}
+
+/* ---- Builder panels (shared by Filter / Sort / Fields) ---- */
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.panelHead {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.panelTitle {
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--text);
+}
+.panelHint {
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+  line-height: 1.45;
+}
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: min(48vh, 380px);
+  overflow-y: auto;
+  margin: 0 -2px;
+  padding: 2px;
+}
+.panelFoot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-top: 2px;
+  border-top: 1px solid var(--border);
+  margin-top: 2px;
+}
+.footSpacer {
+  flex: 1;
+}
+.emptyHint {
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+  padding: 4px 2px 2px;
+  line-height: 1.5;
+}
+.roHint {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-2xs);
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* ---- Condition row (filter) ---- */
+.condRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.conj {
+  flex: none;
+  width: 72px;
+  align-self: center;
+}
+.conjStatic {
+  flex: none;
+  width: 72px;
+  align-self: center;
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-3);
+  padding-left: 4px;
+}
+.grow {
+  flex: 1 1 120px;
+  min-width: 96px;
+}
+.growCol {
+  flex: 1 1 130px;
+  min-width: 110px;
+}
+.operand {
+  flex: 1 1 130px;
+  min-width: 110px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.rangeSep {
+  font-size: var(--fs-2xs);
+  color: var(--text-3);
+  flex: none;
+}
+.removeBtn {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  align-self: center;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-3);
+  cursor: pointer;
+  transition: color var(--dur-2) var(--ease), border-color var(--dur-2) var(--ease);
+}
+.removeBtn:hover:not(:disabled) {
+  color: var(--st-failed, #ef4444);
+  border-color: var(--border-strong);
+}
+.removeBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.removeBtn svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* ---- Select option operand chips ---- */
+.optChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  width: 100%;
+}
+.optChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border-radius: var(--r-full);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-size: var(--fs-xs);
+  cursor: pointer;
+  transition: border-color var(--dur-2) var(--ease), background var(--dur-2) var(--ease);
+}
+.optChip:hover {
+  border-color: var(--border-strong);
+}
+.optChip.on {
+  border-color: transparent;
+  color: var(--text);
+  font-weight: 600;
+}
+.optDot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex: none;
+}
+.optNone {
+  font-size: var(--fs-xs);
+  color: var(--text-faint);
+  font-style: italic;
+}
+
+/* ---- Sort row ---- */
+.sortRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+.priority {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: none;
+}
+.priority button {
+  width: 20px;
+  height: 15px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: var(--text-3);
+  cursor: pointer;
+  border-radius: var(--r-xs);
+}
+.priority button:hover:not(:disabled) {
+  color: var(--brand);
+  background: var(--surface-3);
+}
+.priority button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+.priority svg {
+  width: 12px;
+  height: 12px;
+}
+.sortCol {
+  flex: 1;
+  min-width: 0;
+}
+.dirSeg {
+  flex: none;
+}
+
+/* ---- Fields (column visibility) row ---- */
+.fieldRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+.fieldRow.off {
+  opacity: 0.6;
+}
+.eyeBtn {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-3);
+  cursor: pointer;
+  transition: color var(--dur-2) var(--ease), border-color var(--dur-2) var(--ease);
+}
+.eyeBtn:hover:not(:disabled) {
+  border-color: var(--border-strong);
+  color: var(--text-2);
+}
+.eyeBtn.visible {
+  color: var(--brand);
+  border-color: var(--brand-line);
+  background: var(--brand-soft);
+}
+.eyeBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.eyeBtn svg {
+  width: 15px;
+  height: 15px;
+}
+.fieldMeta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.fieldBadge {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-sm);
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  color: var(--text-2);
+}
+.fieldName {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fieldActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.linkBtn {
+  border: 0;
+  background: transparent;
+  color: var(--text-3);
+  font: inherit;
+  font-size: var(--fs-xs);
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: var(--r-xs);
+}
+.linkBtn:hover:not(:disabled) {
+  color: var(--brand);
+}
+.linkBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

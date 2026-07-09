@@ -14,7 +14,7 @@ import { useParams } from 'next/navigation'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { getApi, isApiError } from '@cascade/data'
 import { canWrite } from '@cascade/core'
-import type { Column } from '@cascade/core'
+import type { Column, View } from '@cascade/core'
 import { TableGridDynamic } from '@cascade/grid'
 import { Alert, Button, Dialog, DialogClose, EmptyState, useToast } from '@cascade/ui'
 import { useSession } from '../../../session'
@@ -76,13 +76,37 @@ export default function TableSurfacePage() {
   )
   const views = useMemo(() => viewsQuery.data ?? [], [viewsQuery.data])
 
-  // Default the active view to the table's default view once views resolve.
+  // Resolve the active view once views load: prefer a valid ?view= from the URL,
+  // then the table's default view, then the first.
   useEffect(() => {
     if (views.length === 0) return
     if (activeViewId && views.some((v) => v.id === activeViewId)) return
-    const def = views.find((v) => v.isDefault) ?? views[0]
-    if (def) setActiveViewId(def.id)
+    let target: View | undefined
+    try {
+      const urlView = new URLSearchParams(window.location.search).get('view')
+      if (urlView) target = views.find((v) => v.id === urlView)
+    } catch {
+      /* SSR / no window */
+    }
+    if (!target) target = views.find((v) => v.isDefault) ?? views[0]
+    if (target) setActiveViewId(target.id)
   }, [views, activeViewId])
+
+  // Reflect the active view in the URL (?view=<id>) so it's shareable and
+  // survives reload. history.replaceState keeps it out of the back-stack and
+  // avoids a router round-trip.
+  useEffect(() => {
+    if (!activeViewId) return
+    try {
+      const url = new URL(window.location.href)
+      if (url.searchParams.get('view') !== activeViewId) {
+        url.searchParams.set('view', activeViewId)
+        window.history.replaceState(window.history.state, '', url.toString())
+      }
+    } catch {
+      /* SSR / no window */
+    }
+  }, [activeViewId])
 
   const effectiveViewId = activeViewId || undefined
 
@@ -170,6 +194,8 @@ export default function TableSurfacePage() {
         tableName={table.name}
         rowCount={rowCountQuery.data}
         rowCountLoading={rowCountQuery.isLoading}
+        tableId={tableId}
+        columns={columns}
         views={views}
         activeViewId={activeViewId}
         onChangeView={setActiveViewId}
@@ -177,6 +203,7 @@ export default function TableSurfacePage() {
         onAddColumn={() => setAddOpen(true)}
         onManageColumns={() => setManageOpen(true)}
         onDeleteRows={() => setBulkOpen(true)}
+        remountGrid={remountGrid}
       />
 
       <div className={styles.gridHost}>

@@ -1,27 +1,22 @@
 'use client'
-// The grid toolbar: table identity + live row count on the left; the view
-// switcher, filter/sort entry points, column + row management, and the disabled
-// Phase-2 "Run" action on the right. Mutation actions are disabled for viewers;
-// the underlying API also enforces this, surfaced as a toast by the callers.
+// The grid toolbar: table identity + live row count on the left; the view system
+// (saved-view switcher + Filter / Sort / Fields builders) and column + row
+// management on the right, then the disabled Phase-2 "Run" action. Mutation
+// actions are disabled for viewers; the underlying API also enforces this and
+// surfaces 403s as toasts from the callers.
 
 import Link from 'next/link'
-import type { View } from '@cascade/core'
-import {
-  Button,
-  Pill,
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-  Seg,
-  Tag,
-  Tooltip,
-} from '@cascade/ui'
+import type { Column, View } from '@cascade/core'
+import { Button, Pill, Tag, Tooltip } from '@cascade/ui'
+import { ViewControls } from './views/ViewControls'
 import styles from '../table-surface.module.css'
 
 interface Props {
   tableName: string
   rowCount: number | undefined
   rowCountLoading: boolean
+  tableId: string
+  columns: Column[]
   views: View[]
   activeViewId: string
   onChangeView: (id: string) => void
@@ -29,26 +24,13 @@ interface Props {
   onAddColumn: () => void
   onManageColumns: () => void
   onDeleteRows: () => void
+  remountGrid: () => void
 }
 
 function IconBack() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M15 18l-6-6 6-6" />
-    </svg>
-  )
-}
-function IconFilter() {
-  return (
-    <svg className={styles.btnIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M3 5h18l-7 8v6l-4 2v-8Z" />
-    </svg>
-  )
-}
-function IconSort() {
-  return (
-    <svg className={styles.btnIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M7 4v16M7 20l-3-3M7 4l3 3M17 20V4M17 4l3 3M17 20l-3-3" />
     </svg>
   )
 }
@@ -87,6 +69,8 @@ export function GridToolbar({
   tableName,
   rowCount,
   rowCountLoading,
+  tableId,
+  columns,
   views,
   activeViewId,
   onChangeView,
@@ -94,9 +78,8 @@ export function GridToolbar({
   onAddColumn,
   onManageColumns,
   onDeleteRows,
+  remountGrid,
 }: Props) {
-  const activeView = views.find((v) => v.id === activeViewId)
-
   return (
     <div className={styles.toolbar}>
       <div className={styles.lead}>
@@ -120,52 +103,15 @@ export function GridToolbar({
       </div>
 
       <div className={styles.actions}>
-        {views.length > 1 ? (
-          <Seg
-            aria-label="View"
-            value={activeViewId}
-            onChange={onChangeView}
-            options={views.map((v) => ({ value: v.id, label: v.name }))}
-          />
-        ) : (
-          <span className={styles.viewLabel}>{activeView?.name ?? 'Grid view'}</span>
-        )}
-
-        <span className={styles.divider} />
-
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="ghost" size="sm">
-              <IconFilter />
-              Filter
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent align="start">
-            <div className={styles.hintPop}>
-              <span className={styles.hintTitle}>Filters live in views</span>
-              <span className={styles.hintBody}>
-                Each saved view carries its own filter set. The visual filter builder comes online with Views.
-              </span>
-            </div>
-          </PopoverContent>
-        </Popover>
-
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="ghost" size="sm">
-              <IconSort />
-              Sort
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent align="start">
-            <div className={styles.hintPop}>
-              <span className={styles.hintTitle}>Sorting lives in views</span>
-              <span className={styles.hintBody}>
-                Reorderable multi-column sort is saved per view and arrives with Views.
-              </span>
-            </div>
-          </PopoverContent>
-        </Popover>
+        <ViewControls
+          tableId={tableId}
+          columns={columns}
+          views={views}
+          activeViewId={activeViewId}
+          writable={writable}
+          onChangeView={onChangeView}
+          remountGrid={remountGrid}
+        />
 
         <span className={styles.divider} />
 

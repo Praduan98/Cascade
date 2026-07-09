@@ -1,0 +1,76 @@
+/* The undo/redo control strip that floats at the top-right of the grid canvas.
+   Styled entirely from the global token layer so it tracks theme flips. The
+   container is click-through (pointer-events:none) so it never eats grid
+   interactions; only the buttons themselves are interactive. */
+
+.strip {
+  position: absolute;
+  top: 8px;
+  right: 14px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: stretch;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--surface-2) 92%, transparent);
+  box-shadow: var(--shadow-2);
+  backdrop-filter: blur(6px);
+  pointer-events: auto;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease, transform 80ms ease;
+}
+
+.btn svg {
+  width: 15px;
+  height: 15px;
+  display: block;
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(0.5px);
+}
+
+.btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--brand-line);
+}
+
+.btn:disabled {
+  color: var(--text-faint);
+  cursor: default;
+}
+
+.divider {
+  width: 1px;
+  margin: 4px 0;
+  background: var(--border);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn {
+    transition: none;
+  }
+  .btn:active:not(:disabled) {
+    transform: none;
+  }
+}
