@@ -1,5 +1,6 @@
 /* Cascade global stylesheet.
-   Order matters: the token layer first (defines every CSS variable and the
-   base element styles), then the Glide Data Grid stylesheet. */
+   The token layer defines every CSS variable AND the base element styles and the
+   shared primitives (.btn, .pill, .tag, .chip, .card, .eyebrow, focus ring, …).
+   The Glide Data Grid stylesheet is imported from the grid package where it is
+   used (kept out of here so the base app has no hard dependency on it). */
 @import "./tokens.css";
-@import "@glideapps/glide-data-grid/dist/index.css";

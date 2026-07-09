@@ -1,0 +1,21 @@
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--r-md);
+  cursor: pointer;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-2);
+  transition: color var(--dur-2), border-color var(--dur-2), background var(--dur-2);
+}
+.btn:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+.btn svg {
+  width: 17px;
+  height: 17px;
+}

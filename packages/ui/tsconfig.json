@@ -1,0 +1,5 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "include": ["src", "fonts"],
+  "exclude": ["node_modules"]
+}

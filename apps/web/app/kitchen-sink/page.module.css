@@ -1,0 +1,91 @@
+.page {
+  max-width: 980px;
+  margin-inline: auto;
+  padding: 28px clamp(18px, 4vw, 40px) 80px;
+}
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--hairline);
+  margin-bottom: 8px;
+}
+.title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  font-size: 1.5rem;
+}
+.section {
+  padding-block: 26px;
+  border-bottom: 1px solid var(--hairline);
+}
+.section h2 {
+  font-size: 0.72rem;
+  font-family: var(--font-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  margin-bottom: 16px;
+  font-weight: 500;
+}
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+.swatches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
+  gap: 12px;
+}
+.swatch {
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  background: var(--surface);
+}
+.chip {
+  height: 54px;
+}
+.meta {
+  padding: 8px 10px;
+}
+.name {
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+.hex {
+  font-family: var(--font-mono);
+  font-size: 0.655rem;
+  color: var(--text-3);
+  text-transform: uppercase;
+  margin-top: 1px;
+}
+.type {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.specDisplay {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 2.2rem;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+.specBody {
+  font-family: var(--font-body);
+  color: var(--text-2);
+  font-size: 1.02rem;
+  line-height: 1.6;
+  max-width: 60ch;
+}
+.specMono {
+  font-family: var(--font-mono);
+  color: var(--text);
+  font-size: 0.95rem;
+}
