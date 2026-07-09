@@ -158,9 +158,14 @@ export class Store {
     try {
       const json = ls.getItem(key)
       if (!json) return null
-      const data = Store.deserialize(json)
-      if (data.version !== SCHEMA_VERSION) return null
-      return new Store(data)
+      // Guard on the *persisted* version, before deserialize() normalizes the
+      // shape (it force-sets `version` to the current schema, so checking the
+      // deserialized object here would always pass). A missing or mismatched
+      // version means data written by an incompatible build: discard it so the
+      // caller reseeds rather than merging a stale shape into the new one.
+      const raw = JSON.parse(json) as Partial<StoreData>
+      if (raw.version !== SCHEMA_VERSION) return null
+      return new Store(Store.deserialize(json))
     } catch {
       return null
     }

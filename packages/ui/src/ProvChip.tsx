@@ -9,14 +9,17 @@ interface ProvMonoProps {
   color?: string
   style?: CSSProperties
   className?: string
+  /** Hide from the a11y tree when a readable provider name accompanies it (decorative glyph). */
+  decorative?: boolean
 }
 
 // Ported from design-system.src.html — `.prov-mono` (the coloured provider square).
-export function ProvMono({ children, bg = 'var(--surface-3)', color = '#fff', style, className = '' }: ProvMonoProps) {
+export function ProvMono({ children, bg = 'var(--surface-3)', color = '#fff', style, className = '', decorative }: ProvMonoProps) {
   return (
     <span
       className={[styles['prov-mono'], className].filter(Boolean).join(' ')}
       style={{ background: bg, color, ...style }}
+      aria-hidden={decorative || undefined}
     >
       {children}
     </span>
@@ -37,7 +40,7 @@ interface ProvChipProps {
 export function ProvChip({ mono, bg, color, children, className = '' }: ProvChipProps) {
   return (
     <span className={[styles['prov-chip'], className].filter(Boolean).join(' ')}>
-      <ProvMono bg={bg} color={color}>
+      <ProvMono bg={bg} color={color} decorative>
         {mono}
       </ProvMono>
       {children}

@@ -50,11 +50,25 @@ function hashString(s: string): number {
 function avatarColor(seed: string): string {
   return AVATAR_COLORS[hashString(seed) % AVATAR_COLORS.length] as string
 }
+// Pick the ink (near-black vs white) with the higher WCAG contrast against `hex`,
+// so avatar initials stay legible (>=4.5:1) on every palette colour — a plain
+// YIQ threshold wrongly picks white on mid-luminance hues like cobalt.
+function relLuminance(hex: string): number {
+  const c = [1, 3, 5].map((i) => {
+    const v = parseInt(hex.slice(i, i + 2), 16) / 255
+    return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4
+  }) as [number, number, number]
+  return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]
+}
+function contrastRatio(l1: number, l2: number): number {
+  const [hi, lo] = l1 > l2 ? [l1, l2] : [l2, l1]
+  return (hi + 0.05) / (lo + 0.05)
+}
 function textOn(hex: string): string {
-  const r = parseInt(hex.slice(1, 3), 16)
-  const g = parseInt(hex.slice(3, 5), 16)
-  const b = parseInt(hex.slice(5, 7), 16)
-  return 0.299 * r + 0.587 * g + 0.114 * b > 150 ? '#0a1114' : '#ffffff'
+  const bg = relLuminance(hex)
+  const dark = contrastRatio(relLuminance('#0a1114'), bg)
+  const white = contrastRatio(1, bg)
+  return dark >= white ? '#0a1114' : '#ffffff'
 }
 
 function DotsIcon() {

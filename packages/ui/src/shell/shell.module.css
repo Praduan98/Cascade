@@ -150,7 +150,12 @@
 }
 .sh-nav a.on {
   background: var(--brand-soft);
+  color: var(--text);
+  font-weight: 600;
+}
+.sh-nav a.on svg {
   color: var(--brand);
+  opacity: 1;
 }
 .sh-nav a:hover {
   background: var(--surface-3);
@@ -172,7 +177,7 @@
 .sh-nav .grp {
   font-family: var(--font-mono);
   font-size: var(--fs-2xs);
-  color: var(--text-faint);
+  color: var(--text-3);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   margin: 14px 8px 6px;
