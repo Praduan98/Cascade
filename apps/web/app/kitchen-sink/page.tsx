@@ -333,7 +333,7 @@ export default function KitchenSink() {
             <div className={styles.grid}>
               <Tile title="Avatars" name="initials · pending">
                 <Avatar initials="SD" bg="var(--brand)" />
-                <Avatar initials="RA" bg="var(--cobalt)" color="#0a1114" />
+                <Avatar initials="RA" bg="var(--cobalt)" />
                 <Avatar initials="MK" bg="var(--surface-3)" color="var(--text-2)" />
                 <Avatar initials="PN" dashed />
               </Tile>
@@ -352,7 +352,7 @@ export default function KitchenSink() {
                 action={<RoleBadge role="owner" />}
               />
               <Member
-                avatar={<Avatar initials="RA" bg="var(--cobalt)" color="#0a1114" />}
+                avatar={<Avatar initials="RA" bg="var(--cobalt)" />}
                 name="Rhea Advani"
                 email="rhea@insightstap.com"
                 action={<RoleBadge role="admin" />}
