@@ -4,8 +4,8 @@
 // stays byte-for-byte consistent with the rest of the app.
 
 import { GridCellKind } from '@glideapps/glide-data-grid'
-import type { CellValue, Column, MultiSelectConfig, SingleSelectConfig } from '@cascade/core'
-import { columnTypeRegistry } from '@cascade/core'
+import type { Cell, CellValue, Column, MultiSelectConfig, SingleSelectConfig } from '@cascade/core'
+import { columnTypeRegistry, readAi, readEnrichment } from '@cascade/core'
 import type { CascadeCell, CascadeCellData, CellStatus, Chip } from './types'
 
 const EMDASH = '—'
@@ -63,10 +63,81 @@ export function makeCell(column: Column, value: CellValue): CascadeCell {
     }
 
     default: {
-      // text / longText / phone / date — plain left-aligned text.
+      // text / longText / phone / date / ai — plain left-aligned text. An `ai`
+      // column has no dedicated renderer (it stores text), so it renders through
+      // the long-text renderer; its intelligence lives in the AI cell path below.
       const display = empty ? EMDASH : def.formatDisplay(value, column.config)
-      return custom({ ...base, kind: column.type, display, muted: empty }, true, copyData)
+      const renderKind = column.type === 'ai' ? 'longText' : column.type
+      return custom({ ...base, kind: renderKind, display, muted: empty }, true, copyData)
     }
+  }
+}
+
+/**
+ * Build the cell for an enrichment (anchor) column, driven by `cell.meta.enrichment`.
+ * Un-enriched cells render as their plain typed value (manual entry or blank);
+ * enriched cells render the six-state status machine, stashing the provenance
+ * for the click → provenance popover.
+ */
+export function makeEnrichCell(column: Column, cell: Cell | undefined): CascadeCell {
+  const meta = cell ? readEnrichment(cell.meta) : undefined
+  const value = cell?.value ?? null
+  if (!meta) return makeCell(column, value)
+
+  const def = columnTypeRegistry[column.type]
+  const copyData = def.toCsv(value, column.config)
+  const base = { columnId: column.id, value, config: column.config, kind: 'status' as const, enrichment: meta }
+
+  const build = (data: CascadeCellData): CascadeCell => ({ kind: GridCellKind.Custom, allowOverlay: false, copyData, data })
+
+  switch (meta.status) {
+    case 'success':
+    case 'cached': {
+      const empty = def.isEmpty(value)
+      return build({ ...base, status: meta.status, display: empty ? EMDASH : def.formatDisplay(value, column.config), muted: empty })
+    }
+    case 'running':
+      return build({ ...base, status: 'running', display: '', muted: true })
+    case 'empty':
+      return build({ ...base, status: 'empty', display: meta.reason ?? 'no match found', muted: true })
+    case 'failed':
+      return build({ ...base, status: 'failed', display: meta.reason ?? 'failed', muted: true })
+    default:
+      return build({ ...base, status: 'queued', display: 'queued', muted: true })
+  }
+}
+
+/**
+ * Build the cell for an AI (anchor) column, driven by `cell.meta.ai`. Mirrors
+ * `makeEnrichCell` exactly — un-generated cells render as their plain typed value;
+ * generated cells render the same six-state status machine (reusing the shared
+ * statusCellRenderer), stashing the AI provenance for the click → popover.
+ */
+export function makeAiCell(column: Column, cell: Cell | undefined): CascadeCell {
+  const meta = cell ? readAi(cell.meta) : undefined
+  const value = cell?.value ?? null
+  if (!meta) return makeCell(column, value)
+
+  const def = columnTypeRegistry[column.type]
+  const copyData = def.toCsv(value, column.config)
+  const base = { columnId: column.id, value, config: column.config, kind: 'status' as const, ai: meta }
+
+  const build = (data: CascadeCellData): CascadeCell => ({ kind: GridCellKind.Custom, allowOverlay: false, copyData, data })
+
+  switch (meta.status) {
+    case 'success':
+    case 'cached': {
+      const empty = def.isEmpty(value)
+      return build({ ...base, status: meta.status, display: empty ? EMDASH : def.formatDisplay(value, column.config), muted: empty })
+    }
+    case 'running':
+      return build({ ...base, status: 'running', display: '', muted: true })
+    case 'empty':
+      return build({ ...base, status: 'empty', display: meta.reason ?? 'no result', muted: true })
+    case 'failed':
+      return build({ ...base, status: 'failed', display: meta.reason ?? 'failed', muted: true })
+    default:
+      return build({ ...base, status: 'queued', display: 'queued', muted: true })
   }
 }
 

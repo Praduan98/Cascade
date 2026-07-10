@@ -9,7 +9,7 @@
 
 import { useEffect, useState } from 'react'
 import type { Theme } from '@glideapps/glide-data-grid'
-import { syncPalette, palette } from './gridPalette'
+import { syncPalette, palette, setReducedMotion } from './gridPalette'
 
 const CELL_H_PADDING = 12
 const CELL_V_PADDING = 9
@@ -122,6 +122,12 @@ export function useGlideTheme(): Partial<Theme> {
     const mq = window.matchMedia('(prefers-color-scheme: dark)')
     mq.addEventListener('change', recompute)
 
+    // Keep the canvas reduced-motion flag in sync (the CSS reset can't reach it).
+    const rm = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const syncReducedMotion = () => setReducedMotion(rm.matches)
+    syncReducedMotion()
+    rm.addEventListener('change', syncReducedMotion)
+
     // Fonts changing family after load would otherwise leave the canvas on the
     // fallback stack until the next redraw.
     let fontsCancelled = false
@@ -135,6 +141,7 @@ export function useGlideTheme(): Partial<Theme> {
       cancelAnimationFrame(raf)
       observer.disconnect()
       mq.removeEventListener('change', recompute)
+      rm.removeEventListener('change', syncReducedMotion)
       fontsCancelled = true
     }
   }, [])

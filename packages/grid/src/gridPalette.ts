@@ -112,3 +112,17 @@ export function syncPalette(read: CssVarReader): void {
 export function statusColor(key: StatusKey): string {
   return palette.status[key].fg
 }
+
+// The global CSS `prefers-reduced-motion` reset cannot reach the canvas RAF
+// loop, so the renderers consult this flag directly. useGlideTheme keeps it in
+// sync with the media query.
+let reducedMotionFlag = false
+
+/** Whether animations (shimmer / running-bar) should be frozen on canvas. */
+export function reducedMotion(): boolean {
+  return reducedMotionFlag
+}
+
+export function setReducedMotion(value: boolean): void {
+  reducedMotionFlag = value
+}

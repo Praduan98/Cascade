@@ -1,0 +1,20 @@
+/* Ported from design-system.src.html — .cost-line (the amber spend gate) */
+.costLine {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  margin: 12px 0;
+  border-radius: var(--r-md);
+  background: var(--gold-soft);
+  border: 1px solid var(--gold-line);
+}
+.lab {
+  font-size: var(--fs-xs);
+  color: var(--text-2);
+}
+.amt {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--gold);
+}

@@ -52,6 +52,20 @@ export {
 export { Popover, PopoverTrigger, PopoverContent, PopoverClose, PopoverAnchor } from './Popover'
 export { Tooltip, TooltipProvider } from './Tooltip'
 
+// ---- Enrichment (Phase 2) ----
+export { Waterfall, WaterfallStep, WaterfallConnector } from './enrich/Waterfall'
+export type { WaterfallProps, WaterfallStepData, ProviderRef } from './enrich/Waterfall'
+export { CreditMeter, MeterBar, MeterLegend } from './enrich/CreditMeter'
+export type { CreditMeterProps, MeterSegment } from './enrich/CreditMeter'
+export { Breakdown, BreakdownRow } from './enrich/Breakdown'
+export type { BreakdownRowProps } from './enrich/Breakdown'
+export { CostLine } from './enrich/CostLine'
+export type { CostLineProps } from './enrich/CostLine'
+export { EnrichCell, MiniDot } from './enrich/EnrichCell'
+export type { EnrichStatus, EnrichCellProps } from './enrich/EnrichCell'
+export { ProvenanceCard } from './enrich/ProvenanceCard'
+export type { ProvenanceCardProps, ProvenanceField } from './enrich/ProvenanceCard'
+
 // ---- App shell ----
 export { Topbar } from './shell/Topbar'
 export { TopNavLink } from './shell/TopNavLink'

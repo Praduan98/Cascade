@@ -1,0 +1,148 @@
+.page {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: clamp(20px, 3.2vw, 36px);
+}
+
+.header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.headTitle h1 {
+  font-size: var(--fs-h1);
+}
+.count {
+  margin-top: 6px;
+  color: var(--text-3);
+  font-size: var(--fs-sm);
+  font-family: var(--font-mono);
+}
+
+.card {
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.card + .card {
+  margin-top: 18px;
+}
+.sectionHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.sectionHead h2 {
+  font-size: var(--fs-h4);
+  font-family: var(--font-display);
+}
+.sectionHint {
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  font-family: var(--font-mono);
+}
+.state {
+  margin-bottom: 18px;
+}
+
+/* ---- Run history table ---- */
+.table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: var(--fs-sm);
+}
+.table th {
+  text-align: left;
+  font-size: var(--fs-2xs);
+  font-family: var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  font-weight: 500;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--hairline);
+}
+.table td {
+  padding: 10px;
+  border-bottom: 1px solid var(--hairline);
+  vertical-align: middle;
+}
+.table tr:last-child td {
+  border-bottom: 0;
+}
+.who {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.whoName {
+  font-weight: 600;
+}
+.when {
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  white-space: nowrap;
+}
+.scope {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  color: var(--text-2);
+}
+.counts {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+.money {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--gold);
+  text-align: right;
+  white-space: nowrap;
+}
+.scrollX {
+  overflow-x: auto;
+}
+
+/* ---- Skeletons ---- */
+.skelRow {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 11px 4px;
+  border-bottom: 1px solid var(--hairline);
+}
+.skelLines {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.skelBlock {
+  border-radius: var(--r-sm);
+  background: linear-gradient(90deg, var(--surface-2), var(--surface-3), var(--surface-2));
+  background-size: 200% 100%;
+  animation: shimmer 1.3s ease-in-out infinite;
+}
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}

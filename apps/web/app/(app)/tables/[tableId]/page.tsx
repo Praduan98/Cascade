@@ -8,14 +8,14 @@
 // canvas reflects the change. Viewers get a read-only grid and disabled
 // mutations; the API also enforces this and those 403s surface as toasts.
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { getApi, isApiError } from '@cascade/data'
-import { canWrite } from '@cascade/core'
+import { canViewMargin, canWrite } from '@cascade/core'
 import type { Column, View } from '@cascade/core'
-import { TableGridDynamic } from '@cascade/grid'
+import { TableGridDynamic, type TableGridHandle } from '@cascade/grid'
 import { Alert, Button, Dialog, DialogClose, EmptyState, useToast } from '@cascade/ui'
 import { useSession } from '../../../session'
 import { errorMessage } from '../../../lib/ui'
@@ -24,6 +24,14 @@ import { AddColumnDialog } from './_components/AddColumnDialog'
 import { EditColumnDialog } from './_components/EditColumnDialog'
 import { ManageColumnsDialog } from './_components/ManageColumnsDialog'
 import { BulkDeleteDialog } from './_components/BulkDeleteDialog'
+import { WaterfallBuilder } from './_components/enrichment/WaterfallBuilder'
+import { RunDialog } from './_components/enrichment/RunDialog'
+import { RunProgress } from './_components/enrichment/RunProgress'
+import { ProvenancePopover } from './_components/enrichment/ProvenancePopover'
+import type { ProvenanceTarget } from './_components/enrichment/ProvenancePopover'
+import { AiColumnBuilder } from './_components/ai/AiColumnBuilder'
+import { AiProvenancePopover } from './_components/ai/AiProvenancePopover'
+import type { AiProvenanceTarget } from './_components/ai/AiProvenancePopover'
 import styles from './table-surface.module.css'
 
 function ColumnGlyph() {
@@ -38,11 +46,12 @@ function ColumnGlyph() {
 export default function TableSurfacePage() {
   const params = useParams<{ tableId: string }>()
   const tableId = params.tableId
-  const { role } = useSession()
+  const { role, workspace } = useSession()
   const qc = useQueryClient()
   const { toast } = useToast()
 
   const writable = role ? canWrite(role) : false
+  const canCost = role ? canViewMargin(role) : false
 
   const [gridKey, setGridKey] = useState(0)
   const [activeViewId, setActiveViewId] = useState('')
@@ -51,6 +60,23 @@ export default function TableSurfacePage() {
   const [bulkOpen, setBulkOpen] = useState(false)
   const [editTarget, setEditTarget] = useState<Column | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Column | null>(null)
+
+  // Enrichment (Phase 2) surface state.
+  const [builderOpen, setBuilderOpen] = useState(false)
+  const [builderColumn, setBuilderColumn] = useState<Column | null>(null)
+  const [runOpen, setRunOpen] = useState(false)
+  const [activeRunId, setActiveRunId] = useState<string | null>(null)
+  const [refreshToken, setRefreshToken] = useState(0)
+  const [selection, setSelection] = useState<{ recordIds: string[]; count: number }>({ recordIds: [], count: 0 })
+  const [provTarget, setProvTarget] = useState<ProvenanceTarget | null>(null)
+
+  // AI columns (Phase 3) surface state.
+  const [aiBuilderOpen, setAiBuilderOpen] = useState(false)
+  const [aiBuilderColumn, setAiBuilderColumn] = useState<Column | null>(null)
+  const [aiSeedName, setAiSeedName] = useState('')
+  const [aiRunOpen, setAiRunOpen] = useState(false)
+  const [aiActiveRunId, setAiActiveRunId] = useState<string | null>(null)
+  const [aiProvTarget, setAiProvTarget] = useState<AiProvenanceTarget | null>(null)
 
   const metaQuery = useQuery({
     queryKey: ['table', tableId],
@@ -75,6 +101,22 @@ export default function TableSurfacePage() {
     [columnsQuery.data],
   )
   const views = useMemo(() => viewsQuery.data ?? [], [viewsQuery.data])
+
+  const configsQuery = useQuery({
+    queryKey: ['enrichment', 'configs', tableId],
+    queryFn: () => getApi().enrichment.configs.list(tableId),
+    enabled: !!tableId,
+  })
+  const enrichmentColumnIds = useMemo(() => (configsQuery.data ?? []).map((c) => c.columnId), [configsQuery.data])
+  const enrichmentColumns = useMemo(() => columns.filter((c) => enrichmentColumnIds.includes(c.id)), [columns, enrichmentColumnIds])
+
+  const aiConfigsQuery = useQuery({
+    queryKey: ['ai', 'configs', tableId],
+    queryFn: () => getApi().ai.configs.list(tableId),
+    enabled: !!tableId,
+  })
+  const aiColumnIds = useMemo(() => (aiConfigsQuery.data ?? []).map((c) => c.columnId), [aiConfigsQuery.data])
+  const aiColumns = useMemo(() => columns.filter((c) => aiColumnIds.includes(c.id)), [columns, aiColumnIds])
 
   // Resolve the active view once views load: prefer a valid ?view= from the URL,
   // then the table's default view, then the first.
@@ -116,10 +158,86 @@ export default function TableSurfacePage() {
     enabled: !!tableId,
   })
 
+  // Live run wiring: subscribe to enrichment events for this table. Per-cell
+  // transitions are patched into the grid in place via its imperative handle
+  // (no full reload → no shimmer flash on unrelated rows/columns); a run terminal
+  // does one reconciling reload and refreshes credits / run history.
+  const gridHandleRef = useRef<TableGridHandle | null>(null)
+  useEffect(() => {
+    if (!activeRunId) return
+    const api = getApi()
+    const unsub = api.enrichment.subscribe({ tableId }, (e) => {
+      if (e.type === 'cell') gridHandleRef.current?.applyEnrichment(e.recordId, e.columnId, e.meta, e.value)
+      if (e.type === 'run' && (e.run.status === 'complete' || e.run.status === 'failed' || e.run.status === 'paused')) {
+        setRefreshToken((t) => t + 1)
+        void qc.invalidateQueries({ queryKey: ['credits', 'balance', workspace?.id] })
+        void qc.invalidateQueries({ queryKey: ['enrichment', 'runs', workspace?.id] })
+      }
+    })
+    return () => unsub()
+  }, [activeRunId, tableId, qc, workspace?.id])
+
+  function handleRunStarted(runId: string) {
+    setActiveRunId(runId)
+    setRefreshToken((t) => t + 1)
+  }
+
+  function handleRetryCell(recordId: string, columnId: string) {
+    setProvTarget(null)
+    getApi()
+      .enrichment.run(tableId, { mode: 'selected', recordIds: [recordId], columnIds: [columnId] }, { forceFresh: true })
+      .then(({ runId }) => handleRunStarted(runId))
+      .catch((err) => toast(errorMessage(err, 'Could not retry'), { variant: 'error' }))
+  }
+
+  // Live AI run wiring — a parallel of the enrichment subscription.
+  useEffect(() => {
+    if (!aiActiveRunId) return
+    const api = getApi()
+    const unsub = api.ai.subscribe({ tableId }, (e) => {
+      if (e.type === 'cell') gridHandleRef.current?.applyAi(e.recordId, e.columnId, e.meta, e.value)
+      if (e.type === 'run' && (e.run.status === 'complete' || e.run.status === 'failed' || e.run.status === 'paused')) {
+        setRefreshToken((t) => t + 1)
+        void qc.invalidateQueries({ queryKey: ['credits', 'balance', workspace?.id] })
+        void qc.invalidateQueries({ queryKey: ['ai', 'runs', workspace?.id] })
+      }
+    })
+    return () => unsub()
+  }, [aiActiveRunId, tableId, qc, workspace?.id])
+
+  function handleAiRunStarted(runId: string) {
+    setAiActiveRunId(runId)
+    setRefreshToken((t) => t + 1)
+  }
+
+  function handleRetryAiCell(recordId: string, columnId: string) {
+    setAiProvTarget(null)
+    getApi()
+      .ai.run(tableId, { mode: 'selected', recordIds: [recordId], columnIds: [columnId] }, { forceFresh: true })
+      .then(({ runId }) => handleAiRunStarted(runId))
+      .catch((err) => toast(errorMessage(err, 'Could not retry'), { variant: 'error' }))
+  }
+
+  function requestAiColumn(seedName: string) {
+    setAiBuilderColumn(null)
+    setAiSeedName(seedName)
+    setAiBuilderOpen(true)
+  }
+
+  function onAiSaved() {
+    void qc.invalidateQueries({ queryKey: ['ai', 'configs', tableId] })
+    void qc.invalidateQueries({ queryKey: ['columns', tableId] })
+    remountGrid()
+  }
+
   function remountGrid() {
     setGridKey((k) => k + 1)
   }
   function onColumnsChanged() {
+    remountGrid()
+  }
+  function onWaterfallSaved() {
+    void qc.invalidateQueries({ queryKey: ['enrichment', 'configs', tableId] })
     remountGrid()
   }
   function onRowsDeleted() {
@@ -200,11 +318,27 @@ export default function TableSurfacePage() {
         activeViewId={activeViewId}
         onChangeView={setActiveViewId}
         writable={writable}
+        hasEnrichment={enrichmentColumns.length > 0}
+        hasAi={aiColumns.length > 0}
         onAddColumn={() => setAddOpen(true)}
         onManageColumns={() => setManageOpen(true)}
         onDeleteRows={() => setBulkOpen(true)}
+        onEnrich={() => {
+          setBuilderColumn(null)
+          setBuilderOpen(true)
+        }}
+        onRun={() => setRunOpen(true)}
+        onAddAiColumn={() => {
+          setAiBuilderColumn(null)
+          setAiSeedName('')
+          setAiBuilderOpen(true)
+        }}
+        onRunAi={() => setAiRunOpen(true)}
         remountGrid={remountGrid}
       />
+
+      {activeRunId && <RunProgress runId={activeRunId} onDone={() => setActiveRunId(null)} />}
+      {aiActiveRunId && <RunProgress runId={aiActiveRunId} kind="ai" onDone={() => setAiActiveRunId(null)} />}
 
       <div className={styles.gridHost}>
         {columnsEmpty ? (
@@ -225,16 +359,99 @@ export default function TableSurfacePage() {
             }
           />
         ) : (
-          <TableGridDynamic
-            key={gridKey}
-            tableId={tableId}
-            viewId={effectiveViewId}
-            readOnly={!writable}
-          />
+          <>
+            <TableGridDynamic
+              key={gridKey}
+              tableId={tableId}
+              viewId={effectiveViewId}
+              readOnly={!writable}
+              enrichmentColumnIds={enrichmentColumnIds}
+              aiColumnIds={aiColumnIds}
+              refreshToken={refreshToken}
+              onReady={(h) => {
+                gridHandleRef.current = h
+              }}
+              onSelectionChange={(info) => setSelection({ recordIds: info.recordIds, count: info.recordIds.length })}
+              onEnrichmentCellClick={(refCell, bounds) => setProvTarget({ recordId: refCell.recordId, columnId: refCell.columnId, rect: bounds })}
+              onAiCellClick={(refCell, bounds) => setAiProvTarget({ recordId: refCell.recordId, columnId: refCell.columnId, rect: bounds })}
+            />
+            {workspace && (
+              <ProvenancePopover
+                target={provTarget}
+                workspaceId={workspace.id}
+                canCost={canCost}
+                onClose={() => setProvTarget(null)}
+                onRetry={handleRetryCell}
+              />
+            )}
+            {workspace && (
+              <AiProvenancePopover
+                target={aiProvTarget}
+                workspaceId={workspace.id}
+                canCost={canCost}
+                onClose={() => setAiProvTarget(null)}
+                onRetry={handleRetryAiCell}
+              />
+            )}
+          </>
         )}
       </div>
 
-      <AddColumnDialog open={addOpen} onOpenChange={setAddOpen} tableId={tableId} onAdded={onColumnsChanged} />
+      {workspace && (
+        <WaterfallBuilder
+          open={builderOpen}
+          onOpenChange={setBuilderOpen}
+          tableId={tableId}
+          columns={columns}
+          workspaceId={workspace.id}
+          column={builderColumn}
+          onSaved={onWaterfallSaved}
+        />
+      )}
+
+      {enrichmentColumns.length > 0 && (
+        <RunDialog
+          open={runOpen}
+          onOpenChange={setRunOpen}
+          tableId={tableId}
+          columns={enrichmentColumns}
+          selection={selection}
+          onStarted={handleRunStarted}
+        />
+      )}
+
+      {workspace && (
+        <AiColumnBuilder
+          open={aiBuilderOpen}
+          onOpenChange={setAiBuilderOpen}
+          tableId={tableId}
+          columns={columns}
+          workspaceId={workspace.id}
+          column={aiBuilderColumn}
+          seedName={aiSeedName}
+          onSaved={onAiSaved}
+        />
+      )}
+
+      {aiColumns.length > 0 && (
+        <RunDialog
+          open={aiRunOpen}
+          onOpenChange={setAiRunOpen}
+          tableId={tableId}
+          columns={aiColumns}
+          selection={selection}
+          onStarted={handleAiRunStarted}
+          kind="ai"
+        />
+      )}
+
+      <AddColumnDialog
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        tableId={tableId}
+        onAdded={onColumnsChanged}
+        onRequestAiColumn={requestAiColumn}
+      />
 
       <ManageColumnsDialog
         open={manageOpen}

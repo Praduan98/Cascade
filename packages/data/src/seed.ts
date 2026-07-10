@@ -4,18 +4,32 @@
 // `generateRows` synthesises up to ~100k believable rows for perf testing.
 
 import type {
+  AiCache,
+  AiCellMeta,
+  AiCellResult,
+  AiColumnConfig,
   Cell,
   CellValue,
   Column,
   ColumnConfig,
+  CreditLedgerEntry,
+  EnrichmentCache,
+  EnrichmentCellMeta,
+  EnrichmentCellResult,
+  EnrichmentCellStatus,
+  EnrichmentColumnConfig,
+  EnrichmentRun,
   Invite,
   Member,
   MultiSelectConfig,
+  Provider,
+  ProviderCredential,
   RecordRow,
   SingleSelectConfig,
   TableMeta,
   User,
   Workspace,
+  WorkspaceCredit,
 } from '@cascade/core'
 import { columnTypeRegistry, emptyFilter } from '@cascade/core'
 import type { StoreData } from './store'
@@ -78,6 +92,13 @@ const STAGE_OPTS = [
   { id: 'opt_s_proposal', label: 'Proposal', color: '#ab8cfb' },
   { id: 'opt_s_won', label: 'Won', color: '#38d08c' },
   { id: 'opt_s_lost', label: 'Lost', color: '#f2666b' },
+]
+// Verify verdicts (US-2.14) — the ZeroBounce output column of the "Work email" waterfall.
+const DELIVERABLE_OPTS = [
+  { id: 'opt_d_deliverable', label: 'Deliverable', color: '#38d08c' },
+  { id: 'opt_d_risky', label: 'Risky', color: '#f5b544' },
+  { id: 'opt_d_undeliverable', label: 'Undeliverable', color: '#f2666b' },
+  { id: 'opt_d_unknown', label: 'Unknown', color: '#8698a4' },
 ]
 
 // ---------------------------------------------------------------------------
@@ -161,14 +182,18 @@ const companyColumns: Column[] = [
   makeColumn('col_co_company', T.companies, 'Company', { type: 'text' }, 0, { frozen: true, width: 200 }),
   makeColumn('col_co_domain', T.companies, 'Domain', { type: 'url' }, 1, { width: 190 }),
   makeColumn('col_co_employees', T.companies, 'Employees', { type: 'number', precision: 0 }, 2, { width: 120 }),
-  makeColumn('col_co_email', T.companies, 'Work email', { type: 'email' }, 3, { width: 210 }),
-  makeColumn('col_co_verified', T.companies, 'Verified', { type: 'singleSelect', options: VERIFIED_OPTS }, 4, { width: 130 }),
-  makeColumn('col_co_tags', T.companies, 'Tags', { type: 'multiSelect', options: TAG_OPTS }, 5, { width: 210 }),
-  makeColumn('col_co_mrr', T.companies, 'MRR', { type: 'currency', currencyCode: 'USD', precision: 0 }, 6, { width: 130 }),
-  makeColumn('col_co_signed', T.companies, 'Signed', { type: 'date', format: 'MMM D, YYYY' }, 7, { width: 150 }),
-  makeColumn('col_co_phone', T.companies, 'Phone', { type: 'phone' }, 8, { width: 160 }),
-  makeColumn('col_co_active', T.companies, 'Active', { type: 'boolean' }, 9, { width: 90 }),
-  makeColumn('col_co_notes', T.companies, 'Notes', { type: 'longText' }, 10, { width: 280 }),
+  // The "Work email" waterfall anchor + its ZeroBounce verify output.
+  makeColumn('col_co_email', T.companies, 'Work email', { type: 'email' }, 3, { width: 220 }),
+  makeColumn('col_co_deliverable', T.companies, 'Deliverable', { type: 'singleSelect', options: DELIVERABLE_OPTS }, 4, { width: 140 }),
+  makeColumn('col_co_verified', T.companies, 'Verified', { type: 'singleSelect', options: VERIFIED_OPTS }, 5, { width: 130 }),
+  makeColumn('col_co_tags', T.companies, 'Tags', { type: 'multiSelect', options: TAG_OPTS }, 6, { width: 210 }),
+  makeColumn('col_co_mrr', T.companies, 'MRR', { type: 'currency', currencyCode: 'USD', precision: 0 }, 7, { width: 130 }),
+  makeColumn('col_co_signed', T.companies, 'Signed', { type: 'date', format: 'MMM D, YYYY' }, 8, { width: 150 }),
+  makeColumn('col_co_phone', T.companies, 'Phone', { type: 'phone' }, 9, { width: 160 }),
+  makeColumn('col_co_active', T.companies, 'Active', { type: 'boolean' }, 10, { width: 90 }),
+  makeColumn('col_co_notes', T.companies, 'Notes', { type: 'longText' }, 11, { width: 280 }),
+  // Phase 3 demo AI column — a one-line pitch generated from the company fields.
+  makeColumn('col_co_pitch', T.companies, 'AI: One-line pitch', { type: 'ai' }, 12, { width: 320 }),
 ]
 
 function buildCompanies(): { records: RecordRow[]; cells: Cell[] } {
@@ -345,6 +370,316 @@ function buildAccounts(): { records: RecordRow[]; cells: Cell[] } {
 }
 
 // ---------------------------------------------------------------------------
+// Enrichment engine (Phase 2) — providers, credentials, credits, the "Work
+// email" waterfall, a demo of every status, and reconciling run history.
+// ---------------------------------------------------------------------------
+
+const P = {
+  pdl: 'prov_pdl',
+  apollo: 'prov_apollo',
+  hunter: 'prov_hunter',
+  prospeo: 'prov_prospeo',
+  zerobounce: 'prov_zerobounce',
+  leadmagic: 'prov_leadmagic',
+} as const
+
+const ENR = { config: 'enrcfg_co_email', run1: 'enrrun_seed_1', run2: 'enrrun_seed_2' } as const
+
+const AI = { config: 'aicfg_co_pitch', run1: 'airun_seed_1' } as const
+
+const PROVIDERS: Provider[] = [
+  { id: P.pdl, key: 'pdl', name: 'People Data Labs', category: 'people', defaultRateLimit: 10, defaultTtlDays: 30, costConfig: { person_enrich: { credits: 3, providerCostUsd: 0.02 }, company_enrich: { credits: 2, providerCostUsd: 0.01 } }, supportsByoKey: true, glyph: 'PD', monoColor: '#3b82f6' },
+  { id: P.apollo, key: 'apollo', name: 'Apollo.io', category: 'people', defaultRateLimit: 8, defaultTtlDays: 30, costConfig: { person_enrich: { credits: 2, providerCostUsd: 0.015 }, company_enrich: { credits: 2, providerCostUsd: 0.012 } }, supportsByoKey: true, glyph: 'Ap', monoColor: '#ec4899' },
+  { id: P.hunter, key: 'hunter', name: 'Hunter.io', category: 'email_find', defaultRateLimit: 15, defaultTtlDays: 14, costConfig: { find_email: { credits: 2, providerCostUsd: 0.01 } }, supportsByoKey: true, glyph: 'Hu', monoColor: '#f97316' },
+  { id: P.prospeo, key: 'prospeo', name: 'Prospeo', category: 'email_find', defaultRateLimit: 12, defaultTtlDays: 14, costConfig: { find_email: { credits: 2, providerCostUsd: 0.009 } }, supportsByoKey: true, glyph: 'Pr', monoColor: '#8b5cf6' },
+  { id: P.zerobounce, key: 'zerobounce', name: 'ZeroBounce', category: 'email_verify', defaultRateLimit: 20, defaultTtlDays: 7, costConfig: { verify_email: { credits: 1, providerCostUsd: 0.004 } }, supportsByoKey: true, glyph: 'ZB', monoColor: '#10b981' },
+  { id: P.leadmagic, key: 'leadmagic', name: 'LeadMagic', category: 'phone', defaultRateLimit: 10, defaultTtlDays: 30, costConfig: { find_phone: { credits: 4, providerCostUsd: 0.03 }, find_email: { credits: 2, providerCostUsd: 0.011 } }, supportsByoKey: true, glyph: 'LM', monoColor: '#6366f1' },
+]
+
+const providerCredentials: ProviderCredential[] = [
+  { id: 'cred_pdl', workspaceId: WS.primary, providerId: P.pdl, isPlatformManaged: true, maskedKey: '••••managed', status: 'active', createdAt: CREATED },
+  { id: 'cred_apollo', workspaceId: WS.primary, providerId: P.apollo, isPlatformManaged: true, maskedKey: '••••managed', status: 'active', createdAt: CREATED },
+  // Hunter is a bring-your-own-key demo (usage attributed to the workspace).
+  { id: 'cred_hunter', workspaceId: WS.primary, providerId: P.hunter, isPlatformManaged: false, maskedKey: '••••7f3a', status: 'active', createdAt: CREATED },
+  { id: 'cred_prospeo', workspaceId: WS.primary, providerId: P.prospeo, isPlatformManaged: true, maskedKey: '••••managed', status: 'active', createdAt: CREATED },
+  { id: 'cred_zerobounce', workspaceId: WS.primary, providerId: P.zerobounce, isPlatformManaged: true, maskedKey: '••••managed', status: 'active', createdAt: CREATED },
+  { id: 'cred_leadmagic', workspaceId: WS.primary, providerId: P.leadmagic, isPlatformManaged: true, maskedKey: '••••managed', status: 'active', createdAt: CREATED },
+]
+
+const workspaceCredits: WorkspaceCredit[] = [
+  { workspaceId: WS.primary, balance: 18240, budgetCap: 50000, perRunCap: 5000 },
+  { workspaceId: WS.secondary, balance: 5000, budgetCap: 10000, perRunCap: 2000 },
+]
+
+// The signature 3-step waterfall: PDL person-enrich → Hunter finder → ZeroBounce
+// verify (accept only if deliverable). Matches the design-system sample.
+const emailConfig: EnrichmentColumnConfig = {
+  id: ENR.config,
+  columnId: 'col_co_email',
+  autoRun: false,
+  forceFreshDefault: false,
+  steps: [
+    { providerId: P.pdl, operation: 'person_enrich', inputMapping: { domain: 'col_co_domain' }, outputMapping: { email: 'col_co_email' }, acceptanceCondition: 'nonEmptyField', acceptField: 'email', credits: 3, providerCostUsd: 0.02 },
+    { providerId: P.hunter, operation: 'find_email', inputMapping: { domain: 'col_co_domain' }, outputMapping: { email: 'col_co_email' }, acceptanceCondition: 'nonEmptyField', acceptField: 'email', credits: 2, providerCostUsd: 0.01 },
+    { providerId: P.zerobounce, operation: 'verify_email', inputMapping: { email: 'col_co_email' }, outputMapping: { deliverable: 'col_co_deliverable' }, acceptanceCondition: 'verifyDeliverable', credits: 1, providerCostUsd: 0.004 },
+  ],
+}
+
+const enrichmentRuns: EnrichmentRun[] = [
+  { id: ENR.run1, workspaceId: WS.primary, tableId: T.companies, triggeredBy: U.owner, triggeredByName: 'Aarav Shah', scope: { mode: 'whole', columnIds: ['col_co_email'] }, forceFresh: false, status: 'complete', counts: { processed: 52, total: 52, success: 38, empty: 9, failed: 2, cached: 3 }, creditsConsumed: 105, providerCostUsd: 0.5, startedAt: '2026-06-20T14:02:00.000Z', finishedAt: '2026-06-20T14:07:30.000Z' },
+  { id: ENR.run2, workspaceId: WS.primary, tableId: T.companies, triggeredBy: U.member, triggeredByName: 'Dana Whitfield', scope: { mode: 'selected', recordIds: Array.from({ length: 24 }, (_, i) => `rec_co_${String(i).padStart(3, '0')}`), columnIds: ['col_co_email'] }, forceFresh: false, status: 'complete', counts: { processed: 24, total: 24, success: 18, empty: 3, failed: 1, cached: 2 }, creditsConsumed: 70, providerCostUsd: 0.35, startedAt: '2026-07-05T09:15:00.000Z', finishedAt: '2026-07-05T09:18:10.000Z' },
+]
+
+// Append-only ledger: a grant, then per-provider consumption reconciling the
+// balance exactly to 18,240. `enrich:<key>:<op>` reasons drive the Usage
+// "by provider" breakdown (and are the same reasons live runs write).
+const creditLedger: CreditLedgerEntry[] = [
+  { id: 'led_grant', workspaceId: WS.primary, delta: 18415, reason: 'grant:seed', balanceAfter: 18415, createdAt: '2026-06-01T09:00:00.000Z' },
+  { id: 'led_1a', workspaceId: WS.primary, delta: -60, reason: 'enrich:pdl:person_enrich', runId: ENR.run1, balanceAfter: 18355, createdAt: '2026-06-20T14:07:00.000Z' },
+  { id: 'led_1b', workspaceId: WS.primary, delta: -20, reason: 'enrich:hunter:find_email', runId: ENR.run1, balanceAfter: 18335, createdAt: '2026-06-20T14:07:10.000Z' },
+  { id: 'led_1c', workspaceId: WS.primary, delta: -25, reason: 'enrich:zerobounce:verify_email', runId: ENR.run1, balanceAfter: 18310, createdAt: '2026-06-20T14:07:20.000Z' },
+  { id: 'led_2a', workspaceId: WS.primary, delta: -30, reason: 'enrich:pdl:person_enrich', runId: ENR.run2, balanceAfter: 18280, createdAt: '2026-07-05T09:17:50.000Z' },
+  { id: 'led_2b', workspaceId: WS.primary, delta: -20, reason: 'enrich:leadmagic:find_phone', runId: ENR.run2, balanceAfter: 18260, createdAt: '2026-07-05T09:18:00.000Z' },
+  { id: 'led_2c', workspaceId: WS.primary, delta: -20, reason: 'enrich:prospeo:find_email', runId: ENR.run2, balanceAfter: 18240, createdAt: '2026-07-05T09:18:05.000Z' },
+]
+
+// A few warm cache entries so an immediate re-run of the cached demo rows is a
+// genuine, free hit (keyed exactly as the engine keys them).
+const enrichmentCache: EnrichmentCache[] = [
+  { id: 'cache_1', cacheKey: 'prov_pdl|person_enrich|domain=acmeanalytics.com', providerId: P.pdl, operation: 'person_enrich', resultJson: { fields: { email: 'jordan.okoye@acmeanalytics.com' }, confidence: 0.91 }, cost: 0.02, fetchedAt: '2026-07-05T09:00:00.000Z', expiresAt: '2027-06-01T00:00:00.000Z' },
+  { id: 'cache_2', cacheKey: 'prov_pdl|person_enrich|domain=piedpiper.io', providerId: P.pdl, operation: 'person_enrich', resultJson: { fields: { email: 'rosa.silva@piedpiper.io' }, confidence: 0.88 }, cost: 0.02, fetchedAt: '2026-07-05T09:00:00.000Z', expiresAt: '2027-06-01T00:00:00.000Z' },
+  { id: 'cache_3', cacheKey: 'prov_pdl|person_enrich|domain=cyberdyne.ai', providerId: P.pdl, operation: 'person_enrich', resultJson: { fields: { email: 'marco.reyes@cyberdyne.ai' }, confidence: 0.93 }, cost: 0.02, fetchedAt: '2026-07-05T09:00:00.000Z', expiresAt: '2027-06-01T00:00:00.000Z' },
+]
+
+const ENR_STAMP = '2026-06-20T14:05:00.000Z'
+
+/**
+ * Overlay enrichment status onto the first 16 "Work email" cells so the grid
+ * demonstrates the whole status system on first load; add the matching
+ * Deliverable outputs and provenance results.
+ */
+function applyEnrichmentSeed(cells: Cell[]): { deliverableCells: Cell[]; results: EnrichmentCellResult[] } {
+  const successIdx = new Set([0, 3, 5, 8, 9, 12, 14, 15])
+  const cachedIdx = new Set([1, 6, 11])
+  const emptyIdx = new Set([2, 7, 13])
+  const byKey = new Map(cells.map((c) => [`${c.recordId}|${c.columnId}`, c] as const))
+  const deliverableCells: Cell[] = []
+  const results: EnrichmentCellResult[] = []
+
+  for (let i = 0; i < 16; i++) {
+    const rid = `rec_co_${String(i).padStart(3, '0')}`
+    const emailCell = byKey.get(`${rid}|col_co_email`)
+    if (!emailCell) continue
+
+    let status: EnrichmentCellStatus
+    let providerId: string | null
+    let stepIndex: number | null
+    let credits: number
+    let usd: number
+    let fromCache = false
+    let reason: string | undefined
+
+    if (successIdx.has(i)) {
+      status = 'success'
+      if (i % 2 === 0) {
+        providerId = P.pdl
+        stepIndex = 0
+        credits = 3
+        usd = 0.02
+      } else {
+        providerId = P.hunter
+        stepIndex = 1
+        credits = 2
+        usd = 0.01
+      }
+    } else if (cachedIdx.has(i)) {
+      status = 'cached'
+      providerId = P.pdl
+      stepIndex = 0
+      credits = 0
+      usd = 0
+      fromCache = true
+    } else if (emptyIdx.has(i)) {
+      status = 'empty'
+      providerId = null
+      stepIndex = null
+      credits = 0
+      usd = 0
+      reason = 'no match found'
+    } else {
+      status = 'failed'
+      providerId = P.pdl
+      stepIndex = 0
+      credits = 0
+      usd = 0
+      reason = 'provider timeout · retried ×3'
+    }
+
+    const success = status === 'success' || status === 'cached'
+    const meta: EnrichmentCellMeta = {
+      status,
+      providerId,
+      stepIndex,
+      runId: ENR.run1,
+      confidence: success ? 0.9 : null,
+      credits,
+      fromCache,
+      reason,
+      fetchedAt: ENR_STAMP,
+      valueSource: fromCache ? 'cache' : 'provider',
+    }
+    if (!success) emailCell.value = null
+    emailCell.meta = { enrichment: meta }
+
+    if (success) {
+      const dMeta: EnrichmentCellMeta = {
+        status: 'success',
+        providerId: P.zerobounce,
+        stepIndex: 2,
+        runId: ENR.run1,
+        confidence: 0.97,
+        credits: fromCache ? 0 : 1,
+        fromCache,
+        fetchedAt: ENR_STAMP,
+        valueSource: 'provider',
+      }
+      deliverableCells.push({ recordId: rid, columnId: 'col_co_deliverable', value: 'opt_d_deliverable', meta: { enrichment: dMeta } })
+    }
+
+    results.push({
+      id: `enrres_${i}`,
+      recordId: rid,
+      columnId: 'col_co_email',
+      runId: ENR.run1,
+      providerId,
+      stepIndex,
+      status,
+      valueJson: emailCell.value,
+      confidence: meta.confidence ?? null,
+      credits,
+      providerCostUsd: usd,
+      fromCache,
+      reason,
+      fetchedAt: ENR_STAMP,
+    })
+  }
+  return { deliverableCells, results }
+}
+
+// ---------------------------------------------------------------------------
+// AI columns (Phase 3) — a "one-line pitch" AI column over the Companies table.
+// ---------------------------------------------------------------------------
+
+// The signature single-shot AI column: summarize the company from its fields.
+const pitchConfig: AiColumnConfig = {
+  id: AI.config,
+  columnId: 'col_co_pitch',
+  model: { provider: 'anthropic', model: 'claude-haiku-4-5' },
+  operation: 'summarize',
+  promptTemplate: 'Write a one-line pitch for {{Company}} ({{Domain}}), a company with {{Employees}} employees.',
+  outputSchema: [],
+  outputMapping: {},
+  cacheTtlDays: 30,
+  autoRun: false,
+  forceFreshDefault: false,
+  credits: 1,
+  providerCostUsd: 0.002,
+}
+
+const aiRuns: EnrichmentRun[] = [
+  { id: AI.run1, workspaceId: WS.primary, tableId: T.companies, triggeredBy: U.admin, triggeredByName: 'Marcus Chen', scope: { mode: 'whole', columnIds: ['col_co_pitch'] }, forceFresh: false, status: 'complete', counts: { processed: 10, total: 10, success: 6, empty: 2, failed: 0, cached: 2 }, creditsConsumed: 6, providerCostUsd: 0.012, startedAt: '2026-07-06T10:00:00.000Z', finishedAt: '2026-07-06T10:00:20.000Z' },
+]
+
+// Net-zero grant/consume so the "by model" usage breakdown is demoable while the
+// stored workspace balance stays exactly 18,240 (the enrichment test asserts it).
+const aiLedger: CreditLedgerEntry[] = [
+  { id: 'led_ai_grant', workspaceId: WS.primary, delta: 6, reason: 'grant:ai_seed', balanceAfter: 18246, createdAt: '2026-07-06T09:59:00.000Z' },
+  { id: 'led_ai_1', workspaceId: WS.primary, delta: -6, reason: 'ai:claude-haiku-4-5:summarize', runId: AI.run1, balanceAfter: 18240, createdAt: '2026-07-06T10:00:15.000Z' },
+]
+
+const AI_STAMP = '2026-07-06T10:00:10.000Z'
+const AI_PITCHES = [
+  'AI-native GTM platform that turns raw signals into pipeline.',
+  'Operator-first enrichment engine that keeps records fresh automatically.',
+  'Developer-friendly revenue-intelligence suite that surfaces the next best action.',
+  'Enterprise-grade prospecting workspace that scales outreach without the noise.',
+  'Lightweight analytics layer that unifies scattered data.',
+  'Purpose-built CRM companion that automates the busywork.',
+]
+
+// A warm cache entry (cacheStats + a plausible free hit for the demo).
+const aiCache: AiCache[] = [
+  { id: 'aicache_1', cacheKey: 'claude-haiku-4-5|summarize|Write a one-line pitch for Acme Analytics (acmeanalytics.com), a company with 240 employees.', modelKey: 'claude-haiku-4-5', operation: 'summarize', resultJson: { text: AI_PITCHES[0], structured: {}, confidence: 0.9 }, cost: 0.002, fetchedAt: '2026-07-06T09:00:00.000Z', expiresAt: '2027-07-01T00:00:00.000Z' },
+]
+
+/**
+ * Overlay AI status onto the first 10 "AI: One-line pitch" cells so the grid
+ * demonstrates the status system on first load, with matching provenance.
+ */
+function applyAiSeed(): { pitchCells: Cell[]; results: AiCellResult[] } {
+  const successIdx = new Set([0, 1, 3, 4, 6, 8])
+  const cachedIdx = new Set([2, 7])
+  const pitchCells: Cell[] = []
+  const results: AiCellResult[] = []
+  let pitchI = 0
+  for (let i = 0; i < 10; i++) {
+    const rid = `rec_co_${String(i).padStart(3, '0')}`
+    let status: EnrichmentCellStatus
+    let credits: number
+    let fromCache = false
+    let reason: string | undefined
+    let value: CellValue = null
+    if (successIdx.has(i)) {
+      status = 'success'
+      credits = 1
+      value = AI_PITCHES[pitchI++ % AI_PITCHES.length] ?? null
+    } else if (cachedIdx.has(i)) {
+      status = 'cached'
+      credits = 0
+      fromCache = true
+      value = AI_PITCHES[pitchI++ % AI_PITCHES.length] ?? null
+    } else {
+      status = 'empty'
+      credits = 0
+      reason = 'no result'
+    }
+    const confidence = status === 'empty' ? null : 0.88
+    const meta: AiCellMeta = {
+      status,
+      modelKey: 'claude-haiku-4-5',
+      operation: 'summarize',
+      runId: AI.run1,
+      fieldName: null,
+      confidence,
+      credits,
+      fromCache,
+      reason,
+      fetchedAt: AI_STAMP,
+      valueSource: fromCache ? 'cache' : 'provider',
+    }
+    pitchCells.push({ recordId: rid, columnId: 'col_co_pitch', value, meta: { ai: meta } })
+    results.push({
+      id: `aires_${i}`,
+      recordId: rid,
+      columnId: 'col_co_pitch',
+      runId: AI.run1,
+      modelKey: 'claude-haiku-4-5',
+      operation: 'summarize',
+      status,
+      valueJson: value,
+      promptResolved: 'Write a one-line pitch for this company from its fields.',
+      confidence,
+      credits,
+      providerCostUsd: fromCache ? 0 : credits * 0.002,
+      fromCache,
+      reason,
+      fetchedAt: AI_STAMP,
+    })
+  }
+  return { pitchCells, results }
+}
+
+// ---------------------------------------------------------------------------
 // Assemble the full seed
 // ---------------------------------------------------------------------------
 
@@ -395,6 +730,13 @@ export function buildSeed(): StoreData {
   const records = [...co.records, ...ct.records, ...pl.records, ...ac.records]
   const cells = [...co.cells, ...ct.cells, ...pl.cells, ...ac.cells]
 
+  // Overlay enrichment status onto the Companies "Work email" column.
+  const { deliverableCells, results } = applyEnrichmentSeed(cells)
+  cells.push(...deliverableCells)
+  // Overlay AI status onto the Companies "AI: One-line pitch" column.
+  const { pitchCells, results: aiResults } = applyAiSeed()
+  cells.push(...pitchCells)
+
   // A default view per table (undeletable, no filters/sorts).
   const views = tables.map((tbl) => ({
     id: `view_default_${tbl.id}`,
@@ -420,7 +762,30 @@ export function buildSeed(): StoreData {
   data.audit = []
   data.session = { userId: U.owner, workspaceId: WS.primary, token: 'mock-token', expiresAt: '2026-12-31T23:59:59.000Z' }
 
+  // Enrichment engine state (Phase 2). Deep-clone the module-level templates so
+  // each MockApi instance owns its own mutable copy (the engine deducts credits,
+  // pushes ledger rows, and edits configs in place).
+  data.providers = clone(PROVIDERS)
+  data.providerCredentials = clone(providerCredentials)
+  data.workspaceCredits = clone(workspaceCredits)
+  data.enrichmentConfigs = clone([emailConfig])
+  data.enrichmentRuns = clone(enrichmentRuns)
+  data.creditLedger = clone([...creditLedger, ...aiLedger])
+  data.enrichmentCache = clone(enrichmentCache)
+  data.enrichmentResults = results
+
+  // AI columns (Phase 3).
+  data.aiColumnConfigs = clone([pitchConfig])
+  data.aiRuns = clone(aiRuns)
+  data.aiResults = aiResults
+  data.aiCache = clone(aiCache)
+
   return data
+}
+
+/** Deep-clone plain seed data so instances never share mutable references. */
+function clone<T>(x: T): T {
+  return JSON.parse(JSON.stringify(x)) as T
 }
 
 // ---------------------------------------------------------------------------
@@ -504,4 +869,4 @@ export function generateRows(
   return { records, cells }
 }
 
-export const SEED_IDS = { U, WS, T } as const
+export const SEED_IDS = { U, WS, T, P, ENR, AI } as const

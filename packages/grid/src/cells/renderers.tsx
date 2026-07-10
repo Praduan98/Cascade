@@ -7,7 +7,7 @@
 
 import { GridCellKind } from '@glideapps/glide-data-grid'
 import type { CustomRenderer } from '@glideapps/glide-data-grid'
-import { palette, statusColor } from '../gridPalette'
+import { palette, reducedMotion, statusColor } from '../gridPalette'
 import type { CascadeCell, CascadeKind } from './types'
 import { isCascade } from './types'
 import {
@@ -139,9 +139,13 @@ export const statusCellRenderer: CustomRenderer<CascadeCell> = {
     const { ctx, rect } = args
     const d = args.cell.data
     const status = d.status ?? 'loading'
-    if (status === 'loading') {
+    // `loading` (unloaded rows) and `running` (enrichment in flight) both paint
+    // the shimmer skeleton; `running` adds the sliding brand bar (matches the
+    // design's `td.enrich` running cell).
+    if (status === 'loading' || status === 'running') {
       paintShimmer(ctx, rect, args.frameTime)
-      args.requestAnimationFrame()
+      if (status === 'running') paintRunningBar(ctx, rect, args.frameTime, statusColor('running'))
+      if (!reducedMotion()) args.requestAnimationFrame()
       return
     }
     const cy = rect.y + rect.height / 2
@@ -153,10 +157,6 @@ export const statusCellRenderer: CustomRenderer<CascadeCell> = {
       d.display,
       { font: bodyFont(), color: d.muted ? palette.textMuted : palette.text, padX: 0 },
     )
-    if (status === 'running') {
-      paintRunningBar(ctx, rect, args.frameTime, color)
-      args.requestAnimationFrame()
-    }
   },
 }
 

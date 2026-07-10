@@ -356,6 +356,18 @@ const longTextDef: ColumnTypeDef = {
   defaultConfig: () => ({ type: 'longText' }),
 }
 
+// An AI column stores text (the primary generated output). It behaves exactly
+// like a long-text column for validation / display / CSV / filtering; its
+// intelligence lives in the attached AiColumnConfig side-table. An unconfigured
+// `ai` column therefore degrades gracefully to an editable text column.
+const aiDef: ColumnTypeDef = {
+  ...textDef,
+  type: 'ai',
+  label: 'AI',
+  typeBadge: '✦',
+  defaultConfig: () => ({ type: 'ai' }),
+}
+
 const numberDef: ColumnTypeDef = {
   type: 'number',
   label: 'Number',
@@ -665,6 +677,7 @@ export const columnTypeRegistry: Record<ColumnType, ColumnTypeDef> = {
   url: urlDef,
   email: emailDef,
   phone: phoneDef,
+  ai: aiDef,
 }
 
 /** Iteration order for column-type pickers. */
@@ -680,6 +693,7 @@ export const COLUMN_TYPES: ColumnType[] = [
   'url',
   'email',
   'phone',
+  'ai',
 ]
 
 export function getColumnType(type: ColumnType): ColumnTypeDef {

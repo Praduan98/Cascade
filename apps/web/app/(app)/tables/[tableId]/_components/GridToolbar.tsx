@@ -25,9 +25,15 @@ interface Props {
   activeViewId: string
   onChangeView: (id: string) => void
   writable: boolean
+  hasEnrichment: boolean
+  hasAi: boolean
   onAddColumn: () => void
   onManageColumns: () => void
   onDeleteRows: () => void
+  onEnrich: () => void
+  onRun: () => void
+  onAddAiColumn: () => void
+  onRunAi: () => void
   remountGrid: () => void
 }
 
@@ -68,11 +74,25 @@ function IconRun() {
     </svg>
   )
 }
+function IconWaterfall() {
+  return (
+    <svg className={styles.btnIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+      <path d="M4 7h16M6 12h12M9 17h6" />
+    </svg>
+  )
+}
 function IconExport() {
   return (
     <svg className={styles.btnIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M12 15V3M8 7l4-4 4 4" />
       <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+    </svg>
+  )
+}
+function IconSparkle() {
+  return (
+    <svg className={styles.btnIcon} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10z" />
     </svg>
   )
 }
@@ -87,9 +107,15 @@ export function GridToolbar({
   activeViewId,
   onChangeView,
   writable,
+  hasEnrichment,
+  hasAi,
   onAddColumn,
   onManageColumns,
   onDeleteRows,
+  onEnrich,
+  onRun,
+  onAddAiColumn,
+  onRunAi,
   remountGrid,
 }: Props) {
   const { toast } = useToast()
@@ -167,14 +193,39 @@ export function GridToolbar({
 
         <span className={styles.divider} />
 
-        <Tooltip content="Enrichment runs arrive in Phase 2.">
-          <span className={styles.runWrap}>
-            <Button variant="primary" size="sm" disabled>
-              <IconRun />
-              Run
-            </Button>
-          </span>
-        </Tooltip>
+        {writable && (
+          <Button variant="secondary" size="sm" onClick={onEnrich}>
+            <IconWaterfall />
+            Enrich
+          </Button>
+        )}
+        {writable && (
+          <Button variant="secondary" size="sm" onClick={onAddAiColumn}>
+            <IconSparkle />
+            AI column
+          </Button>
+        )}
+        {hasEnrichment ? (
+          <Button variant="primary" size="sm" onClick={onRun} disabled={!writable}>
+            <IconRun />
+            Run
+          </Button>
+        ) : !hasAi ? (
+          <Tooltip content="Add an enrichment or AI column first">
+            <span className={styles.runWrap}>
+              <Button variant="primary" size="sm" disabled>
+                <IconRun />
+                Run
+              </Button>
+            </span>
+          </Tooltip>
+        ) : null}
+        {hasAi && (
+          <Button variant="primary" size="sm" onClick={onRunAi} disabled={!writable}>
+            <IconSparkle />
+            Run AI
+          </Button>
+        )}
       </div>
     </div>
   )

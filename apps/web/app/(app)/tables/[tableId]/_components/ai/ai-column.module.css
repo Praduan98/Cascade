@@ -1,0 +1,155 @@
+/* AI column authoring — mirrors enrichment.module.css class patterns, on the
+   Deep Current token layer. Cobalt is the AI / reference accent; gold stays
+   money-only (the estimate tag). */
+
+.builder {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: min(600px, 82vw);
+}
+.builderHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.anchorName {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--fs-h4);
+  color: var(--text);
+}
+.estTag {
+  flex: none;
+}
+
+/* Model picker */
+.modelSeg :global(.tnum) {
+  font-variant-numeric: tabular-nums;
+}
+.modelHint {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  color: var(--text-3);
+  margin-top: 6px;
+}
+.modelOption {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+/* Prompt editor */
+.prompt {
+  display: grid;
+  gap: 8px;
+}
+.promptHead {
+  display: flex;
+  justify-content: flex-end;
+}
+.insertBtn {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  letter-spacing: 0.04em;
+}
+.itemBadge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: var(--r-xs);
+  background: var(--surface-3);
+  color: var(--text-2);
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  margin-right: 8px;
+}
+.refRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  min-height: 22px;
+}
+.refHint {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  color: var(--text-faint);
+}
+.refUnknown {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  padding: 2px 7px;
+  border-radius: var(--r-full);
+  color: var(--st-failed);
+  background: var(--st-failed-soft);
+  border: 1px solid var(--st-failed);
+}
+
+/* Structured output */
+.switchRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 4px 0;
+}
+.switchRow .lbl {
+  font-size: var(--fs-sm);
+}
+.createsLine {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  letter-spacing: 0.04em;
+  color: var(--text-3);
+  margin-top: 4px;
+}
+.schema {
+  display: grid;
+  gap: 8px;
+}
+.schemaRow {
+  display: grid;
+  grid-template-columns: 1fr 128px 1fr 32px;
+  gap: 8px;
+  align-items: center;
+}
+.iconBtn {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  color: var(--text-3);
+  cursor: pointer;
+}
+.iconBtn:hover:not(:disabled) {
+  color: var(--st-failed);
+  border-color: var(--st-failed);
+}
+.iconBtn svg {
+  width: 14px;
+  height: 14px;
+}
+.schemaAdd {
+  width: 100%;
+  border: 1px dashed var(--border-strong);
+}
+.schemaHint {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  color: var(--text-faint);
+}
+
+/* Config row */
+.row2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  align-items: end;
+}

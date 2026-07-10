@@ -8,7 +8,7 @@
 
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react'
 import type { CascadeApi } from '@cascade/data'
-import type { CellValue, RowWithCells } from '@cascade/core'
+import type { AiCellMeta, CellValue, EnrichmentCellMeta, RowWithCells } from '@cascade/core'
 
 /** Page size for the windowed cache. */
 export const PAGE_SIZE = 100
@@ -24,6 +24,10 @@ export interface TableData {
   ensureRange: (startRow: number, endRow: number) => void
   /** Patch a cached cell in place (optimistic edits + server reconciliation). */
   applyEdit: (recordId: string, columnId: string, value: CellValue, updatedAt: string) => void
+  /** Patch a cell's enrichment status/value in place (live run transitions). */
+  applyEnrichment: (recordId: string, columnId: string, meta: EnrichmentCellMeta, value?: CellValue) => void
+  /** Patch a cell's AI status/value in place (live run transitions, Phase 3). */
+  applyAi: (recordId: string, columnId: string, meta: AiCellMeta, value?: CellValue) => void
   /** Drop the cache and re-read the count (after add/delete row, view change). */
   reload: () => void
 }
@@ -137,6 +141,68 @@ export function useTableData(api: CascadeApi, tableId: string, viewId?: string):
     [],
   )
 
+  const applyEnrichment = useCallback(
+    (recordId: string, columnId: string, meta: EnrichmentCellMeta, value?: CellValue) => {
+      const pages = pagesRef.current
+      for (const [page, rows] of pages) {
+        const idx = rows.findIndex((r) => r.row.id === recordId)
+        if (idx === -1) continue
+        const r = rows[idx]
+        if (!r) break
+        const prevCell = r.cells[columnId]
+        const nextRow: RowWithCells = {
+          row: { ...r.row },
+          cells: {
+            ...r.cells,
+            [columnId]: {
+              recordId,
+              columnId,
+              value: value !== undefined ? value : prevCell ? prevCell.value : null,
+              meta: { ...(prevCell?.meta ?? {}), enrichment: meta },
+            },
+          },
+        }
+        const copy = rows.slice()
+        copy[idx] = nextRow
+        pages.set(page, copy)
+        break
+      }
+      bump()
+    },
+    [],
+  )
+
+  const applyAi = useCallback(
+    (recordId: string, columnId: string, meta: AiCellMeta, value?: CellValue) => {
+      const pages = pagesRef.current
+      for (const [page, rows] of pages) {
+        const idx = rows.findIndex((r) => r.row.id === recordId)
+        if (idx === -1) continue
+        const r = rows[idx]
+        if (!r) break
+        const prevCell = r.cells[columnId]
+        const nextRow: RowWithCells = {
+          row: { ...r.row },
+          cells: {
+            ...r.cells,
+            [columnId]: {
+              recordId,
+              columnId,
+              value: value !== undefined ? value : prevCell ? prevCell.value : null,
+              meta: { ...(prevCell?.meta ?? {}), ai: meta },
+            },
+          },
+        }
+        const copy = rows.slice()
+        copy[idx] = nextRow
+        pages.set(page, copy)
+        break
+      }
+      bump()
+    },
+    [],
+  )
+
   const reload = useCallback(() => {
     const gen = (genRef.current += 1)
     pagesRef.current = new Map()
@@ -152,5 +218,5 @@ export function useTableData(api: CascadeApi, tableId: string, viewId?: string):
     )
   }, [api, tableId, viewId])
 
-  return { rowCount, ready, getRow, ensureRange, applyEdit, reload }
+  return { rowCount, ready, getRow, ensureRange, applyEdit, applyEnrichment, applyAi, reload }
 }

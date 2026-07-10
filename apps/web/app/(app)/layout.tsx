@@ -5,6 +5,7 @@ import { AppShell, ThemeButton, Topbar } from '@cascade/ui'
 import { useSession } from '../session'
 import { Sidebar } from './_components/Sidebar'
 import { UserMenu } from './_components/UserMenu'
+import { CreditChip } from './_components/CreditChip'
 import { VerifyBanner } from './_components/VerifyBanner'
 import styles from './app-shell.module.css'
 
@@ -36,6 +37,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         sub={workspace?.name}
         actions={
           <div className={styles.topActions}>
+            <CreditChip />
             <ThemeButton />
             <UserMenu />
           </div>

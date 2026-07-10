@@ -1,0 +1,101 @@
+.page {
+  width: 100%;
+  max-width: 880px;
+  margin: 0 auto;
+  padding: clamp(20px, 3.2vw, 36px);
+}
+.header {
+  margin-bottom: 24px;
+}
+.header h1 {
+  font-size: var(--fs-h1);
+}
+.count {
+  margin-top: 6px;
+  color: var(--text-3);
+  font-size: var(--fs-sm);
+  font-family: var(--font-mono);
+}
+.state {
+  margin-bottom: 18px;
+}
+.card {
+  padding: 8px 20px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 4px;
+  border-bottom: 1px solid var(--hairline);
+}
+.row:last-child {
+  border-bottom: 0;
+}
+.rowMain {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.rowTop {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.specs {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  color: var(--text-3);
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.rowActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+.keyHint {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--text-2);
+}
+.linkBtn {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-2);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  padding: 5px 9px;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+}
+.linkBtn:hover {
+  background: var(--surface-3);
+  color: var(--text);
+  border-color: var(--border);
+}
+.linkBtn.danger:hover {
+  color: var(--st-failed);
+  border-color: color-mix(in srgb, var(--st-failed) 40%, transparent);
+  background: var(--st-failed-soft);
+}
+.skelBlock {
+  border-radius: var(--r-sm);
+  background: linear-gradient(90deg, var(--surface-2), var(--surface-3), var(--surface-2));
+  background-size: 200% 100%;
+  animation: shimmer 1.3s ease-in-out infinite;
+}
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}

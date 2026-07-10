@@ -55,6 +55,23 @@ export class ConflictError extends ApiError {
   }
 }
 
+/**
+ * 402 — a run was blocked before execution because its estimated maximum
+ * exceeds the per-run cap or the workspace budget is exhausted (US-2.11).
+ * `maxCredits` / `cap` let the UI offer a "raise the cap and retry" path.
+ */
+export class BudgetError extends ApiError {
+  readonly maxCredits?: number
+  readonly cap?: number
+
+  constructor(message = 'This run would exceed the credit cap', detail?: { maxCredits?: number; cap?: number }) {
+    super(message, 'budget', 402)
+    this.name = 'BudgetError'
+    this.maxCredits = detail?.maxCredits
+    this.cap = detail?.cap
+  }
+}
+
 export function isApiError(e: unknown): e is ApiError {
   return e instanceof ApiError
 }

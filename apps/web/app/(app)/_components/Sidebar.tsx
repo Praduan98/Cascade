@@ -3,12 +3,11 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { usePathname } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { getApi } from '@cascade/data'
-import { canViewAudit, canWrite } from '@cascade/core'
+import { canManageProviders, canViewAudit, canWrite } from '@cascade/core'
 import {
   NavGroup,
   NavItem,
   SideNav,
-  Tooltip,
   WorkspaceSwitcher,
 } from '@cascade/ui'
 import { useSession } from '../../session'
@@ -59,6 +58,11 @@ const UsageIcon = () => (
   <Icon>
     <path d="M3 3v18h18" />
     <path d="M7 15l4-4 3 3 4-5" />
+  </Icon>
+)
+const ProvidersIcon = () => (
+  <Icon>
+    <path d="M4 7h10M4 12h16M4 17h7" />
   </Icon>
 )
 const SettingsIcon = () => (
@@ -132,6 +136,7 @@ export function Sidebar() {
 
   const writable = role ? canWrite(role) : false
   const auditable = role ? canViewAudit(role) : false
+  const providersOk = role ? canManageProviders(role) : false
 
   const tablesQuery = useQuery({
     queryKey: ['tables', workspace?.id],
@@ -183,13 +188,14 @@ export function Sidebar() {
             Audit
           </NavItem>
         )}
-        <Tooltip content="Usage & billing arrives in Phase 2" side="right">
-          <span className={styles.navDisabled}>
-            <NavItem disabled icon={<UsageIcon />}>
-              Usage
-            </NavItem>
-          </span>
-        </Tooltip>
+        {providersOk && (
+          <NavItem href="/providers" active={pathname === '/providers'} icon={<ProvidersIcon />}>
+            Providers &amp; keys
+          </NavItem>
+        )}
+        <NavItem href="/usage" active={pathname === '/usage'} icon={<UsageIcon />}>
+          Usage &amp; credits
+        </NavItem>
         <NavItem href="/settings" active={pathname === '/settings'} icon={<SettingsIcon />}>
           Settings
         </NavItem>

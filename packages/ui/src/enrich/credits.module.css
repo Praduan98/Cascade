@@ -1,0 +1,125 @@
+/* Ported from design-system.src.html — .meter-card / .meter-* / .breakdown / .bd-row */
+.meterCard {
+  display: grid;
+  gap: 16px;
+}
+.meterTop {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.label {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  color: var(--text-3);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.bal {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 2rem;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+.bal small {
+  font-family: var(--font-mono);
+  font-size: 0.5em;
+  color: var(--text-3);
+  font-weight: 500;
+  letter-spacing: 0.05em;
+}
+.rightMeta {
+  text-align: right;
+}
+.usedLine {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  color: var(--text-3);
+}
+.renewsLine {
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+  margin-top: 4px;
+}
+.money {
+  font-family: var(--font-mono);
+  color: var(--gold);
+  font-weight: 600;
+}
+.meterBar {
+  height: 12px;
+  border-radius: var(--r-full);
+  background: var(--surface-3);
+  overflow: hidden;
+  display: flex;
+}
+.meterBar i {
+  height: 100%;
+  display: block;
+  transition: width var(--dur-3) var(--ease);
+}
+.meterLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+}
+.meterLegend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: var(--fs-xs);
+  color: var(--text-2);
+}
+.meterLegend .k {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  flex: none;
+}
+
+/* Consumption breakdown */
+.breakdown {
+  display: grid;
+  gap: 8px;
+}
+.bdRow {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 12px;
+  align-items: center;
+  font-size: var(--fs-sm);
+  padding: 8px 0;
+  border-top: 1px solid var(--hairline);
+}
+.bdRow:first-child {
+  border-top: 0;
+}
+.bdRow.noMoney {
+  grid-template-columns: 1fr auto;
+}
+.bdRow .credits {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-2);
+}
+.bdRow .cost {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--gold);
+}
+.bdRow .track {
+  grid-column: 1 / -1;
+  height: 5px;
+  border-radius: var(--r-full);
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.bdRow .track i {
+  display: block;
+  height: 100%;
+  background: var(--brand);
+  transition: width var(--dur-3) var(--ease);
+}

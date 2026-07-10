@@ -1,0 +1,13 @@
+// Enrichment surfaces (Phase 2) — ported from the Deep Current design system.
+export { Waterfall, WaterfallStep, WaterfallConnector } from './Waterfall'
+export type { WaterfallProps, WaterfallStepData, ProviderRef } from './Waterfall'
+export { CreditMeter, MeterBar, MeterLegend } from './CreditMeter'
+export type { CreditMeterProps, MeterSegment } from './CreditMeter'
+export { Breakdown, BreakdownRow } from './Breakdown'
+export type { BreakdownRowProps } from './Breakdown'
+export { CostLine } from './CostLine'
+export type { CostLineProps } from './CostLine'
+export { EnrichCell, MiniDot } from './EnrichCell'
+export type { EnrichStatus, EnrichCellProps } from './EnrichCell'
+export { ProvenanceCard } from './ProvenanceCard'
+export type { ProvenanceCardProps } from './ProvenanceCard'

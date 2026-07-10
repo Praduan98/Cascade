@@ -5,11 +5,16 @@ import {
   Alert,
   AppShell,
   Avatar,
+  Breakdown,
+  BreakdownRow,
   Button,
   Card,
   Chip,
+  CostLine,
+  CreditMeter,
   Dialog,
   DialogClose,
+  EnrichCell,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -29,6 +34,7 @@ import {
   PopoverContent,
   PopoverTrigger,
   ProvChip,
+  ProvenanceCard,
   RoleBadge,
   Seg,
   Select,
@@ -43,8 +49,10 @@ import {
   Topbar,
   TopNavLink,
   useToast,
+  Waterfall,
   WorkspaceSwitcher,
   type PillStatus,
+  type WaterfallStepData,
 } from '@cascade/ui'
 import styles from './page.module.css'
 
@@ -66,6 +74,12 @@ const STATUS: Array<[PillStatus, string]> = [
   ['empty', 'Empty'],
   ['failed', 'Failed'],
   ['cached', 'Cached'],
+]
+
+const WF_STEPS: WaterfallStepData[] = [
+  { id: 's1', provider: { glyph: 'PD', name: 'People Data Labs', color: '#3b82f6' }, operation: 'person enrich', inFields: ['first_name', 'last_name', 'domain'], outFields: ['work_email'], cost: '1 cr', costUsd: '~$0.008', fallThrough: { label: 'fall through if', cond: 'email is empty' } },
+  { id: 's2', provider: { glyph: 'Hu', name: 'Hunter.io', color: '#f97316' }, operation: 'email finder', inFields: ['full_name', 'domain'], outFields: ['work_email', 'confidence'], cost: '1 cr', costUsd: '~$0.010', fallThrough: { label: 'then verify & accept only if', cond: 'deliverable' } },
+  { id: 's3', provider: { glyph: 'ZB', name: 'ZeroBounce', color: '#10b981' }, operation: 'verify', inFields: ['work_email'], outFields: ['verify_status'], outTail: '· else fall through', cost: '0.5 cr', costUsd: '~$0.004', active: true },
 ]
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
@@ -136,6 +150,7 @@ export default function KitchenSink() {
   const [emptyOnly, setEmptyOnly] = useState(false)
   const [filter, setFilter] = useState<'all' | 'empty' | 'failed'>('all')
   const [nav, setNav] = useState('q3')
+  const [wf, setWf] = useState<WaterfallStepData[]>(WF_STEPS)
 
   return (
     <TooltipProvider>
@@ -505,6 +520,99 @@ export default function KitchenSink() {
 
               <Tile title="Toasts" name=".copytoast" col>
                 <ToastDemo />
+              </Tile>
+            </div>
+          </Section>
+
+          <Section title="Phase 2 · Enrichment engine">
+            <div className={styles.grid}>
+              <Tile title="Waterfall builder" name="signature · drag to reorder" col>
+                <Waterfall
+                  name="find_work_email"
+                  summary={`${wf.length} steps · est. ≤ 2 cr/row`}
+                  steps={wf}
+                  onReorder={(from, to) =>
+                    setWf((s) => {
+                      const c = s.slice()
+                      const [m] = c.splice(from, 1)
+                      if (m) c.splice(to, 0, m)
+                      return c
+                    })
+                  }
+                  onRemoveStep={(id) => setWf((s) => s.filter((x) => x.id !== id))}
+                  onAddStep={() =>
+                    setWf((s) => [
+                      ...s,
+                      { id: `s${s.length + 1}_${s.length}`, provider: { glyph: 'Pr', name: 'Prospeo', color: '#8b5cf6' }, operation: 'email finder', inFields: ['domain'], outFields: ['work_email'], cost: '1 cr', costUsd: '~$0.009' },
+                    ])
+                  }
+                />
+              </Tile>
+
+              <Tile title="Enrichment cells" name="the status machine" col>
+                <EnrichCell status="success" display="jordan@northwind.io" />
+                <EnrichCell status="running" />
+                <EnrichCell status="cached" display="rosa@baltofreight.co" pill pillLabel="Cached" />
+                <EnrichCell status="empty" display="no match found" muted pill />
+                <EnrichCell status="failed" display="timeout · retried ×3" muted pill title="Provider timeout after 3 retries" />
+                <EnrichCell status="queued" display="queued" muted pill />
+              </Tile>
+
+              <Tile title="Credit meter" name="the money surface" col>
+                <CreditMeter
+                  balance={18240}
+                  used={31760}
+                  total={50000}
+                  renewsLabel="renews Aug 1"
+                  estCharge="$180"
+                  segments={[
+                    { label: 'Enrichment', value: 22100, color: 'var(--brand)' },
+                    { label: 'AI & agent', value: 7020, color: 'var(--cobalt)' },
+                    { label: 'Cache saved', value: 2640, color: 'var(--st-cached)' },
+                  ]}
+                />
+              </Tile>
+
+              <Tile title="Consumption breakdown" name="admin sees cost" col>
+                <Breakdown>
+                  <BreakdownRow label="People Data Labs" credits="11,400 cr" cost="$91.20" fraction={0.62} />
+                  <BreakdownRow label="Hunter.io" credits="6,300 cr" cost="$63.00" fraction={0.38} />
+                  <BreakdownRow label="ZeroBounce · verify" credits="4,400 cr" cost="$17.60" fraction={0.24} />
+                </Breakdown>
+                <span className={styles.note}>Member view — the cost column collapses away:</span>
+                <Breakdown>
+                  <BreakdownRow label="People Data Labs" credits="11,400 cr" fraction={0.62} />
+                  <BreakdownRow label="Hunter.io" credits="6,300 cr" fraction={0.38} />
+                </Breakdown>
+              </Tile>
+
+              <Tile title="Spend gate" name="run confirmation" col>
+                <p className={styles.note} style={{ marginTop: 0 }}>Run waterfall on 1,240 rows?</p>
+                <CostLine amount="≤ 2,480 credits" />
+                <div className={styles.row}>
+                  <Button variant="ghost" size="sm">Cancel</Button>
+                  <Button variant="primary" size="sm">Confirm &amp; run</Button>
+                </div>
+              </Tile>
+
+              <Tile title="Per-cell provenance" name="popover">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="secondary" size="sm">Show provenance</Button>
+                  </PopoverTrigger>
+                  <PopoverContent align="start">
+                    <ProvenanceCard
+                      status="cached"
+                      value="rosa@baltofreight.co"
+                      provider={{ glyph: 'ZB', name: 'ZeroBounce', color: '#10b981' }}
+                      operation="verify"
+                      step="step 3"
+                      at="2m ago"
+                      fromCache
+                      confidence={0.98}
+                    />
+                  </PopoverContent>
+                </Popover>
               </Tile>
             </div>
           </Section>

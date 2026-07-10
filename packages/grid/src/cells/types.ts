@@ -6,7 +6,7 @@
 // CustomRenderer per column type narrows to its own kind in `isMatch`.
 
 import type { CustomCell } from '@glideapps/glide-data-grid'
-import type { CellValue, ColumnConfig, ColumnType } from '@cascade/core'
+import type { AiCellMeta, CellValue, ColumnConfig, ColumnType, EnrichmentCellMeta } from '@cascade/core'
 import type { StatusKey } from '../gridPalette'
 
 /** Enrichment status shown by StatusCell — the six FSD states plus a loading skeleton. */
@@ -44,6 +44,10 @@ export interface CascadeCellData {
   readonly muted?: boolean
   /** StatusCell state (kind === 'status'). */
   readonly status?: CellStatus
+  /** Full enrichment provenance (kind === 'status'), for the click → provenance popover. */
+  readonly enrichment?: EnrichmentCellMeta
+  /** Full AI provenance (kind === 'status', Phase 3), for the click → AI provenance popover. */
+  readonly ai?: AiCellMeta
   /** In-flight editor buffer. `undefined` ⇒ the cell was opened but not changed. */
   readonly draft?: string
 }

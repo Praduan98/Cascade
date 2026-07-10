@@ -1,0 +1,166 @@
+/* Ported from design-system.src.html — .waterfall / .wf-* (the signature builder) */
+.waterfall {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.name {
+  font-weight: 700;
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+}
+.step {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 14px;
+  align-items: center;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  transition: border-color var(--dur-2) var(--ease), background var(--dur-2) var(--ease);
+}
+.stepActive {
+  border-color: var(--brand-line);
+  background: var(--brand-soft);
+}
+.handle {
+  color: var(--text-faint);
+  cursor: grab;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.handle span {
+  width: 12px;
+  height: 2px;
+  border-radius: 2px;
+  background: currentColor;
+  display: block;
+}
+.body {
+  min-width: 0;
+}
+.pname {
+  font-weight: 700;
+  font-size: var(--fs-sm);
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.pmap {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  color: var(--text-3);
+  margin-top: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pmap b {
+  color: var(--text-2);
+  font-weight: 500;
+}
+.right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.cost {
+  text-align: right;
+}
+.cost .c {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: var(--fs-sm);
+  color: var(--gold);
+}
+.cost .u {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  color: var(--text-3);
+}
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity var(--dur-2) var(--ease);
+}
+.step:hover .controls,
+.step:focus-within .controls {
+  opacity: 1;
+}
+.ctrl {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-xs);
+  background: var(--surface-2);
+  color: var(--text-3);
+  cursor: pointer;
+  transition: color var(--dur-2), border-color var(--dur-2);
+}
+.ctrl:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+.ctrl:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.ctrl.remove:hover:not(:disabled) {
+  color: var(--st-failed);
+  border-color: var(--st-failed);
+}
+.ctrl svg {
+  width: 13px;
+  height: 13px;
+}
+.connector {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0 6px 30px;
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+}
+.connector .line {
+  width: 1px;
+  height: 20px;
+  background: var(--border-strong);
+}
+.cond {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  padding: 0.3em 0.6em;
+  border-radius: var(--r-full);
+  background: var(--gold-soft);
+  color: var(--gold);
+  border: 1px solid var(--gold-line);
+}
+.add {
+  border: 1px dashed var(--border-strong);
+  margin-top: 14px;
+  width: 100%;
+}
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}

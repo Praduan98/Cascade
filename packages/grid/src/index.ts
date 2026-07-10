@@ -8,7 +8,7 @@ export const GRID_VERSION = '0.1.0'
 
 // Host components
 export { TableGrid } from './TableGrid'
-export type { TableGridProps, TableGridHandle } from './TableGrid'
+export type { TableGridProps, TableGridHandle, CellRect } from './TableGrid'
 export { TableGridDynamic } from './TableGridDynamic'
 
 // Interaction layer — undo/redo history + the visible control strip

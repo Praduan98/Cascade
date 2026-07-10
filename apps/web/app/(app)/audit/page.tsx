@@ -32,6 +32,12 @@ const ACTION_LABEL: Record<AuditAction, string> = {
   'view.create': 'created a view',
   'view.update': 'updated a view',
   'view.remove': 'deleted a view',
+  'column.enrich': 'configured enrichment',
+  'enrichment.run': 'ran enrichment',
+  'provider.keyUpdate': 'updated a provider key',
+  'budget.update': 'changed the credit budget',
+  'column.aiConfig': 'configured an AI column',
+  'ai.run': 'ran AI columns',
 }
 
 // A category colour per action family, used for the leading dot.
@@ -49,6 +55,12 @@ function actionColor(action: AuditAction): string {
       return 'var(--st-cached)'
     case 'csv':
       return 'var(--st-success)'
+    case 'enrichment':
+    case 'ai':
+      return 'var(--cobalt)'
+    case 'provider':
+    case 'budget':
+      return 'var(--gold)'
     default:
       return 'var(--text-3)'
   }

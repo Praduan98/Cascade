@@ -5,16 +5,27 @@
 // memory-only rather than throwing.
 
 import type {
+  AiCache,
+  AiCellResult,
+  AiColumnConfig,
   AuditEntry,
   Cell,
   Column,
+  CreditLedgerEntry,
+  EnrichmentCache,
+  EnrichmentCellResult,
+  EnrichmentColumnConfig,
+  EnrichmentRun,
   Invite,
   Member,
+  Provider,
+  ProviderCredential,
   RecordRow,
   TableMeta,
   User,
   View,
   Workspace,
+  WorkspaceCredit,
 } from '@cascade/core'
 
 export interface SessionState {
@@ -37,10 +48,27 @@ export interface StoreData {
   views: View[]
   audit: AuditEntry[]
   session: SessionState | null
+  // --- Enrichment engine (Phase 2) ---
+  providers: Provider[]
+  providerCredentials: ProviderCredential[]
+  enrichmentConfigs: EnrichmentColumnConfig[]
+  enrichmentRuns: EnrichmentRun[]
+  enrichmentResults: EnrichmentCellResult[]
+  enrichmentCache: EnrichmentCache[]
+  creditLedger: CreditLedgerEntry[]
+  workspaceCredits: WorkspaceCredit[]
+  // --- AI columns (Phase 3); reuse creditLedger + workspaceCredits ---
+  aiColumnConfigs: AiColumnConfig[]
+  aiRuns: EnrichmentRun[]
+  aiResults: AiCellResult[]
+  aiCache: AiCache[]
 }
 
 export const STORAGE_KEY = 'cascade:store:v1'
-const SCHEMA_VERSION = 1
+// Bumped 1 → 2 for Phase-2 enrichment; 2 → 3 for Phase-3 AI columns. The load()
+// version guard discards any older localStorage so it reseeds rather than
+// merging a stale shape.
+const SCHEMA_VERSION = 3
 
 export function emptyStoreData(): StoreData {
   return {
@@ -56,6 +84,18 @@ export function emptyStoreData(): StoreData {
     views: [],
     audit: [],
     session: null,
+    providers: [],
+    providerCredentials: [],
+    enrichmentConfigs: [],
+    enrichmentRuns: [],
+    enrichmentResults: [],
+    enrichmentCache: [],
+    creditLedger: [],
+    workspaceCredits: [],
+    aiColumnConfigs: [],
+    aiRuns: [],
+    aiResults: [],
+    aiCache: [],
   }
 }
 
@@ -67,6 +107,10 @@ export class Store {
   data: StoreData
   /** recordId|columnId → Cell, rebuilt on load / mutation for O(1) access. */
   private cellIndex = new Map<string, Cell>()
+  /** cacheKey → EnrichmentCache; the cache is the one array that grows unbounded. */
+  private cacheIndex = new Map<string, EnrichmentCache>()
+  /** cacheKey → AiCache (Phase 3). */
+  private aiCacheIndex = new Map<string, AiCache>()
 
   constructor(data: StoreData = emptyStoreData()) {
     this.data = data
@@ -77,6 +121,14 @@ export class Store {
     this.cellIndex.clear()
     for (const cell of this.data.cells) {
       this.cellIndex.set(cellKey(cell.recordId, cell.columnId), cell)
+    }
+    this.cacheIndex.clear()
+    for (const entry of this.data.enrichmentCache) {
+      this.cacheIndex.set(entry.cacheKey, entry)
+    }
+    this.aiCacheIndex.clear()
+    for (const entry of this.data.aiCache) {
+      this.aiCacheIndex.set(entry.cacheKey, entry)
     }
   }
 
@@ -125,6 +177,64 @@ export class Store {
       }
       return true
     })
+  }
+
+  // --- enrichment access -------------------------------------------------
+
+  getCacheEntry(cacheKey: string): EnrichmentCache | undefined {
+    return this.cacheIndex.get(cacheKey)
+  }
+
+  putCacheEntry(entry: EnrichmentCache): void {
+    const existing = this.cacheIndex.get(entry.cacheKey)
+    if (existing) {
+      const i = this.data.enrichmentCache.indexOf(existing)
+      if (i >= 0) this.data.enrichmentCache[i] = entry
+    } else {
+      this.data.enrichmentCache.push(entry)
+    }
+    this.cacheIndex.set(entry.cacheKey, entry)
+  }
+
+  getWorkspaceCredit(workspaceId: string): WorkspaceCredit | undefined {
+    return this.data.workspaceCredits.find((w) => w.workspaceId === workspaceId)
+  }
+
+  getConfig(columnId: string): EnrichmentColumnConfig | undefined {
+    return this.data.enrichmentConfigs.find((c) => c.columnId === columnId)
+  }
+
+  /** All enrichment configs whose anchor column belongs to a table. */
+  getConfigsForTable(tableId: string): EnrichmentColumnConfig[] {
+    const columnIds = new Set(this.data.columns.filter((c) => c.tableId === tableId).map((c) => c.id))
+    return this.data.enrichmentConfigs.filter((c) => columnIds.has(c.columnId))
+  }
+
+  // --- AI column access (Phase 3) ----------------------------------------
+
+  getAiCacheEntry(cacheKey: string): AiCache | undefined {
+    return this.aiCacheIndex.get(cacheKey)
+  }
+
+  putAiCacheEntry(entry: AiCache): void {
+    const existing = this.aiCacheIndex.get(entry.cacheKey)
+    if (existing) {
+      const i = this.data.aiCache.indexOf(existing)
+      if (i >= 0) this.data.aiCache[i] = entry
+    } else {
+      this.data.aiCache.push(entry)
+    }
+    this.aiCacheIndex.set(entry.cacheKey, entry)
+  }
+
+  getAiConfig(columnId: string): AiColumnConfig | undefined {
+    return this.data.aiColumnConfigs.find((c) => c.columnId === columnId)
+  }
+
+  /** All AI configs whose anchor column belongs to a table. */
+  getAiConfigsForTable(tableId: string): AiColumnConfig[] {
+    const columnIds = new Set(this.data.columns.filter((c) => c.tableId === tableId).map((c) => c.id))
+    return this.data.aiColumnConfigs.filter((c) => columnIds.has(c.columnId))
   }
 
   // --- persistence -------------------------------------------------------

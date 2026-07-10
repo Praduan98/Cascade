@@ -1,0 +1,110 @@
+/* Per-cell provenance — the content of the enrichment cell popover. */
+.card {
+  display: grid;
+  gap: 10px;
+  min-width: 240px;
+  max-width: 300px;
+}
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.value {
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  color: var(--text);
+  word-break: break-all;
+}
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-xs);
+  color: var(--text-2);
+  flex-wrap: wrap;
+}
+.meta {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  color: var(--text-3);
+}
+.cost {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--gold);
+}
+.conf {
+  display: grid;
+  gap: 4px;
+}
+.confTrack {
+  height: 4px;
+  border-radius: var(--r-full);
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.confTrack i {
+  display: block;
+  height: 100%;
+  background: var(--brand);
+}
+.reason {
+  font-size: var(--fs-xs);
+  color: var(--st-failed);
+}
+.divider {
+  height: 1px;
+  background: var(--hairline);
+}
+
+/* ---- AI extensions (Phase 3) ---- */
+.snippet {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  line-height: 1.5;
+  color: var(--text-3);
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-sm);
+  padding: 7px 9px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.fields {
+  display: grid;
+  gap: 6px;
+}
+.fieldRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-xs);
+}
+.fieldDot {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--r-full);
+  flex: none;
+}
+.fieldLabel {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  flex: none;
+}
+.fieldValue {
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fieldEmpty {
+  color: var(--text-faint);
+  font-style: italic;
+}

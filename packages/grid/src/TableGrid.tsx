@@ -34,11 +34,11 @@ import type {
 } from '@glideapps/glide-data-grid'
 import { ConflictError, getApi, isApiError } from '@cascade/data'
 import type { CascadeApi, CellEdit } from '@cascade/data'
-import type { CellValue, Column } from '@cascade/core'
-import { toClipboard, validateValue } from '@cascade/core'
+import type { AiCellMeta, CellValue, Column, EnrichmentCellMeta } from '@cascade/core'
+import { readAi, readEnrichment, toClipboard, validateValue } from '@cascade/core'
 import { useGlideTheme } from './useGlideTheme'
 import { useTableData } from './dataProvider'
-import { cascadeCellRenderers, makeCell, makeStatusCell, rawFromCell } from './cells'
+import { cascadeCellRenderers, makeCell, makeAiCell, makeEnrichCell, makeStatusCell, rawFromCell } from './cells'
 import type { CascadeCell } from './cells'
 import { useUndoRedo } from './history'
 import type { HistoryState } from './history'
@@ -59,12 +59,24 @@ const EMPTY_SELECTION: GridSelection = {
 // paste can run through core parseClipboard and every op stays undoable.
 const KEYBINDINGS = { copy: false, paste: false, cut: false } as const
 
+/** Where an enrichment cell was clicked (grid-container coords) for the popover. */
+export interface CellRect {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
 /** Imperative handle so a parent can drive/relocate the undo-redo controls. */
 export interface TableGridHandle {
   undo: () => void
   redo: () => void
   readonly canUndo: boolean
   readonly canRedo: boolean
+  /** Patch a cell's live enrichment status/value without a full reload. */
+  applyEnrichment: (recordId: string, columnId: string, meta: EnrichmentCellMeta, value?: CellValue) => void
+  /** Patch a cell's live AI status/value without a full reload (Phase 3). */
+  applyAi: (recordId: string, columnId: string, meta: AiCellMeta, value?: CellValue) => void
 }
 
 export interface TableGridProps {
@@ -75,6 +87,24 @@ export interface TableGridProps {
   api?: CascadeApi
   /** UI-level read-only gate (Viewer role). Server-side enforcement is separate. */
   readOnly?: boolean
+  /** Columns that carry an enrichment waterfall — rendered from `cell.meta`. */
+  enrichmentColumnIds?: string[]
+  /** Columns that carry an AI config — rendered from `cell.meta.ai` (Phase 3). */
+  aiColumnIds?: string[]
+  /** Notified when the row/range selection changes (drives "run selected rows"). */
+  onSelectionChange?: (info: { recordIds: string[]; rowCount: number; hasRange: boolean }) => void
+  /** Clicking a resolved enrichment cell opens the provenance popover. */
+  onEnrichmentCellClick?: (ref: { recordId: string; columnId: string }, bounds: CellRect) => void
+  /** Clicking a resolved AI cell opens the AI provenance popover (Phase 3). */
+  onAiCellClick?: (ref: { recordId: string; columnId: string }, bounds: CellRect) => void
+  /** Bump to drop the cache and re-read (after a run terminal, config change). */
+  refreshToken?: number
+  /**
+   * Surfaces the imperative handle to the parent. `next/dynamic` (TableGridDynamic)
+   * cannot forward refs, so consumers that need `applyEnrichment` for live per-cell
+   * updates capture the handle here instead of via a ref.
+   */
+  onReady?: (handle: TableGridHandle | null) => void
   /** Notified whenever the undo/redo availability (or top-of-stack label) changes. */
   onHistoryChange?: (state: HistoryState) => void
   className?: string
@@ -91,10 +121,12 @@ function isEditingText(): boolean {
 }
 
 export const TableGrid = forwardRef<TableGridHandle, TableGridProps>(function TableGrid(
-  { tableId, viewId, api: apiProp, readOnly = false, onHistoryChange, className },
+  { tableId, viewId, api: apiProp, readOnly = false, enrichmentColumnIds, aiColumnIds, onSelectionChange, onEnrichmentCellClick, onAiCellClick, refreshToken, onReady, onHistoryChange, className },
   ref,
 ) {
   const api = useMemo(() => apiProp ?? getApi(), [apiProp])
+  const enrichCols = useMemo(() => new Set(enrichmentColumnIds ?? []), [enrichmentColumnIds])
+  const aiCols = useMemo(() => new Set(aiColumnIds ?? []), [aiColumnIds])
   const theme = useGlideTheme()
   const editorRef = useRef<DataEditorRef>(null)
   const [warning, setWarning] = useState<string | null>(null)
@@ -132,8 +164,10 @@ export const TableGrid = forwardRef<TableGridHandle, TableGridProps>(function Ta
   // --- Glide column descriptors -----------------------------------------
 
   const gridColumns = useMemo<GridColumn[]>(
-    () => columns.map((c) => ({ id: c.id, title: c.name, width: widths[c.id] ?? c.width })),
-    [columns, widths],
+    // AI columns carry a ✦ marker in the header so their output is legible as
+    // model-generated (the cell body reuses the shared status system unchanged).
+    () => columns.map((c) => ({ id: c.id, title: aiCols.has(c.id) ? `✦ ${c.name}` : c.name, width: widths[c.id] ?? c.width })),
+    [columns, widths, aiCols],
   )
 
   // Leading contiguous frozen columns pin to the left.
@@ -156,10 +190,12 @@ export const TableGrid = forwardRef<TableGridHandle, TableGridProps>(function Ta
       const rowData = data.getRow(row)
       if (!rowData) return makeStatusCell(column.id, 'loading')
       const stored = rowData.cells[column.id]
+      if (enrichCols.has(column.id)) return makeEnrichCell(column, stored)
+      if (aiCols.has(column.id)) return makeAiCell(column, stored)
       const value: CellValue = stored ? stored.value : column.type === 'multiSelect' ? [] : null
       return makeCell(column, value)
     },
-    [columns, data],
+    [columns, data, enrichCols, aiCols],
   )
 
   // Cells for a selection rectangle (copy + fill). Served from the windowed
@@ -184,6 +220,8 @@ export const TableGrid = forwardRef<TableGridHandle, TableGridProps>(function Ta
         if (!column) return makeStatusCell('', 'loading')
         if (!rowData) return makeStatusCell(column.id, 'loading')
         const stored = rowData.cells[column.id]
+        if (enrichCols.has(column.id)) return makeEnrichCell(column, stored)
+        if (aiCols.has(column.id)) return makeAiCell(column, stored)
         const value: CellValue = stored ? stored.value : column.type === 'multiSelect' ? [] : null
         return makeCell(column, value)
       }
@@ -211,7 +249,7 @@ export const TableGrid = forwardRef<TableGridHandle, TableGridProps>(function Ta
         return out
       }
     },
-    [api, columns, data, tableId, viewId],
+    [api, columns, data, tableId, viewId, enrichCols, aiCols],
   )
 
   // --- persistence -------------------------------------------------------
@@ -315,6 +353,28 @@ export const TableGrid = forwardRef<TableGridHandle, TableGridProps>(function Ta
       if (!rowData) return
       const stored = rowData.cells[column.id]
 
+      // Enrichment cell → open the provenance popover (never the type action).
+      if (enrichCols.has(column.id) && onEnrichmentCellClick) {
+        const enr = stored ? readEnrichment(stored.meta) : undefined
+        if (enr) {
+          const b = event.bounds
+          onEnrichmentCellClick({ recordId: rowData.row.id, columnId: column.id }, { x: b.x, y: b.y, width: b.width, height: b.height })
+          ;(event as { preventDefault?: () => void }).preventDefault?.()
+          return
+        }
+      }
+
+      // AI cell → open the AI provenance popover (Phase 3).
+      if (aiCols.has(column.id) && onAiCellClick) {
+        const ai = stored ? readAi(stored.meta) : undefined
+        if (ai) {
+          const b = event.bounds
+          onAiCellClick({ recordId: rowData.row.id, columnId: column.id }, { x: b.x, y: b.y, width: b.width, height: b.height })
+          ;(event as { preventDefault?: () => void }).preventDefault?.()
+          return
+        }
+      }
+
       if (column.type === 'boolean') {
         if (readOnly) {
           setWarning('Viewers have read-only access.')
@@ -339,7 +399,7 @@ export const TableGrid = forwardRef<TableGridHandle, TableGridProps>(function Ta
         }
       }
     },
-    [columns, data, readOnly, commitCellChange],
+    [columns, data, readOnly, commitCellChange, enrichCols, onEnrichmentCellClick, aiCols, onAiCellClick],
   )
 
   // --- copy / paste ------------------------------------------------------
@@ -499,16 +559,24 @@ export const TableGrid = forwardRef<TableGridHandle, TableGridProps>(function Ta
     [history],
   )
 
-  useImperativeHandle(
-    ref,
-    (): TableGridHandle => ({
+  const handle = useMemo<TableGridHandle>(
+    () => ({
       undo: history.undo,
       redo: history.redo,
       canUndo: history.canUndo,
       canRedo: history.canRedo,
+      applyEnrichment: data.applyEnrichment,
+      applyAi: data.applyAi,
     }),
-    [history.undo, history.redo, history.canUndo, history.canRedo],
+    [history.undo, history.redo, history.canUndo, history.canRedo, data.applyEnrichment, data.applyAi],
   )
+  useImperativeHandle(ref, () => handle, [handle])
+  // next/dynamic can't forward refs, so also surface the handle to the parent via
+  // onReady — used to drive live per-cell enrichment updates imperatively.
+  useEffect(() => {
+    onReady?.(handle)
+    return () => onReady?.(null)
+  }, [handle, onReady])
 
   // --- windowing, resize -------------------------------------------------
 
@@ -528,6 +596,37 @@ export const TableGrid = forwardRef<TableGridHandle, TableGridProps>(function Ta
     },
     [api, readOnly],
   )
+
+  // Wrap selection so the parent learns which record ids are selected (for
+  // "run selected rows"). Both whole-row markers and a cell range contribute.
+  const handleSelectionChange = useCallback(
+    (sel: GridSelection) => {
+      setSelection(sel)
+      if (!onSelectionChange) return
+      const idxs = new Set<number>(sel.rows.toArray())
+      const range = sel.current?.range
+      if (range) for (let y = range.y; y < range.y + range.height; y += 1) idxs.add(y)
+      const ids: string[] = []
+      for (const i of idxs) {
+        const r = data.getRow(i)
+        if (r) ids.push(r.row.id)
+      }
+      onSelectionChange({ recordIds: ids, rowCount: ids.length, hasRange: !!range && range.height > 0 })
+    },
+    [onSelectionChange, data],
+  )
+
+  // Coarse refresh: drop the cache and re-read after a run terminal / config
+  // change (live per-cell transitions use the imperative applyEnrichment).
+  const firstRefresh = useRef(true)
+  useEffect(() => {
+    if (firstRefresh.current) {
+      firstRefresh.current = false
+      return
+    }
+    data.reload()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshToken])
 
   const ready = columns.length > 0 && data.ready
 
@@ -575,7 +674,7 @@ export const TableGrid = forwardRef<TableGridHandle, TableGridProps>(function Ta
             height="100%"
             keybindings={KEYBINDINGS}
             gridSelection={selection}
-            onGridSelectionChange={setSelection}
+            onGridSelectionChange={handleSelectionChange}
             getCellsForSelection={getCellsForSelection}
             onPaste={false}
             onDelete={onDelete}

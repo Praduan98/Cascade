@@ -10,6 +10,8 @@
 //  • Simulated ~40-120ms latency so the UI's async/loading states are exercised.
 
 import type {
+  AiColumnConfig,
+  AiModelInfo,
   AuditAction,
   AuditTargetType,
   Cell,
@@ -17,11 +19,17 @@ import type {
   Column,
   ColumnConfig,
   ColumnType,
+  EnrichmentColumnConfig,
+  EnrichmentOperation,
+  EnrichmentRun,
   Invite,
   Member,
+  Provider,
+  ProviderCredential,
   RecordRow,
   Role,
   RowWithCells,
+  RunScope,
   TableMeta,
   User,
   View,
@@ -29,8 +37,11 @@ import type {
 } from '@cascade/core'
 import type { FilterGroup, SortSpec } from '@cascade/core'
 import {
+  canManageBilling,
   canManageMembers,
+  canManageProviders,
   canViewAudit,
+  canViewMargin,
   canWrite,
   coerceColumnValue,
   columnTypeRegistry,
@@ -39,37 +50,59 @@ import {
   evaluateFilter,
   makeComparator,
   newId,
+  readAi,
+  readEnrichment,
   validateValue,
 } from '@cascade/core'
 
 import type {
   AddColumnInput,
   AddRecordInput,
+  AiApi,
+  AiEvent,
   AuditApi,
   AuthApi,
+  BalanceInfo,
+  BudgetSettings,
+  CacheStats,
   CascadeApi,
   CellEdit,
   CellsApi,
   CellUpdate,
   CellConflict,
   ColumnsApi,
+  ConsumptionBucket,
   CreateViewInput,
+  CreditsApi,
+  EnrichmentApi,
+  EnrichmentEvent,
+  EstimateResult,
   ListRecordsOptions,
   ListRecordsResult,
   MembersApi,
   PatchCellsResult,
   RecordsApi,
+  RunHandle,
+  RunOptions,
   Session,
   TablesApi,
   UpdateColumnInput,
+  UpsertAiConfigInput,
+  UpsertConfigInput,
+  UpsertCredentialInput,
   UpdateViewInput,
   ViewsApi,
   WorkspacesApi,
 } from './api'
-import { ApiError, ForbiddenError, NotFoundError, ValidationError } from './errors'
+import { ApiError, BudgetError, ForbiddenError, NotFoundError, ValidationError } from './errors'
 import { STORAGE_KEY, Store } from './store'
 import type { SessionState, StoreData } from './store'
 import { buildSeed, generateRows } from './seed'
+import { buildCacheKey, byoActive, isEmptyInput, MockEnrichmentEngine } from './enrichmentEngine'
+import type { RunTarget } from './enrichmentEngine'
+import { buildAiCacheKey, MockAiEngine } from './aiEngine'
+import type { AiRunTarget } from './aiEngine'
+import { AI_MODELS, aiModelByKey, resolveAiModel } from './aiModels'
 
 export interface MockApiOptions {
   /** Simulate network latency (default true). Disable for fast tests. */
@@ -77,15 +110,37 @@ export interface MockApiOptions {
   storageKey?: string
   /** Override the initial dataset (defaults to the built-in seed). */
   seedData?: StoreData
+  /** Enrichment engine tuning (tests run it synchronously). */
+  enrichment?: { sync?: boolean }
+}
+
+/** A subscriber to enrichment events, filtered by run or table. */
+interface EnrichmentListener {
+  runId?: string
+  tableId?: string
+  cb: (e: EnrichmentEvent) => void
+}
+
+/** A subscriber to AI events, filtered by run or table. */
+interface AiListener {
+  runId?: string
+  tableId?: string
+  cb: (e: AiEvent) => void
 }
 
 export class MockApi implements CascadeApi {
   private store: Store
   private readonly key: string
   private readonly latencyOn: boolean
+  private readonly engineSync: boolean
+  private engine!: MockEnrichmentEngine
+  private aiEngine!: MockAiEngine
+  private listeners = new Set<EnrichmentListener>()
+  private aiListeners = new Set<AiListener>()
 
   constructor(opts: MockApiOptions = {}) {
     this.latencyOn = opts.latency ?? true
+    this.engineSync = opts.enrichment?.sync ?? false
     this.key = opts.storageKey ?? STORAGE_KEY
     const loaded = Store.load(this.key)
     if (loaded) {
@@ -93,6 +148,55 @@ export class MockApi implements CascadeApi {
     } else {
       this.store = new Store(opts.seedData ?? buildSeed())
       this.store.save(this.key)
+    }
+    this.initEngine()
+  }
+
+  private initEngine(): void {
+    const schedule = this.engineSync ? (fn: () => void) => fn() : (fn: () => void, ms: number) => setTimeout(fn, ms)
+    this.engine = new MockEnrichmentEngine({
+      store: this.store,
+      persist: () => this.persist(),
+      emit: (e) => this.emitEnrichment(e),
+      now: () => new Date().toISOString(),
+      schedule,
+    })
+    this.aiEngine = new MockAiEngine({
+      store: this.store,
+      persist: () => this.persist(),
+      emit: (e) => this.emitAi(e),
+      now: () => new Date().toISOString(),
+      schedule,
+    })
+    this.engine.reconcileOnLoad()
+    this.aiEngine.reconcileOnLoad()
+  }
+
+  private emitEnrichment(e: EnrichmentEvent): void {
+    for (const l of this.listeners) {
+      const runId = e.type === 'cell' ? e.runId : e.type === 'run' ? e.run.id : undefined
+      const tableId = e.type === 'cell' ? e.tableId : e.type === 'run' ? e.run.tableId : undefined
+      if (l.runId && l.runId !== runId) continue
+      if (l.tableId && l.tableId !== tableId) continue
+      try {
+        l.cb(e)
+      } catch {
+        /* a subscriber throwing must not break the run */
+      }
+    }
+  }
+
+  private emitAi(e: AiEvent): void {
+    for (const l of this.aiListeners) {
+      const runId = e.type === 'cell' ? e.runId : e.type === 'run' ? e.run.id : undefined
+      const tableId = e.type === 'cell' ? e.tableId : e.type === 'run' ? e.run.tableId : undefined
+      if (l.runId && l.runId !== runId) continue
+      if (l.tableId && l.tableId !== tableId) continue
+      try {
+        l.cb(e)
+      } catch {
+        /* a subscriber throwing must not break the run */
+      }
     }
   }
 
@@ -808,7 +912,7 @@ export class MockApi implements CascadeApi {
 
     add: async (tableId: string, input?: AddRecordInput): Promise<RowWithCells> => {
       await this.delay()
-      const { role } = this.tableScope(tableId)
+      const { table, role } = this.tableScope(tableId)
       this.assertWrite(role)
       const columns = this.columnsForTable(tableId)
       const existing = this.store.data.records.filter((r) => r.tableId === tableId)
@@ -833,6 +937,9 @@ export class MockApi implements CascadeApi {
         this.store.addCells(cells)
       }
       this.persist()
+      // US-2.7 / US-3.8 — auto-run enrichment and AI columns on the new row.
+      this.triggerAutoRun(table, [record.id])
+      this.triggerAiAutoRun(table, [record.id])
       return this.toRowWithCells(record, columns)
     },
 
@@ -1003,8 +1110,919 @@ export class MockApi implements CascadeApi {
   }
 
   // ======================================================================
+  // enrichment
+  // ======================================================================
+
+  private assertManageBilling(role: Role): void {
+    if (!canManageBilling(role)) throw new ForbiddenError('Only owners and admins can manage billing and provider keys')
+  }
+
+  private snapProvider(p: Provider, canMargin: boolean): Provider {
+    if (canMargin) return { ...p, costConfig: { ...p.costConfig } }
+    const costConfig: Provider['costConfig'] = {}
+    for (const [op, c] of Object.entries(p.costConfig)) {
+      if (c) costConfig[op as EnrichmentOperation] = { credits: c.credits, providerCostUsd: 0 }
+    }
+    return { ...p, costConfig }
+  }
+
+  private enrichmentCandidates(tableId: string, scope: RunScope): Array<{ recordId: string; config: EnrichmentColumnConfig }> {
+    const configs = this.store
+      .getConfigsForTable(tableId)
+      .filter((c) => scope.columnIds.includes(c.columnId) && c.steps.length > 0)
+    let recordIds: string[]
+    if (scope.mode === 'selected') recordIds = scope.recordIds ?? []
+    else recordIds = this.store.data.records.filter((r) => r.tableId === tableId).sort((a, b) => a.position - b.position).map((r) => r.id)
+    const out: Array<{ recordId: string; config: EnrichmentColumnConfig }> = []
+    for (const rid of recordIds) for (const config of configs) out.push({ recordId: rid, config })
+    return out
+  }
+
+  private readStepInputs(recordId: string, step: EnrichmentColumnConfig['steps'][number]): Record<string, CellValue> {
+    const inputs: Record<string, CellValue> = {}
+    for (const [field, colId] of Object.entries(step.inputMapping)) {
+      inputs[field] = this.store.getCell(recordId, colId)?.value ?? null
+    }
+    return inputs
+  }
+
+  /**
+   * Validate + normalize a waterfall's steps before persisting (US-2.1): the
+   * provider and operation must exist, mapped columns must belong to the table,
+   * and acceptance conditions must be coherent. Credits/provider cost are always
+   * re-derived from the provider's authoritative cost model so a client cannot
+   * understate cost to slip past the per-run cap / budget or forge margin
+   * (FR-2.4 / US-2.11 / US-2.12).
+   */
+  private validateSteps(table: TableMeta, steps: EnrichmentColumnConfig['steps']): EnrichmentColumnConfig['steps'] {
+    if (!Array.isArray(steps) || steps.length === 0) {
+      throw new ValidationError('An enrichment column needs at least one provider step')
+    }
+    const colIds = new Set(this.store.data.columns.filter((c) => c.tableId === table.id).map((c) => c.id))
+    return steps.map((s, i) => {
+      const n = i + 1
+      const provider = this.store.data.providers.find((p) => p.id === s.providerId)
+      if (!provider) throw new ValidationError(`Step ${n}: unknown provider`)
+      const cost = provider.costConfig[s.operation]
+      if (!cost) throw new ValidationError(`Step ${n}: ${provider.name} does not support “${s.operation}”`)
+      if (s.acceptanceCondition === 'verifyDeliverable' && s.operation !== 'verify_email') {
+        throw new ValidationError(`Step ${n}: “verify deliverable” only applies to an email-verification step`)
+      }
+      if (s.acceptanceCondition === 'nonEmptyField' && !s.acceptField) {
+        throw new ValidationError(`Step ${n}: choose which returned field must be non-empty`)
+      }
+      if (s.acceptanceCondition === 'minConfidence' && (s.minConfidence == null || s.minConfidence < 0 || s.minConfidence > 1)) {
+        throw new ValidationError(`Step ${n}: minimum confidence must be between 0 and 1`)
+      }
+      if (Object.keys(s.outputMapping).length === 0) {
+        throw new ValidationError(`Step ${n}: map at least one returned field to a column`)
+      }
+      for (const colId of [...Object.values(s.inputMapping), ...Object.values(s.outputMapping)]) {
+        if (!colIds.has(colId)) throw new ValidationError(`Step ${n}: maps to a column that isn’t in this table`)
+      }
+      return { ...s, credits: cost.credits, providerCostUsd: cost.providerCostUsd }
+    })
+  }
+
+  private computeEstimate(tableId: string, scope: RunScope, forceFresh: boolean, canMargin: boolean): EstimateResult {
+    const table = this.store.data.tables.find((t) => t.id === tableId)
+    const wc = table ? this.store.getWorkspaceCredit(table.workspaceId) : undefined
+    const cands = this.enrichmentCandidates(tableId, scope)
+    let totalTargeted = 0
+    let skippedCached = 0
+    let skippedEmptyInput = 0
+    let skippedAlreadyFilled = 0
+    let maxCredits = 0
+    let maxProviderCostUsd = 0
+    let rows = 0
+    const perColMap = new Map<string, { rows: number; maxCredits: number }>()
+
+    for (const { recordId, config } of cands) {
+      totalTargeted += 1
+      const step0 = config.steps[0]
+      if (!step0) continue
+      const missing = Object.values(step0.inputMapping).some((colId) => isEmptyInput(this.store.getCell(recordId, colId)?.value ?? null))
+      if (missing) {
+        skippedEmptyInput += 1
+        continue
+      }
+      if (scope.mode === 'empty-only') {
+        const cell = this.store.getCell(recordId, config.columnId)
+        const e = readEnrichment(cell?.meta)
+        // Skip already-populated cells, unless the last attempt failed (re-runnable).
+        if (cell && !isEmptyInput(cell.value) && (!e || e.status !== 'failed')) {
+          skippedAlreadyFilled += 1
+          continue
+        }
+      }
+      // Cost the row per-step, not per-row: a step0 cache hit does NOT make the
+      // whole row free — later steps can still execute and charge. Check each
+      // step's cache with the inputs resolvable *now* from the store; a step
+      // whose inputs aren't yet resolvable (e.g. a verify step before the email
+      // exists) is treated as billable so maxCredits stays a safe upper bound
+      // for the per-run cap / budget gate (US-2.11), while a fully-cached row is
+      // still recognised as free (US-2.9).
+      const wsId = table?.workspaceId ?? ''
+      let cCredits = 0
+      let cUsd = 0
+      for (const st of config.steps) {
+        let stepCached = false
+        if (!forceFresh) {
+          const resolvable = Object.values(st.inputMapping).every(
+            (colId) => !isEmptyInput(this.store.getCell(recordId, colId)?.value ?? null),
+          )
+          if (resolvable) {
+            const key = buildCacheKey(st.providerId, st.operation, this.readStepInputs(recordId, st))
+            const cached = this.store.getCacheEntry(key)
+            if (cached && Date.parse(cached.expiresAt) > Date.now()) stepCached = true
+          }
+        }
+        if (stepCached) continue
+        cCredits += st.credits
+        cUsd += byoActive(this.store.data.providerCredentials, wsId, st.providerId) ? 0 : st.providerCostUsd
+      }
+      if (cCredits === 0) {
+        // Every billable step was served from cache — a free row.
+        skippedCached += 1
+        continue
+      }
+      rows += 1
+      maxCredits += cCredits
+      maxProviderCostUsd += cUsd
+      const pc = perColMap.get(config.columnId) ?? { rows: 0, maxCredits: 0 }
+      pc.rows += 1
+      pc.maxCredits += cCredits
+      perColMap.set(config.columnId, pc)
+    }
+
+    const perRunCap = wc?.perRunCap ?? Infinity
+    const balance = wc?.balance ?? 0
+    return {
+      rows,
+      totalTargeted,
+      skippedCached,
+      skippedEmptyInput,
+      skippedAlreadyFilled,
+      maxCredits,
+      maxProviderCostUsd: canMargin ? maxProviderCostUsd : null,
+      perColumn: [...perColMap.entries()].map(([columnId, v]) => ({ columnId, rows: v.rows, maxCredits: v.maxCredits })),
+      blockedByPerRunCap: maxCredits > perRunCap,
+      // Only billable work is blocked when the balance is exhausted; a fully
+      // cache-served / missing-input run (maxCredits === 0) still runs (US-2.11
+      // "non-billable actions continue").
+      blockedByBudget: maxCredits > balance,
+    }
+  }
+
+  private buildTargets(tableId: string, scope: RunScope): RunTarget[] {
+    const cands = this.enrichmentCandidates(tableId, scope)
+    const targets: RunTarget[] = []
+    let order = 0
+    for (const { recordId, config } of cands) {
+      if (scope.mode === 'empty-only') {
+        const cell = this.store.getCell(recordId, config.columnId)
+        const e = readEnrichment(cell?.meta)
+        if (cell && !isEmptyInput(cell.value) && (!e || e.status !== 'failed')) continue
+      }
+      targets.push({ recordId, anchorColumnId: config.columnId, config, orderIndex: order++ })
+    }
+    return targets
+  }
+
+  private buildRun(table: TableMeta, scope: RunScope, forceFresh: boolean, total: number, triggeredByName: string): EnrichmentRun {
+    const uid = this.store.data.session?.userId ?? ''
+    const run: EnrichmentRun = {
+      id: newId(),
+      workspaceId: table.workspaceId,
+      tableId: table.id,
+      triggeredBy: uid,
+      triggeredByName,
+      scope,
+      forceFresh,
+      status: 'queued',
+      counts: { processed: 0, total, success: 0, empty: 0, failed: 0, cached: 0 },
+      creditsConsumed: 0,
+      providerCostUsd: 0,
+      startedAt: new Date().toISOString(),
+      finishedAt: null,
+    }
+    this.store.data.enrichmentRuns.push(run)
+    return run
+  }
+
+  private triggerAutoRun(table: TableMeta, recordIds: string[]): void {
+    if (!this.store.data.session) return
+    this.engine.autoRun(table.id, recordIds, { id: this.store.data.session.userId, name: 'Auto-run' }, (targets) => {
+      const wc = this.store.getWorkspaceCredit(table.workspaceId)
+      if (!wc || wc.balance <= 0) return null
+      const cols = [...new Set(targets.map((t) => t.anchorColumnId))]
+      const est = this.computeEstimate(table.id, { mode: 'selected', recordIds, columnIds: cols }, false, true)
+      if (est.maxCredits > wc.perRunCap) return null
+      return this.buildRun(table, { mode: 'selected', recordIds, columnIds: cols }, false, targets.length, 'Auto-run')
+    })
+  }
+
+  private snapRun(run: EnrichmentRun, canMargin: boolean): EnrichmentRun {
+    return { ...run, counts: { ...run.counts }, scope: { ...run.scope }, providerCostUsd: canMargin ? run.providerCostUsd : 0 }
+  }
+
+  enrichment: EnrichmentApi = {
+    providers: {
+      list: async (workspaceId: string) => {
+        await this.delay()
+        const role = this.roleFor(workspaceId)
+        const canMargin = canViewMargin(role)
+        return this.store.data.providers.map((p) => this.snapProvider(p, canMargin))
+      },
+    },
+
+    credentials: {
+      list: async (workspaceId: string) => {
+        await this.delay()
+        const role = this.roleFor(workspaceId)
+        if (!canManageProviders(role)) throw new ForbiddenError('Only owners and admins can view provider credentials')
+        return snapList(this.store.data.providerCredentials.filter((c) => c.workspaceId === workspaceId))
+      },
+      upsert: async (workspaceId: string, input: UpsertCredentialInput) => {
+        await this.delay()
+        const role = this.roleFor(workspaceId)
+        this.assertManageBilling(role)
+        const provider = this.store.data.providers.find((p) => p.id === input.providerId)
+        if (!provider) throw new NotFoundError('Provider not found')
+        const platformManaged = !input.useByoKey
+        const key = (input.apiKey ?? '').trim()
+        const status: ProviderCredential['status'] = platformManaged ? 'active' : key.length >= 8 ? 'active' : 'invalid'
+        const maskedKey = platformManaged ? '••••managed' : key.length >= 4 ? `••••${key.slice(-4)}` : '••••'
+        let cred = this.store.data.providerCredentials.find((c) => c.workspaceId === workspaceId && c.providerId === input.providerId)
+        if (cred) {
+          cred.isPlatformManaged = platformManaged
+          cred.maskedKey = maskedKey
+          cred.status = status
+        } else {
+          cred = { id: newId(), workspaceId, providerId: input.providerId, isPlatformManaged: platformManaged, maskedKey, status, createdAt: new Date().toISOString() }
+          this.store.data.providerCredentials.push(cred)
+        }
+        this.writeAudit(workspaceId, 'provider.keyUpdate', 'provider', input.providerId, { provider: provider.name, byo: input.useByoKey })
+        this.persist()
+        return snap(cred)
+      },
+      remove: async (workspaceId: string, credentialId: string) => {
+        await this.delay()
+        const role = this.roleFor(workspaceId)
+        this.assertManageBilling(role)
+        const cred = this.store.data.providerCredentials.find((c) => c.id === credentialId && c.workspaceId === workspaceId)
+        if (!cred) throw new NotFoundError('Credential not found')
+        this.store.data.providerCredentials = this.store.data.providerCredentials.filter((c) => c.id !== credentialId)
+        this.writeAudit(workspaceId, 'provider.keyUpdate', 'provider', cred.providerId, { removed: true })
+        this.persist()
+      },
+    },
+
+    configs: {
+      get: async (columnId: string) => {
+        await this.delay()
+        this.columnScope(columnId)
+        const cfg = this.store.getConfig(columnId)
+        return cfg ? snap(cfg) : null
+      },
+      list: async (tableId: string) => {
+        await this.delay()
+        this.tableScope(tableId)
+        return snapList(this.store.getConfigsForTable(tableId))
+      },
+      upsert: async (input: UpsertConfigInput) => {
+        await this.delay()
+        const { column, table, role } = this.columnScope(input.columnId)
+        this.assertWrite(role)
+        const steps = this.validateSteps(table, input.steps)
+        let cfg = this.store.getConfig(input.columnId)
+        if (cfg) {
+          cfg.steps = steps
+          if (input.autoRun !== undefined) cfg.autoRun = input.autoRun
+          if (input.forceFreshDefault !== undefined) cfg.forceFreshDefault = input.forceFreshDefault
+        } else {
+          cfg = {
+            id: newId(),
+            columnId: input.columnId,
+            autoRun: input.autoRun ?? false,
+            forceFreshDefault: input.forceFreshDefault ?? false,
+            steps,
+          }
+          this.store.data.enrichmentConfigs.push(cfg)
+        }
+        this.writeAudit(table.workspaceId, 'column.enrich', 'enrichmentColumn', input.columnId, { name: column.name, steps: steps.length })
+        this.persist()
+        return snap(cfg)
+      },
+      remove: async (columnId: string) => {
+        await this.delay()
+        const { table, role } = this.columnScope(columnId)
+        this.assertWrite(role)
+        this.store.data.enrichmentConfigs = this.store.data.enrichmentConfigs.filter((c) => c.columnId !== columnId)
+        this.writeAudit(table.workspaceId, 'column.enrich', 'enrichmentColumn', columnId, { removed: true })
+        this.persist()
+      },
+    },
+
+    runs: {
+      list: async (workspaceId: string, opts) => {
+        await this.delay()
+        const role = this.roleFor(workspaceId)
+        const canMargin = canViewMargin(role)
+        let runs = this.store.data.enrichmentRuns.filter((r) => r.workspaceId === workspaceId)
+        if (opts?.tableId) runs = runs.filter((r) => r.tableId === opts.tableId)
+        runs = runs.slice().sort((a, b) => (a.startedAt < b.startedAt ? 1 : a.startedAt > b.startedAt ? -1 : 0))
+        const offset = opts?.offset ?? 0
+        const limit = opts?.limit ?? runs.length
+        return runs.slice(offset, offset + limit).map((r) => this.snapRun(r, canMargin))
+      },
+      get: async (runId: string) => {
+        await this.delay()
+        const run = this.store.data.enrichmentRuns.find((r) => r.id === runId)
+        if (!run) throw new NotFoundError('Run not found')
+        const role = this.roleFor(run.workspaceId)
+        return this.snapRun(run, canViewMargin(role))
+      },
+    },
+
+    estimate: async (tableId: string, scope: RunScope, opts) => {
+      await this.delay()
+      const { role } = this.tableScope(tableId)
+      return this.computeEstimate(tableId, scope, opts?.forceFresh ?? false, canViewMargin(role))
+    },
+
+    run: async (tableId: string, scope: RunScope, opts?: RunOptions): Promise<RunHandle> => {
+      await this.delay()
+      const { table, role } = this.tableScope(tableId)
+      this.assertWrite(role)
+      const forceFresh = opts?.forceFresh ?? false
+      const est = this.computeEstimate(tableId, scope, forceFresh, canViewMargin(role))
+      const wc = this.store.getWorkspaceCredit(table.workspaceId)
+      const perRunCap = wc?.perRunCap ?? Infinity
+      const balance = wc?.balance ?? 0
+      // A billable run at an exhausted balance is paused (US-2.11); a fully
+      // cache-served / missing-input run (maxCredits === 0) is non-billable and
+      // still proceeds so results populate at zero cost.
+      if (balance <= 0 && est.maxCredits > 0) {
+        throw new BudgetError('The workspace budget is exhausted — enrichment is paused', { maxCredits: est.maxCredits, cap: perRunCap })
+      }
+      if (est.maxCredits > perRunCap) {
+        throw new BudgetError(`This run could use up to ${est.maxCredits.toLocaleString('en-US')} credits, above the per-run cap of ${perRunCap.toLocaleString('en-US')}`, { maxCredits: est.maxCredits, cap: perRunCap })
+      }
+      const targets = this.buildTargets(tableId, scope)
+      const run = this.buildRun(table, scope, forceFresh, targets.length, this.user(this.session().userId)?.name ?? 'Someone')
+      this.writeAudit(table.workspaceId, 'enrichment.run', 'enrichmentRun', run.id, { mode: scope.mode, columns: scope.columnIds.length, rows: targets.length, forceFresh })
+      this.persist()
+      this.engine.startRun(run, targets)
+      return { runId: run.id }
+    },
+
+    results: async (recordId: string, columnId: string) => {
+      await this.delay()
+      const { role } = this.columnScope(columnId)
+      const canMargin = canViewMargin(role)
+      return this.store.data.enrichmentResults
+        .filter((r) => r.recordId === recordId && r.columnId === columnId)
+        .sort((a, b) => (a.fetchedAt < b.fetchedAt ? 1 : a.fetchedAt > b.fetchedAt ? -1 : 0))
+        .map((r) => ({ ...r, providerCostUsd: canMargin ? r.providerCostUsd : 0 }))
+    },
+
+    cacheStats: async (workspaceId: string) => {
+      await this.delay()
+      const role = this.roleFor(workspaceId)
+      const canMargin = canViewMargin(role)
+      const runIds = new Set(this.store.data.enrichmentRuns.filter((r) => r.workspaceId === workspaceId).map((r) => r.id))
+      let savedCr = 0
+      let savedUsd = 0
+      for (const r of this.store.data.enrichmentResults) {
+        if (!r.fromCache || !runIds.has(r.runId)) continue
+        const cfg = this.store.getConfig(r.columnId)
+        const step = r.stepIndex != null ? cfg?.steps[r.stepIndex] : undefined
+        if (step) {
+          savedCr += step.credits
+          savedUsd += step.providerCostUsd
+        }
+      }
+      const stats: CacheStats = { entries: this.store.data.enrichmentCache.length, hitSavingsCredits: savedCr, hitSavingsUsd: canMargin ? savedUsd : null }
+      return stats
+    },
+
+    subscribe: (target, cb) => {
+      const listener = { runId: target.runId, tableId: target.tableId, cb }
+      this.listeners.add(listener)
+      return () => {
+        this.listeners.delete(listener)
+      }
+    },
+  }
+
+  // ======================================================================
+  // AI columns (Phase 3) — mirrors the enrichment namespace + helpers
+  // ======================================================================
+
+  private snapAiModel(m: AiModelInfo, canMargin: boolean): AiModelInfo {
+    return canMargin ? { ...m } : { ...m, providerCostUsd: 0 }
+  }
+
+  private snapAiRun(run: EnrichmentRun, canMargin: boolean): EnrichmentRun {
+    return { ...run, counts: { ...run.counts }, scope: { ...run.scope }, providerCostUsd: canMargin ? run.providerCostUsd : 0 }
+  }
+
+  private aiCandidates(tableId: string, scope: RunScope): Array<{ recordId: string; config: AiColumnConfig }> {
+    const configs = this.store.getAiConfigsForTable(tableId).filter((c) => scope.columnIds.includes(c.columnId))
+    let recordIds: string[]
+    if (scope.mode === 'selected') recordIds = scope.recordIds ?? []
+    else recordIds = this.store.data.records.filter((r) => r.tableId === tableId).sort((a, b) => a.position - b.position).map((r) => r.id)
+    const out: Array<{ recordId: string; config: AiColumnConfig }> = []
+    for (const rid of recordIds) for (const config of configs) out.push({ recordId: rid, config })
+    return out
+  }
+
+  /**
+   * Validate + normalize an AI column config before persisting (US-3.1/3.2). The
+   * model must exist and credits are re-derived from the model catalog so a
+   * client cannot understate cost to slip past the per-run cap / budget.
+   */
+  private validateAiConfig(table: TableMeta, input: UpsertAiConfigInput): {
+    model: AiColumnConfig['model']
+    operation: AiColumnConfig['operation']
+    promptTemplate: string
+    outputSchema: AiColumnConfig['outputSchema']
+    outputMapping: Record<string, string>
+    credits: number
+    providerCostUsd: number
+  } {
+    const prompt = (input.promptTemplate ?? '').trim()
+    if (!prompt) throw new ValidationError('Write a prompt for the AI column')
+    const modelInfo = resolveAiModel(input.model)
+    if (!modelInfo) throw new ValidationError('Choose a valid model')
+    const schema = input.outputSchema ?? []
+    const mapping = input.outputMapping ?? {}
+    const colIds = new Set(this.store.data.columns.filter((c) => c.tableId === table.id).map((c) => c.id))
+    const seen = new Set<string>()
+    for (const field of schema) {
+      const name = field.name?.trim()
+      if (!name) throw new ValidationError('Each output field needs a name')
+      if (seen.has(name.toLowerCase())) throw new ValidationError(`Duplicate output field “${name}”`)
+      seen.add(name.toLowerCase())
+      const destId = mapping[field.name]
+      if (destId && !colIds.has(destId)) throw new ValidationError(`Field “${name}” maps to a column that isn’t in this table`)
+    }
+    return { model: input.model, operation: input.operation, promptTemplate: prompt, outputSchema: schema, outputMapping: mapping, credits: modelInfo.credits, providerCostUsd: modelInfo.providerCostUsd }
+  }
+
+  private computeAiEstimate(tableId: string, scope: RunScope, forceFresh: boolean, canMargin: boolean): EstimateResult {
+    const table = this.store.data.tables.find((t) => t.id === tableId)
+    const wc = table ? this.store.getWorkspaceCredit(table.workspaceId) : undefined
+    const cands = this.aiCandidates(tableId, scope)
+    let totalTargeted = 0
+    let skippedCached = 0
+    let skippedEmptyInput = 0
+    let skippedAlreadyFilled = 0
+    let maxCredits = 0
+    let maxProviderCostUsd = 0
+    let rows = 0
+    const perColMap = new Map<string, { rows: number; maxCredits: number }>()
+
+    for (const { recordId, config } of cands) {
+      totalTargeted += 1
+      const modelInfo = resolveAiModel(config.model)
+      if (!modelInfo) continue // unknown model — not billable (surfaces as Failed at run time)
+      if (!this.aiEngine.refsPresent(recordId, config)) {
+        // A missing {{reference}} → Empty, free (US-3.1).
+        skippedEmptyInput += 1
+        continue
+      }
+      if (scope.mode === 'empty-only') {
+        const cell = this.store.getCell(recordId, config.columnId)
+        const e = readAi(cell?.meta)
+        if (cell && !isEmptyInput(cell.value) && (!e || e.status !== 'failed')) {
+          skippedAlreadyFilled += 1
+          continue
+        }
+      }
+      if (!forceFresh) {
+        const resolved = this.aiEngine.resolvedPromptFor(recordId, config)
+        const key = buildAiCacheKey(modelInfo.key, config.operation, resolved)
+        const cached = this.store.getAiCacheEntry(key)
+        if (cached && Date.parse(cached.expiresAt) > Date.now()) {
+          skippedCached += 1
+          continue
+        }
+      }
+      rows += 1
+      maxCredits += config.credits
+      maxProviderCostUsd += config.providerCostUsd
+      const pc = perColMap.get(config.columnId) ?? { rows: 0, maxCredits: 0 }
+      pc.rows += 1
+      pc.maxCredits += config.credits
+      perColMap.set(config.columnId, pc)
+    }
+
+    const perRunCap = wc?.perRunCap ?? Infinity
+    const balance = wc?.balance ?? 0
+    return {
+      rows,
+      totalTargeted,
+      skippedCached,
+      skippedEmptyInput,
+      skippedAlreadyFilled,
+      maxCredits,
+      maxProviderCostUsd: canMargin ? maxProviderCostUsd : null,
+      perColumn: [...perColMap.entries()].map(([columnId, v]) => ({ columnId, rows: v.rows, maxCredits: v.maxCredits })),
+      blockedByPerRunCap: maxCredits > perRunCap,
+      blockedByBudget: maxCredits > balance,
+    }
+  }
+
+  private buildAiTargets(tableId: string, scope: RunScope): AiRunTarget[] {
+    const cands = this.aiCandidates(tableId, scope)
+    const targets: AiRunTarget[] = []
+    let order = 0
+    for (const { recordId, config } of cands) {
+      if (scope.mode === 'empty-only') {
+        const cell = this.store.getCell(recordId, config.columnId)
+        const e = readAi(cell?.meta)
+        if (cell && !isEmptyInput(cell.value) && (!e || e.status !== 'failed')) continue
+      }
+      targets.push({ recordId, anchorColumnId: config.columnId, config, orderIndex: order++ })
+    }
+    return targets
+  }
+
+  private buildAiRun(table: TableMeta, scope: RunScope, forceFresh: boolean, total: number, triggeredByName: string): EnrichmentRun {
+    const uid = this.store.data.session?.userId ?? ''
+    const run: EnrichmentRun = {
+      id: newId(),
+      workspaceId: table.workspaceId,
+      tableId: table.id,
+      triggeredBy: uid,
+      triggeredByName,
+      scope,
+      forceFresh,
+      status: 'queued',
+      counts: { processed: 0, total, success: 0, empty: 0, failed: 0, cached: 0 },
+      creditsConsumed: 0,
+      providerCostUsd: 0,
+      startedAt: new Date().toISOString(),
+      finishedAt: null,
+    }
+    this.store.data.aiRuns.push(run)
+    return run
+  }
+
+  private triggerAiAutoRun(table: TableMeta, recordIds: string[]): void {
+    if (!this.store.data.session) return
+    this.aiEngine.autoRun(table.id, recordIds, (targets) => {
+      const wc = this.store.getWorkspaceCredit(table.workspaceId)
+      if (!wc || wc.balance <= 0) return null
+      const cols = [...new Set(targets.map((t) => t.anchorColumnId))]
+      const est = this.computeAiEstimate(table.id, { mode: 'selected', recordIds, columnIds: cols }, false, true)
+      if (est.maxCredits > wc.perRunCap) return null
+      return this.buildAiRun(table, { mode: 'selected', recordIds, columnIds: cols }, false, targets.length, 'Auto-run')
+    })
+  }
+
+  ai: AiApi = {
+    models: {
+      list: async (workspaceId: string) => {
+        await this.delay()
+        const role = this.roleFor(workspaceId)
+        const canMargin = canViewMargin(role)
+        return AI_MODELS.map((m) => this.snapAiModel(m, canMargin))
+      },
+    },
+
+    configs: {
+      get: async (columnId: string) => {
+        await this.delay()
+        this.columnScope(columnId)
+        const cfg = this.store.getAiConfig(columnId)
+        return cfg ? snap(cfg) : null
+      },
+      list: async (tableId: string) => {
+        await this.delay()
+        this.tableScope(tableId)
+        return snapList(this.store.getAiConfigsForTable(tableId))
+      },
+      upsert: async (input: UpsertAiConfigInput) => {
+        await this.delay()
+        const { column, table, role } = this.columnScope(input.columnId)
+        this.assertWrite(role)
+        const v = this.validateAiConfig(table, input)
+        let cfg = this.store.getAiConfig(input.columnId)
+        if (cfg) {
+          cfg.model = v.model
+          cfg.operation = v.operation
+          cfg.promptTemplate = v.promptTemplate
+          cfg.outputSchema = v.outputSchema
+          cfg.outputMapping = v.outputMapping
+          cfg.credits = v.credits
+          cfg.providerCostUsd = v.providerCostUsd
+          if (input.cacheTtlDays !== undefined) cfg.cacheTtlDays = input.cacheTtlDays
+          if (input.autoRun !== undefined) cfg.autoRun = input.autoRun
+          if (input.forceFreshDefault !== undefined) cfg.forceFreshDefault = input.forceFreshDefault
+        } else {
+          cfg = {
+            id: newId(),
+            columnId: input.columnId,
+            model: v.model,
+            operation: v.operation,
+            promptTemplate: v.promptTemplate,
+            outputSchema: v.outputSchema,
+            outputMapping: v.outputMapping,
+            cacheTtlDays: input.cacheTtlDays ?? 30,
+            autoRun: input.autoRun ?? false,
+            forceFreshDefault: input.forceFreshDefault ?? false,
+            credits: v.credits,
+            providerCostUsd: v.providerCostUsd,
+          }
+          this.store.data.aiColumnConfigs.push(cfg)
+        }
+        this.writeAudit(table.workspaceId, 'column.aiConfig', 'aiColumn', input.columnId, { name: column.name, model: v.model.model })
+        this.persist()
+        return snap(cfg)
+      },
+      remove: async (columnId: string) => {
+        await this.delay()
+        const { table, role } = this.columnScope(columnId)
+        this.assertWrite(role)
+        this.store.data.aiColumnConfigs = this.store.data.aiColumnConfigs.filter((c) => c.columnId !== columnId)
+        this.writeAudit(table.workspaceId, 'column.aiConfig', 'aiColumn', columnId, { removed: true })
+        this.persist()
+      },
+    },
+
+    runs: {
+      list: async (workspaceId: string, opts) => {
+        await this.delay()
+        const role = this.roleFor(workspaceId)
+        const canMargin = canViewMargin(role)
+        let runs = this.store.data.aiRuns.filter((r) => r.workspaceId === workspaceId)
+        if (opts?.tableId) runs = runs.filter((r) => r.tableId === opts.tableId)
+        runs = runs.slice().sort((a, b) => (a.startedAt < b.startedAt ? 1 : a.startedAt > b.startedAt ? -1 : 0))
+        const offset = opts?.offset ?? 0
+        const limit = opts?.limit ?? runs.length
+        return runs.slice(offset, offset + limit).map((r) => this.snapAiRun(r, canMargin))
+      },
+      get: async (runId: string) => {
+        await this.delay()
+        const run = this.store.data.aiRuns.find((r) => r.id === runId)
+        if (!run) throw new NotFoundError('Run not found')
+        const role = this.roleFor(run.workspaceId)
+        return this.snapAiRun(run, canViewMargin(role))
+      },
+    },
+
+    estimate: async (tableId: string, scope: RunScope, opts) => {
+      await this.delay()
+      const { role } = this.tableScope(tableId)
+      return this.computeAiEstimate(tableId, scope, opts?.forceFresh ?? false, canViewMargin(role))
+    },
+
+    run: async (tableId: string, scope: RunScope, opts?: RunOptions): Promise<RunHandle> => {
+      await this.delay()
+      const { table, role } = this.tableScope(tableId)
+      this.assertWrite(role)
+      const forceFresh = opts?.forceFresh ?? false
+      const est = this.computeAiEstimate(tableId, scope, forceFresh, canViewMargin(role))
+      const wc = this.store.getWorkspaceCredit(table.workspaceId)
+      const perRunCap = wc?.perRunCap ?? Infinity
+      const balance = wc?.balance ?? 0
+      if (balance <= 0 && est.maxCredits > 0) {
+        throw new BudgetError('The workspace budget is exhausted — AI columns are paused', { maxCredits: est.maxCredits, cap: perRunCap })
+      }
+      if (est.maxCredits > perRunCap) {
+        throw new BudgetError(`This run could use up to ${est.maxCredits.toLocaleString('en-US')} credits, above the per-run cap of ${perRunCap.toLocaleString('en-US')}`, { maxCredits: est.maxCredits, cap: perRunCap })
+      }
+      const targets = this.buildAiTargets(tableId, scope)
+      const run = this.buildAiRun(table, scope, forceFresh, targets.length, this.user(this.session().userId)?.name ?? 'Someone')
+      this.writeAudit(table.workspaceId, 'ai.run', 'aiRun', run.id, { mode: scope.mode, columns: scope.columnIds.length, rows: targets.length, forceFresh })
+      this.persist()
+      this.aiEngine.startRun(run, targets)
+      return { runId: run.id }
+    },
+
+    results: async (recordId: string, columnId: string) => {
+      await this.delay()
+      const { role } = this.columnScope(columnId)
+      const canMargin = canViewMargin(role)
+      return this.store.data.aiResults
+        .filter((r) => r.recordId === recordId && r.columnId === columnId)
+        .sort((a, b) => (a.fetchedAt < b.fetchedAt ? 1 : a.fetchedAt > b.fetchedAt ? -1 : 0))
+        .map((r) => ({ ...r, providerCostUsd: canMargin ? r.providerCostUsd : 0 }))
+    },
+
+    cacheStats: async (workspaceId: string) => {
+      await this.delay()
+      const role = this.roleFor(workspaceId)
+      const canMargin = canViewMargin(role)
+      const runIds = new Set(this.store.data.aiRuns.filter((r) => r.workspaceId === workspaceId).map((r) => r.id))
+      let savedCr = 0
+      let savedUsd = 0
+      for (const r of this.store.data.aiResults) {
+        if (!r.fromCache || !runIds.has(r.runId)) continue
+        const cfg = this.store.getAiConfig(r.columnId)
+        if (cfg) {
+          savedCr += cfg.credits
+          savedUsd += cfg.providerCostUsd
+        }
+      }
+      const stats: CacheStats = { entries: this.store.data.aiCache.length, hitSavingsCredits: savedCr, hitSavingsUsd: canMargin ? savedUsd : null }
+      return stats
+    },
+
+    subscribe: (target, cb) => {
+      const listener: AiListener = { runId: target.runId, tableId: target.tableId, cb }
+      this.aiListeners.add(listener)
+      return () => {
+        this.aiListeners.delete(listener)
+      }
+    },
+  }
+
+  // ======================================================================
+  // credits
+  // ======================================================================
+
+  private resultsForWorkspace(workspaceId: string, since?: string): Array<{ providerId: string | null; columnId: string; tableId: string; credits: number; providerCostUsd: number }> {
+    const runById = new Map(this.store.data.enrichmentRuns.filter((r) => r.workspaceId === workspaceId).map((r) => [r.id, r] as const))
+    const out: Array<{ providerId: string | null; columnId: string; tableId: string; credits: number; providerCostUsd: number }> = []
+    for (const r of this.store.data.enrichmentResults) {
+      const run = runById.get(r.runId)
+      if (!run) continue
+      if (since && r.fetchedAt < since) continue
+      out.push({ providerId: r.providerId, columnId: r.columnId, tableId: run.tableId, credits: r.credits, providerCostUsd: r.providerCostUsd })
+    }
+    return out
+  }
+
+  /** By-provider consumption from the append-only ledger (`enrich:<key>:<op>`). */
+  private ledgerConsumptionByProvider(workspaceId: string, canMargin: boolean, since?: string): ConsumptionBucket[] {
+    const byKey = new Map(this.store.data.providers.map((p) => [p.key, p] as const))
+    const map = new Map<string, { label: string; credits: number; usd: number }>()
+    for (const e of this.store.data.creditLedger) {
+      if (e.workspaceId !== workspaceId || e.delta >= 0) continue
+      if (since && e.createdAt < since) continue
+      const m = /^enrich:([^:]+):(.+)$/.exec(e.reason)
+      if (!m || !m[1] || !m[2]) continue
+      const provider = byKey.get(m[1])
+      if (!provider) continue
+      const credits = -e.delta
+      const cost = provider.costConfig[m[2] as EnrichmentOperation]
+      const usd = cost && cost.credits > 0 ? credits * (cost.providerCostUsd / cost.credits) : 0
+      const b = map.get(provider.id) ?? { label: provider.name, credits: 0, usd: 0 }
+      b.credits += credits
+      b.usd += usd
+      map.set(provider.id, b)
+    }
+    return [...map.entries()]
+      .map(([key, v]) => ({ key, label: v.label, credits: v.credits, providerCostUsd: canMargin ? Math.round(v.usd * 100) / 100 : null }))
+      .sort((a, b) => b.credits - a.credits)
+  }
+
+  /** By-model AI consumption from the ledger (`ai:<modelKey>:<op>` reasons). */
+  private ledgerConsumptionByModel(workspaceId: string, canMargin: boolean, since?: string): ConsumptionBucket[] {
+    const map = new Map<string, { label: string; credits: number; usd: number }>()
+    for (const e of this.store.data.creditLedger) {
+      if (e.workspaceId !== workspaceId || e.delta >= 0) continue
+      if (since && e.createdAt < since) continue
+      const m = /^ai:([^:]+):(.+)$/.exec(e.reason)
+      if (!m || !m[1]) continue
+      const model = aiModelByKey(m[1])
+      if (!model) continue
+      const credits = -e.delta
+      const usd = model.credits > 0 ? credits * (model.providerCostUsd / model.credits) : 0
+      const b = map.get(model.key) ?? { label: model.label, credits: 0, usd: 0 }
+      b.credits += credits
+      b.usd += usd
+      map.set(model.key, b)
+    }
+    return [...map.entries()]
+      .map(([key, v]) => ({ key, label: v.label, credits: v.credits, providerCostUsd: canMargin ? Math.round(v.usd * 100) / 100 : null }))
+      .sort((a, b) => b.credits - a.credits)
+  }
+
+  private consumption(
+    workspaceId: string,
+    canMargin: boolean,
+    since: string | undefined,
+    keyFor: (r: { providerId: string | null; columnId: string; tableId: string }) => { key: string; label: string } | null,
+  ): ConsumptionBucket[] {
+    const map = new Map<string, { label: string; credits: number; usd: number }>()
+    for (const r of this.resultsForWorkspace(workspaceId, since)) {
+      if (r.credits <= 0) continue
+      const k = keyFor(r)
+      if (!k) continue
+      const b = map.get(k.key) ?? { label: k.label, credits: 0, usd: 0 }
+      b.credits += r.credits
+      b.usd += r.providerCostUsd
+      map.set(k.key, b)
+    }
+    return [...map.entries()]
+      .map(([key, v]) => ({ key, label: v.label, credits: v.credits, providerCostUsd: canMargin ? v.usd : null }))
+      .sort((a, b) => b.credits - a.credits)
+  }
+
+  credits: CreditsApi = {
+    balance: async (workspaceId: string): Promise<BalanceInfo> => {
+      await this.delay()
+      this.roleFor(workspaceId)
+      const wc = this.store.getWorkspaceCredit(workspaceId)
+      const balance = wc?.balance ?? 0
+      return { balance, budgetCap: wc?.budgetCap ?? 0, perRunCap: wc?.perRunCap ?? 0, paused: balance <= 0 }
+    },
+
+    budget: {
+      get: async (workspaceId: string): Promise<BudgetSettings> => {
+        await this.delay()
+        const role = this.roleFor(workspaceId)
+        this.assertManageBilling(role)
+        const wc = this.store.getWorkspaceCredit(workspaceId)
+        return { balance: wc?.balance ?? 0, budgetCap: wc?.budgetCap ?? 0, perRunCap: wc?.perRunCap ?? 0 }
+      },
+      set: async (workspaceId: string, patch) => {
+        await this.delay()
+        const role = this.roleFor(workspaceId)
+        this.assertManageBilling(role)
+        let wc = this.store.getWorkspaceCredit(workspaceId)
+        if (!wc) {
+          wc = { workspaceId, balance: 0, budgetCap: 0, perRunCap: 0 }
+          this.store.data.workspaceCredits.push(wc)
+        }
+        if (patch.budgetCap !== undefined) {
+          if (patch.budgetCap < 0) throw new ValidationError('Budget cannot be negative')
+          wc.budgetCap = Math.round(patch.budgetCap)
+        }
+        if (patch.perRunCap !== undefined) {
+          if (patch.perRunCap < 0) throw new ValidationError('Per-run cap cannot be negative')
+          wc.perRunCap = Math.round(patch.perRunCap)
+        }
+        this.writeAudit(workspaceId, 'budget.update', 'workspace', workspaceId, { budgetCap: wc.budgetCap, perRunCap: wc.perRunCap })
+        this.persist()
+        return { balance: wc.balance, budgetCap: wc.budgetCap, perRunCap: wc.perRunCap }
+      },
+    },
+
+    ledger: async (workspaceId: string, opts) => {
+      await this.delay()
+      const role = this.roleFor(workspaceId)
+      this.assertManageBilling(role)
+      let entries = this.store.data.creditLedger.filter((e) => e.workspaceId === workspaceId)
+      if (opts?.runId) entries = entries.filter((e) => e.runId === opts.runId)
+      entries = entries.slice().sort((a, b) => (a.createdAt < b.createdAt ? 1 : a.createdAt > b.createdAt ? -1 : 0))
+      const offset = opts?.offset ?? 0
+      const limit = opts?.limit ?? entries.length
+      return snapList(entries.slice(offset, offset + limit))
+    },
+
+    consumptionByProvider: async (workspaceId: string, opts) => {
+      await this.delay()
+      const role = this.roleFor(workspaceId)
+      return this.ledgerConsumptionByProvider(workspaceId, canViewMargin(role), opts?.since)
+    },
+
+    consumptionByColumn: async (workspaceId: string, opts) => {
+      await this.delay()
+      const role = this.roleFor(workspaceId)
+      const canMargin = canViewMargin(role)
+      const nameById = new Map(this.store.data.columns.map((c) => [c.id, c.name] as const))
+      return this.consumption(workspaceId, canMargin, opts?.since, (r) => ({ key: r.columnId, label: nameById.get(r.columnId) ?? r.columnId }))
+    },
+
+    consumptionByTable: async (workspaceId: string, opts) => {
+      await this.delay()
+      const role = this.roleFor(workspaceId)
+      const canMargin = canViewMargin(role)
+      const nameById = new Map(this.store.data.tables.map((t) => [t.id, t.name] as const))
+      return this.consumption(workspaceId, canMargin, opts?.since, (r) => ({ key: r.tableId, label: nameById.get(r.tableId) ?? r.tableId }))
+    },
+
+    consumptionByModel: async (workspaceId: string, opts) => {
+      await this.delay()
+      const role = this.roleFor(workspaceId)
+      return this.ledgerConsumptionByModel(workspaceId, canViewMargin(role), opts?.since)
+    },
+  }
+
+  // ======================================================================
   // Debug / perf helpers (not part of the CascadeApi contract)
   // ======================================================================
+
+  /** Resolves when no enrichment run is active (tests). */
+  async __drainEnrichment(): Promise<void> {
+    await this.engine.whenIdle()
+  }
+
+  /** Resolves when no AI run is active (tests). */
+  async __drainAi(): Promise<void> {
+    await this.aiEngine.whenIdle()
+  }
+
+  /** Resolves when neither engine has an active run (tests). */
+  async __drain(): Promise<void> {
+    await Promise.all([this.engine.whenIdle(), this.aiEngine.whenIdle()])
+  }
 
   /** Append `n` synthesised rows to a table for perf testing. Returns new count. */
   loadPerfRows(tableId: string, n: number): number {
@@ -1022,6 +2040,7 @@ export class MockApi implements CascadeApi {
     Store.clear(this.key)
     this.store = new Store(buildSeed())
     this.store.save(this.key)
+    this.initEngine()
   }
 
   /** Direct access to the underlying store (for tests / debugging). */
