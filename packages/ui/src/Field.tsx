@@ -12,7 +12,7 @@ interface FieldProps {
   error?: boolean
   /** Associates the label with a control id. */
   htmlFor?: string
-  /** The control (Input, Textarea, Select, …). */
+  /** The control (Input, Select, Switch, …). */
   children: ReactNode
   className?: string
 }

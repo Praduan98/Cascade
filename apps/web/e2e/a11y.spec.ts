@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test'
 
 // Locks in the accessibility work: every product route must have zero serious
 // or critical WCAG A/AA violations, in BOTH themes. Runs axe-core in-page.
-const ROUTES = ['/', '/sign-in', '/kitchen-sink', '/tables', '/members', '/audit', '/settings']
+const ROUTES = ['/sign-in', '/tables', '/members', '/audit', '/settings']
 const THEMES = ['dark', 'light'] as const
 
 for (const theme of THEMES) {

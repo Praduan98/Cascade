@@ -4,13 +4,7 @@ import { usePathname } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { getApi } from '@cascade/data'
 import { canViewAudit, canWrite } from '@cascade/core'
-import {
-  NavGroup,
-  NavItem,
-  SideNav,
-  Tooltip,
-  WorkspaceSwitcher,
-} from '@cascade/ui'
+import { NavGroup, NavItem, SideNav, WorkspaceSwitcher } from '@cascade/ui'
 import { useSession } from '../../session'
 import { CreateTableDialog } from './CreateTableDialog'
 import styles from '../app-shell.module.css'
@@ -53,12 +47,6 @@ const AuditIcon = () => (
   <Icon>
     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
     <path d="M14 2v6h6M9 13h6M9 17h4" />
-  </Icon>
-)
-const UsageIcon = () => (
-  <Icon>
-    <path d="M3 3v18h18" />
-    <path d="M7 15l4-4 3 3 4-5" />
   </Icon>
 )
 const SettingsIcon = () => (
@@ -183,13 +171,6 @@ export function Sidebar() {
             Audit
           </NavItem>
         )}
-        <Tooltip content="Usage & billing arrives in Phase 2" side="right">
-          <span className={styles.navDisabled}>
-            <NavItem disabled icon={<UsageIcon />}>
-              Usage
-            </NavItem>
-          </span>
-        </Tooltip>
         <NavItem href="/settings" active={pathname === '/settings'} icon={<SettingsIcon />}>
           Settings
         </NavItem>

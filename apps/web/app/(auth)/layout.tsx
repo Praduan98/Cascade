@@ -12,7 +12,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
         <ThemeButton />
       </div>
       <div className={styles.column}>
-        <Link href="/" className={styles.brand} aria-label="Cascade home">
+        <Link href="/sign-in" className={styles.brand} aria-label="Cascade home">
           <BrandGlyph size={30} />
           <span>Cascade</span>
         </Link>

@@ -5,7 +5,6 @@ import styles from './DropdownMenu.module.css'
 
 export const DropdownMenu = DM.Root
 export const DropdownMenuTrigger = DM.Trigger
-export const DropdownMenuGroup = DM.Group
 
 export const DropdownMenuContent = forwardRef<
   HTMLDivElement,

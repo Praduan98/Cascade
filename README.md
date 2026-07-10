@@ -17,9 +17,8 @@ pnpm dev          # http://localhost:3000
 ```
 
 Key routes:
-- `/` — landing · `/kitchen-sink` — component gallery
-- `/tables` → open a table → the live data grid · `/members` · `/audit` · `/settings`
-- `/grid-demo` — the grid seeded with **100,000 rows** (virtualization demo)
+- `/` → redirects into the app · `/sign-in` (offers demo accounts)
+- `/tables` → open a table → the live data grid (virtualized to 100k rows) · `/members` · `/audit` · `/settings`
 
 Sign-in offers **demo accounts** (Owner / Admin / Member / Viewer) to exercise the
 role model. Data persists to `localStorage`; clear it to reset to seed.

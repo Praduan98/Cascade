@@ -6,7 +6,6 @@ import styles from './Popover.module.css'
 export const Popover = PO.Root
 export const PopoverTrigger = PO.Trigger
 export const PopoverClose = PO.Close
-export const PopoverAnchor = PO.Anchor
 
 export const PopoverContent = forwardRef<
   HTMLDivElement,

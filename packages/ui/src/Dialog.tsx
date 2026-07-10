@@ -54,7 +54,4 @@ export function Dialog({
   )
 }
 
-// Low-level parts for custom compositions.
-export const DialogRoot = RD.Root
-export const DialogTrigger = RD.Trigger
 export const DialogClose = RD.Close

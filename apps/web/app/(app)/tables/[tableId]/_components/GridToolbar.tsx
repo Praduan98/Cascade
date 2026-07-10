@@ -1,14 +1,13 @@
 'use client'
 // The grid toolbar: table identity + live row count on the left; the view system
-// (saved-view switcher + Filter / Sort / Fields builders) and column + row
-// management on the right, then the disabled Phase-2 "Run" action. Mutation
-// actions are disabled for viewers; the underlying API also enforces this and
-// surfaces 403s as toasts from the callers.
+// (saved-view switcher + Filter / Sort / Fields builders), column + row
+// management, and CSV import/export on the right. Mutation actions are disabled
+// for viewers; the underlying API also enforces this and surfaces 403s as toasts.
 
 import Link from 'next/link'
 import { useState } from 'react'
 import type { Column, View } from '@cascade/core'
-import { Button, Pill, Tag, Tooltip, useToast } from '@cascade/ui'
+import { Button, Pill, Tag, useToast } from '@cascade/ui'
 import { ViewControls } from './views/ViewControls'
 import { ImportButton } from './csv/ImportButton'
 import { downloadCsv, exportFilename, exportViewToCsv, visibleColumnsForView } from './csv/csvExport'
@@ -58,13 +57,6 @@ function IconRows() {
     <svg className={styles.btnIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <rect x="3" y="4" width="18" height="16" rx="2" />
       <path d="M3 10h18M3 15h18" />
-    </svg>
-  )
-}
-function IconRun() {
-  return (
-    <svg className={styles.btnIcon} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d="M7 5l12 7-12 7Z" />
     </svg>
   )
 }
@@ -164,17 +156,6 @@ export function GridToolbar({
           <IconExport />
           {exporting ? 'Exporting…' : 'Export'}
         </Button>
-
-        <span className={styles.divider} />
-
-        <Tooltip content="Enrichment runs arrive in Phase 2.">
-          <span className={styles.runWrap}>
-            <Button variant="primary" size="sm" disabled>
-              <IconRun />
-              Run
-            </Button>
-          </span>
-        </Tooltip>
       </div>
     </div>
   )

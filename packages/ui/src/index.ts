@@ -10,14 +10,11 @@ export { Pill } from './Pill'
 export type { PillStatus } from './Pill'
 export { Tag } from './Tag'
 export type { TagTone } from './Tag'
-export { Chip } from './Chip'
-export type { ChipTone } from './Chip'
-export { Card, Panel } from './Surface'
-export { Kbd } from './Kbd'
+export { Card } from './Surface'
 
 // ---- Forms ----
 export { Field } from './Field'
-export { Input, Textarea } from './Input'
+export { Input } from './Input'
 export type { InputState } from './Input'
 export { Select } from './Select'
 export { Switch } from './Switch'
@@ -36,25 +33,22 @@ export { Avatar } from './Avatar'
 export { Member } from './Member'
 export { RoleBadge } from './RoleBadge'
 export type { Role } from './RoleBadge'
-export { ProvChip, ProvMono } from './ProvChip'
 
 // ---- Overlays (Radix-backed) ----
-export { Dialog, DialogRoot, DialogTrigger, DialogClose } from './Dialog'
+export { Dialog, DialogClose } from './Dialog'
 export {
   DropdownMenu,
   DropdownMenuTrigger,
-  DropdownMenuGroup,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from './DropdownMenu'
-export { Popover, PopoverTrigger, PopoverContent, PopoverClose, PopoverAnchor } from './Popover'
+export { Popover, PopoverTrigger, PopoverContent, PopoverClose } from './Popover'
 export { Tooltip, TooltipProvider } from './Tooltip'
 
 // ---- App shell ----
 export { Topbar } from './shell/Topbar'
-export { TopNavLink } from './shell/TopNavLink'
 export { AppShell } from './shell/AppShell'
 export { SideNav, NavGroup, NavItem } from './shell/SideNav'
 export { WorkspaceSwitcher } from './shell/WorkspaceSwitcher'
