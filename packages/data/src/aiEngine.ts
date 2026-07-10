@@ -17,6 +17,7 @@ import type {
   AiOutputField,
   CellValue,
   ColumnConfig,
+  ColumnType,
   EnrichmentRun,
 } from '@cascade/core'
 import {
@@ -62,8 +63,16 @@ export function normalizeResolvedPrompt(s: string): string {
   return s.trim().replace(/\s+/g, ' ')
 }
 
-export function buildAiCacheKey(modelKey: string, op: AiOperation, resolvedPrompt: string): string {
-  return `${modelKey}|${op}|${normalizeResolvedPrompt(resolvedPrompt)}`
+/** A stable fingerprint of the output schema, shared by the cache key and the
+ * generation seed so the two never drift. Two AI columns with the same model,
+ * operation and resolved prompt but DIFFERENT schemas must not collide in the
+ * cache (US-3.2) — they'd serve each other's structured payload. */
+export function schemaFingerprint(schema: AiOutputField[]): string {
+  return hashString(JSON.stringify(schema.map((f) => `${f.name}:${f.type}`))).toString(36)
+}
+
+export function buildAiCacheKey(modelKey: string, op: AiOperation, resolvedPrompt: string, schema: AiOutputField[] = []): string {
+  return `${modelKey}|${op}|${schemaFingerprint(schema)}|${normalizeResolvedPrompt(resolvedPrompt)}`
 }
 
 // ---------------------------------------------------------------------------
@@ -216,7 +225,7 @@ export class MockAiEngine extends OperationRunner<AiRunTarget, AiOutcome, AiEven
     }
 
     // 2) Cache lookup (free) unless the run forces a fresh generation.
-    const cacheKey = buildAiCacheKey(modelKey, op, resolvedPrompt)
+    const cacheKey = buildAiCacheKey(modelKey, op, resolvedPrompt, cfg.outputSchema)
     let gen: Exclude<AiGen, { empty: true }> | null = null
     let fromCache = false
     let charged = 0
@@ -250,7 +259,10 @@ export class MockAiEngine extends OperationRunner<AiRunTarget, AiOutcome, AiEven
         resultJson: { text: gen.text, structured: gen.structured, confidence: gen.confidence },
         cost: chargedUsd,
         fetchedAt: this.d.now(),
-        expiresAt: new Date(Date.parse(this.d.now()) + Math.max(0, cfg.cacheTtlDays) * 86400_000).toISOString(),
+        // Clamp the TTL to a finite, sane range so a malformed cacheTtlDays
+        // (NaN / Infinity / absurdly large) can't produce an Invalid Date whose
+        // toISOString() throws AFTER the cell was charged (orphaning credits).
+        expiresAt: new Date(Date.parse(this.d.now()) + safeTtlDays(cfg.cacheTtlDays) * 86400_000).toISOString(),
       })
     }
 
@@ -258,18 +270,23 @@ export class MockAiEngine extends OperationRunner<AiRunTarget, AiOutcome, AiEven
     const writes: AiWrite[] = []
     const fieldEmpties: AiFieldEmpty[] = []
 
-    // Anchor primary text.
+    // Anchor primary text — only written if it validates against the anchor's
+    // type. Never write the raw model text into a typed cell (US-3.2 "not written
+    // raw"); a non-validating result leaves the prior value.
     const anchorCol = this.d.store.data.columns.find((c) => c.id === cfg.columnId)
     if (anchorCol && gen.text) {
       const res = columnTypeRegistry[anchorCol.type].validate(gen.text, anchorCol.config)
-      const value = res.ok ? res.value : gen.text
-      if (!columnTypeRegistry[anchorCol.type].isEmpty(value)) writes.push({ columnId: cfg.columnId, value, fieldName: null })
+      if (res.ok && !columnTypeRegistry[anchorCol.type].isEmpty(res.value)) {
+        writes.push({ columnId: cfg.columnId, value: res.value, fieldName: null })
+      }
     }
 
     // Structured output → destination columns (US-3.2).
     if (cfg.outputSchema.length > 0) {
       const obj = repairStructured(gen.structured) ?? gen.structured
-      const sv = validateStructured(obj, cfg.outputSchema, (f) => this.destColConfig(cfg, f))
+      // Coerce each field against the DESTINATION column's actual type + config,
+      // not the schema field's declared type — they can diverge (US-3.2).
+      const sv = validateStructured(obj, cfg.outputSchema, (f) => this.destColConfig(cfg, f), (f) => this.destColType(cfg, f))
       for (const field of cfg.outputSchema) {
         const destId = cfg.outputMapping[field.name]
         if (!destId) continue
@@ -336,6 +353,15 @@ export class MockAiEngine extends OperationRunner<AiRunTarget, AiOutcome, AiEven
     const destId = cfg.outputMapping[field.name]
     const dest = destId ? this.d.store.data.columns.find((c) => c.id === destId) : undefined
     return dest?.config ?? defaultConfigFor(field.type)
+  }
+
+  /** The destination column's type (falls back to the field's declared type when
+   * the field has no mapped destination). Keeps structured coercion in sync with
+   * where the value actually lands. */
+  private destColType(cfg: AiColumnConfig, field: AiOutputField): ColumnType {
+    const destId = cfg.outputMapping[field.name]
+    const dest = destId ? this.d.store.data.columns.find((c) => c.id === destId) : undefined
+    return dest?.type ?? field.type
   }
 
   // ---- interim + terminal persistence ------------------------------------
@@ -439,10 +465,14 @@ function pick<T>(rng: () => number, arr: readonly T[]): T {
   return arr[Math.floor(rng() * arr.length)] as T
 }
 
+/** Clamp a config's cache TTL to a finite, sane day range (0..3650). */
+function safeTtlDays(days: number): number {
+  return Math.min(3650, Number.isFinite(days) ? Math.max(0, days) : 30)
+}
+
 function generateAi(model: AiModelInfo, op: AiOperation, resolvedPrompt: string, schema: AiOutputField[]): AiGen {
   const normalized = normalizeResolvedPrompt(resolvedPrompt)
-  const schemaHash = hashString(JSON.stringify(schema.map((f) => `${f.name}:${f.type}`)))
-  const rng = mulberry32(hashString(`${model.key}|${op}|${normalized}|${schemaHash}`))
+  const rng = mulberry32(hashString(`${model.key}|${op}|${normalized}|${schemaFingerprint(schema)}`))
   if (rng() < (EMPTY_RATE[op] ?? 0.05)) return { empty: true }
 
   let text: string

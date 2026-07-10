@@ -49,9 +49,13 @@ export interface ResolveResult {
   missing: string[]
 }
 
-/** A value that reads as "empty" — the same predicate the engine uses for inputs. */
+/** A value that reads as "empty" — the same predicate the engine uses for inputs.
+ * Must match @cascade/data isEmptyInput exactly (incl. trimming whitespace-only
+ * strings) so the pre-run estimate and the actual run agree on which rows are
+ * billable — otherwise a whitespace-only reference is counted free by the
+ * estimate but charged by the run, bypassing the per-run cap / budget. */
 function isBlankValue(v: CellValue | undefined): boolean {
-  return v == null || v === '' || (Array.isArray(v) && v.length === 0)
+  return v == null || (typeof v === 'string' && v.trim() === '') || (Array.isArray(v) && v.length === 0)
 }
 
 /** Canonicalise a cell value for prompt substitution. */

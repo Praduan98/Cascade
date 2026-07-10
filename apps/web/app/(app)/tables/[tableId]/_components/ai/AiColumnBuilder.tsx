@@ -93,6 +93,7 @@ export function AiColumnBuilder({ open, onOpenChange, tableId, columns, workspac
       setCacheTtlDays(cfg.cacheTtlDays)
       setAutoRun(cfg.autoRun)
     } else if (!column) {
+      setModelId('') // clear the retained model so the default-model effect re-applies the sensible default (US-3.1)
       setOperation('summarize')
       setPrompt('')
       setStructured(false)

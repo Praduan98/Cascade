@@ -31,9 +31,10 @@ import type {
   Workspace,
   WorkspaceCredit,
 } from '@cascade/core'
-import { columnTypeRegistry, emptyFilter } from '@cascade/core'
+import { columnTypeRegistry, emptyFilter, parseTemplate, resolveTemplate } from '@cascade/core'
 import type { StoreData } from './store'
 import { emptyStoreData } from './store'
+import { buildAiCacheKey } from './aiEngine'
 
 // ---------------------------------------------------------------------------
 // Deterministic PRNG (mulberry32) so seeds and perf rows are reproducible.
@@ -607,21 +608,25 @@ const AI_PITCHES = [
   'Purpose-built CRM companion that automates the busywork.',
 ]
 
-// A warm cache entry (cacheStats + a plausible free hit for the demo).
-const aiCache: AiCache[] = [
-  { id: 'aicache_1', cacheKey: 'claude-haiku-4-5|summarize|Write a one-line pitch for Acme Analytics (acmeanalytics.com), a company with 240 employees.', modelKey: 'claude-haiku-4-5', operation: 'summarize', resultJson: { text: AI_PITCHES[0], structured: {}, confidence: 0.9 }, cost: 0.002, fetchedAt: '2026-07-06T09:00:00.000Z', expiresAt: '2027-07-01T00:00:00.000Z' },
-]
-
 /**
  * Overlay AI status onto the first 10 "AI: One-line pitch" cells so the grid
- * demonstrates the status system on first load, with matching provenance.
+ * demonstrates the status system on first load, with matching provenance. The
+ * pitch prompt is resolved per row against the real Company/Domain/Employees
+ * cells so provenance and the warm-cache key match a live run exactly.
  */
-function applyAiSeed(): { pitchCells: Cell[]; results: AiCellResult[] } {
+function applyAiSeed(coCells: Cell[]): { pitchCells: Cell[]; results: AiCellResult[]; aiCache: AiCache[] } {
   const successIdx = new Set([0, 1, 3, 4, 6, 8])
   const cachedIdx = new Set([2, 7])
   const pitchCells: Cell[] = []
   const results: AiCellResult[] = []
   let pitchI = 0
+  const coValue = new Map(coCells.map((c) => [`${c.recordId}|${c.columnId}`, c.value] as const))
+  const refToCol: Record<string, string> = { company: 'col_co_company', domain: 'col_co_domain', employees: 'col_co_employees' }
+  const resolvePitch = (rid: string): string =>
+    resolveTemplate(parseTemplate(pitchConfig.promptTemplate), (name) => {
+      const colId = refToCol[name.trim().toLowerCase()]
+      return colId ? coValue.get(`${rid}|${colId}`) : undefined
+    }).text
   for (let i = 0; i < 10; i++) {
     const rid = `rec_co_${String(i).padStart(3, '0')}`
     let status: EnrichmentCellStatus
@@ -667,7 +672,7 @@ function applyAiSeed(): { pitchCells: Cell[]; results: AiCellResult[] } {
       operation: 'summarize',
       status,
       valueJson: value,
-      promptResolved: 'Write a one-line pitch for this company from its fields.',
+      promptResolved: resolvePitch(rid),
       confidence,
       credits,
       providerCostUsd: fromCache ? 0 : credits * 0.002,
@@ -676,7 +681,21 @@ function applyAiSeed(): { pitchCells: Cell[]; results: AiCellResult[] } {
       fetchedAt: AI_STAMP,
     })
   }
-  return { pitchCells, results }
+  // A warm cache entry keyed exactly as a live re-run of row 0 (Acme) would key
+  // it, so the first re-run is a real free cache hit (US-3.15 / caching demo).
+  const aiCache: AiCache[] = [
+    {
+      id: 'aicache_1',
+      cacheKey: buildAiCacheKey('claude-haiku-4-5', 'summarize', resolvePitch('rec_co_000'), pitchConfig.outputSchema),
+      modelKey: 'claude-haiku-4-5',
+      operation: 'summarize',
+      resultJson: { text: AI_PITCHES[0], structured: {}, confidence: 0.9 },
+      cost: 0.002,
+      fetchedAt: '2026-07-06T09:00:00.000Z',
+      expiresAt: '2027-07-01T00:00:00.000Z',
+    },
+  ]
+  return { pitchCells, results, aiCache }
 }
 
 // ---------------------------------------------------------------------------
@@ -734,7 +753,7 @@ export function buildSeed(): StoreData {
   const { deliverableCells, results } = applyEnrichmentSeed(cells)
   cells.push(...deliverableCells)
   // Overlay AI status onto the Companies "AI: One-line pitch" column.
-  const { pitchCells, results: aiResults } = applyAiSeed()
+  const { pitchCells, results: aiResults, aiCache } = applyAiSeed(co.cells)
   cells.push(...pitchCells)
 
   // A default view per table (undeletable, no filters/sorts).

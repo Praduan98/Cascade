@@ -87,7 +87,11 @@ function emptyString(value: CellValue): boolean {
 /** Multi-select CSV / display delimiter (documented, consistent). */
 const MULTI_DELIM = ', '
 
-function findOption(options: SelectOption[], token: string): SelectOption | undefined {
+function findOption(options: SelectOption[] | undefined, token: string): SelectOption | undefined {
+  // Guard a missing `options` (a config-shape mismatch, e.g. a select validator
+  // reached with a non-select config) so it degrades to "no match" instead of
+  // throwing and failing the whole cell.
+  if (!options) return undefined
   const t = token.trim()
   if (t === '') return undefined
   const lower = t.toLowerCase()

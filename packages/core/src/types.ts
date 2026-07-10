@@ -581,6 +581,9 @@ export interface AiModelInfo {
 /** The AI task kind — drives believable mock output + the ledger op segment. */
 export type AiOperation = 'summarize' | 'classify' | 'extract' | 'generate'
 
+/** Runtime list of the valid AI operations (for config validation). */
+export const AI_OPERATIONS: readonly AiOperation[] = ['summarize', 'classify', 'extract', 'generate']
+
 /** One structured-output field (US-3.2); coerced into a destination column by type. */
 export interface AiOutputField {
   name: string

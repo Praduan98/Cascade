@@ -265,6 +265,17 @@ export default function TableSurfacePage() {
   }
   function requestEdit(col: Column) {
     setManageOpen(false)
+    // An AI column is reconfigured through its own builder (prompt / model /
+    // schema), not the rename/retype dialog (US-3.1/3.2 — the config must be
+    // re-editable after creation).
+    if (aiColumnIds.includes(col.id)) {
+      setTimeout(() => {
+        setAiBuilderColumn(col)
+        setAiSeedName('')
+        setAiBuilderOpen(true)
+      }, 0)
+      return
+    }
     setTimeout(() => setEditTarget(col), 0)
   }
   function requestDelete(col: Column) {

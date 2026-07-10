@@ -37,6 +37,7 @@ import type {
 } from '@cascade/core'
 import type { FilterGroup, SortSpec } from '@cascade/core'
 import {
+  AI_OPERATIONS,
   canManageBilling,
   canManageMembers,
   canManageProviders,
@@ -1556,6 +1557,10 @@ export class MockApi implements CascadeApi {
     if (!prompt) throw new ValidationError('Write a prompt for the AI column')
     const modelInfo = resolveAiModel(input.model)
     if (!modelInfo) throw new ValidationError('Choose a valid model')
+    if (!AI_OPERATIONS.includes(input.operation)) throw new ValidationError('Choose a valid AI operation')
+    if (input.cacheTtlDays !== undefined && (!Number.isFinite(input.cacheTtlDays) || input.cacheTtlDays < 0)) {
+      throw new ValidationError('Cache freshness must be a non-negative number of days')
+    }
     const schema = input.outputSchema ?? []
     const mapping = input.outputMapping ?? {}
     const colIds = new Set(this.store.data.columns.filter((c) => c.tableId === table.id).map((c) => c.id))
@@ -1565,6 +1570,9 @@ export class MockApi implements CascadeApi {
       if (!name) throw new ValidationError('Each output field needs a name')
       if (seen.has(name.toLowerCase())) throw new ValidationError(`Duplicate output field “${name}”`)
       seen.add(name.toLowerCase())
+      // An unknown field type would index columnTypeRegistry[undefined] and crash
+      // the run for every row — reject it at save (US-3.2).
+      if (!columnTypeRegistry[field.type]) throw new ValidationError(`Output field “${name}” has an unknown type`)
       const destId = mapping[field.name]
       if (destId && !colIds.has(destId)) throw new ValidationError(`Field “${name}” maps to a column that isn’t in this table`)
     }
@@ -1603,7 +1611,7 @@ export class MockApi implements CascadeApi {
       }
       if (!forceFresh) {
         const resolved = this.aiEngine.resolvedPromptFor(recordId, config)
-        const key = buildAiCacheKey(modelInfo.key, config.operation, resolved)
+        const key = buildAiCacheKey(modelInfo.key, config.operation, resolved, config.outputSchema)
         const cached = this.store.getAiCacheEntry(key)
         if (cached && Date.parse(cached.expiresAt) > Date.now()) {
           skippedCached += 1
@@ -1675,9 +1683,12 @@ export class MockApi implements CascadeApi {
     if (!this.store.data.session) return
     this.aiEngine.autoRun(table.id, recordIds, (targets) => {
       const wc = this.store.getWorkspaceCredit(table.workspaceId)
-      if (!wc || wc.balance <= 0) return null
+      if (!wc) return null
       const cols = [...new Set(targets.map((t) => t.anchorColumnId))]
       const est = this.computeAiEstimate(table.id, { mode: 'selected', recordIds, columnIds: cols }, false, true)
+      // A billable auto-run needs headroom; a fully non-billable (all-cached) one
+      // still proceeds even at an exhausted balance (US-2.11 "non-billable continues").
+      if (est.maxCredits > 0 && wc.balance <= 0) return null
       if (est.maxCredits > wc.perRunCap) return null
       return this.buildAiRun(table, { mode: 'selected', recordIds, columnIds: cols }, false, targets.length, 'Auto-run')
     })
@@ -1696,14 +1707,17 @@ export class MockApi implements CascadeApi {
     configs: {
       get: async (columnId: string) => {
         await this.delay()
-        this.columnScope(columnId)
+        const { role } = this.columnScope(columnId)
         const cfg = this.store.getAiConfig(columnId)
-        return cfg ? snap(cfg) : null
+        if (!cfg) return null
+        // Provider cost / margin is Admin/Owner-only (US-3.15 / US-2.12).
+        return canViewMargin(role) ? snap(cfg) : { ...snap(cfg), providerCostUsd: 0 }
       },
       list: async (tableId: string) => {
         await this.delay()
-        this.tableScope(tableId)
-        return snapList(this.store.getAiConfigsForTable(tableId))
+        const { role } = this.tableScope(tableId)
+        const canMargin = canViewMargin(role)
+        return this.store.getAiConfigsForTable(tableId).map((c) => (canMargin ? snap(c) : { ...snap(c), providerCostUsd: 0 }))
       },
       upsert: async (input: UpsertAiConfigInput) => {
         await this.delay()

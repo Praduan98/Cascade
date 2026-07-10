@@ -244,4 +244,29 @@ export abstract class OperationRunner<TTarget extends OpTarget, TOutcome extends
     run.providerCostUsd += providerCostUsd
     return true
   }
+
+  /**
+   * Reverse credits already charged for a cell that is being abandoned (paused
+   * mid-resolve because a later charge would overdraw). Writes a compensating
+   * positive ledger entry (append-only preserved) and restores the balance and
+   * run totals, so run.creditsConsumed === -Σ(ledger deltas) stays intact and the
+   * re-queued cell — whose earlier steps are now cached — re-runs for free.
+   */
+  protected refundCharges(run: EnrichmentRun, credits: number, providerCostUsd: number): void {
+    if (credits <= 0) return
+    const wc = this.d.store.getWorkspaceCredit(run.workspaceId)
+    if (!wc) return
+    wc.balance += credits
+    run.creditsConsumed -= credits
+    run.providerCostUsd -= providerCostUsd
+    this.d.store.data.creditLedger.push({
+      id: newId(),
+      workspaceId: run.workspaceId,
+      delta: credits,
+      reason: 'refund:paused-cell',
+      runId: run.id,
+      balanceAfter: wc.balance,
+      createdAt: this.d.now(),
+    })
+  }
 }

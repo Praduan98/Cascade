@@ -332,6 +332,10 @@ export class MockEnrichmentEngine extends OperationRunner<RunTarget, WalkOutcome
         }
         // A real provider returned data — charge atomically before accepting.
         if (!this.tryCharge(run, step.credits, effectiveCostUsd, `enrich:${provider.key}:${step.operation}`)) {
+          // Overdraw: this cell is paused and re-queued. Refund everything already
+          // charged for it (accepted + sunk) so the run reconciles with the ledger;
+          // the re-run hits the now-warm cache for free.
+          this.refundCharges(run, (accepted?.credits ?? 0) + sunkCredits, (accepted?.providerCostUsd ?? 0) + sunkUsd)
           return PAUSE
         }
         charged = step.credits
