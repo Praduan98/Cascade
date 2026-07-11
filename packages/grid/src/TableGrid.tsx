@@ -718,12 +718,13 @@ export const TableGrid = forwardRef<TableGridHandle, TableGridProps>(function Ta
 
   // Coarse refresh: drop the cache and re-read after a run terminal / config
   // change (live per-cell transitions use the imperative applyEnrichment).
-  const firstRefresh = useRef(true)
+  // Guard on the last-seen token value (not a "first run" flag) so React
+  // StrictMode's double-invoked mount effect can't fire a spurious reload — a
+  // reload during the initial load races the mount's count and blanks the grid.
+  const lastRefresh = useRef(refreshToken)
   useEffect(() => {
-    if (firstRefresh.current) {
-      firstRefresh.current = false
-      return
-    }
+    if (lastRefresh.current === refreshToken) return
+    lastRefresh.current = refreshToken
     data.reload()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshToken])

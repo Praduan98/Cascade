@@ -259,6 +259,12 @@ export function useTableData(api: CascadeApi, tableId: string, viewId?: string):
         if (gen !== genRef.current) return
         rowCountRef.current = c
         setRowCount(c)
+        // `ready` is the "initial count resolved" gate the grid renders behind. A
+        // reload also resolves a count, so it must (re)assert readiness — otherwise
+        // a reload that races ahead of the mount's count (e.g. React StrictMode's
+        // double-invoked effects in dev) orphans that count and leaves `ready`
+        // stuck false, blanking the grid. Idempotent when already ready.
+        setReady(true)
         bump()
       },
       () => {},

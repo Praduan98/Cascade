@@ -112,4 +112,21 @@ describe('useTableData', () => {
 
     await waitFor(() => expect(result.current.rowCount).toBe(61))
   })
+
+  // Regression: a reload firing *before* the initial mount count resolves — the
+  // window React StrictMode's double-invoked effects opened in dev — bumps the
+  // generation counter and orphans that in-flight count. `ready` must still flip
+  // (reload asserts readiness on success); otherwise the grid canvas never
+  // mounts and the whole table renders blank.
+  it('flips ready even when reload races ahead of the initial count', async () => {
+    const slow = new MockApi({ latency: true, storageKey: 'test:dp-race' })
+    const { result } = renderHook(() => useTableData(slow, T.companies))
+
+    // The mount count is still in flight here; simulate the racing reload.
+    expect(result.current.ready).toBe(false)
+    act(() => result.current.reload())
+
+    await waitFor(() => expect(result.current.ready).toBe(true))
+    expect(result.current.rowCount).toBe(60)
+  })
 })
