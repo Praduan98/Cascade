@@ -1,13 +1,13 @@
 /* Ported from design-system.src.html — .meter-card / .meter-* / .breakdown / .bd-row */
 .meterCard {
   display: grid;
-  gap: 16px;
+  gap: var(--space-16);
 }
 .meterTop {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-12);
   flex-wrap: wrap;
 }
 .label {
@@ -42,7 +42,7 @@
 .renewsLine {
   font-size: var(--fs-sm);
   color: var(--text-2);
-  margin-top: 4px;
+  margin-top: var(--space-4);
 }
 .money {
   font-family: var(--font-mono);
@@ -64,12 +64,12 @@
 .meterLegend {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 18px;
+  gap: var(--space-8) var(--space-20);
 }
 .meterLegend span {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: var(--space-8);
   font-size: var(--fs-xs);
   color: var(--text-2);
 }
@@ -83,15 +83,15 @@
 /* Consumption breakdown */
 .breakdown {
   display: grid;
-  gap: 8px;
+  gap: var(--space-8);
 }
 .bdRow {
   display: grid;
   grid-template-columns: 1fr auto auto;
-  gap: 12px;
+  gap: var(--space-12);
   align-items: center;
   font-size: var(--fs-sm);
-  padding: 8px 0;
+  padding: var(--space-8) 0;
   border-top: 1px solid var(--hairline);
 }
 .bdRow:first-child {

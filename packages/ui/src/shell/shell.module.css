@@ -8,7 +8,7 @@
   height: 58px;
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: var(--space-20);
   padding-inline: clamp(16px, 4vw, 40px);
   background: color-mix(in srgb, var(--ground) 82%, transparent);
   backdrop-filter: saturate(1.4) blur(14px);
@@ -18,7 +18,7 @@
 .brand {
   display: flex;
   align-items: center;
-  gap: 11px;
+  gap: var(--space-12);
   font-family: var(--font-display);
   font-weight: 800;
   letter-spacing: -0.03em;
@@ -46,7 +46,7 @@
 }
 .topnav {
   display: flex;
-  gap: 3px;
+  gap: var(--space-4);
 }
 .topnav a {
   font-size: var(--fs-sm);
@@ -92,13 +92,13 @@
 .sh-side {
   background: var(--surface-2);
   border-right: 1px solid var(--hairline);
-  padding: 14px 10px;
+  padding: var(--space-16) var(--space-10);
 }
 .sh-main {
-  padding: 16px;
+  padding: var(--space-16);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-12);
   min-width: 0;
 }
 
@@ -106,12 +106,12 @@
 .sh-ws {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
   width: 100%;
-  padding: 6px 8px 12px;
+  padding: var(--space-6) var(--space-8) var(--space-12);
   border: 0;
   border-bottom: 1px solid var(--hairline);
-  margin-bottom: 10px;
+  margin-bottom: var(--space-10);
   background: transparent;
   color: var(--text);
   cursor: pointer;
@@ -150,7 +150,7 @@
 .sh-nav button {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: var(--space-8);
   padding: 0.5em 0.6em;
   border-radius: var(--r-sm);
   font-size: var(--fs-sm);
@@ -204,7 +204,7 @@
   color: var(--text-3);
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  margin: 14px 8px 6px;
+  margin: var(--space-16) var(--space-8) var(--space-6);
 }
 .sh-nav .grp:first-child {
   margin-top: 0;

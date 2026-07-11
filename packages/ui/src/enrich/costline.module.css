@@ -3,8 +3,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 14px;
-  margin: 12px 0;
+  padding: var(--space-12) var(--space-16);
+  margin: var(--space-12) 0;
   border-radius: var(--r-md);
   background: var(--gold-soft);
   border: 1px solid var(--gold-line);

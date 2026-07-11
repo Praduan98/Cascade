@@ -2,8 +2,8 @@
 .member {
   display: flex;
   align-items: center;
-  gap: 11px;
-  padding: 10px 4px;
+  gap: var(--space-12);
+  padding: var(--space-10) var(--space-4);
   border-bottom: 1px solid var(--hairline);
 }
 .member.last {
@@ -18,7 +18,7 @@
   font-size: var(--fs-sm);
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: var(--space-8);
 }
 .who .em {
   font-size: var(--fs-2xs);

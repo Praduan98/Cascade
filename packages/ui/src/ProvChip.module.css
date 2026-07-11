@@ -2,7 +2,7 @@
 .prov-chip {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
   padding: 0.5em 0.75em;
   border-radius: var(--r-md);
   background: var(--surface-2);

@@ -1,7 +1,7 @@
 /* Per-cell provenance — the content of the enrichment cell popover. */
 .card {
   display: grid;
-  gap: 10px;
+  gap: var(--space-10);
   min-width: 240px;
   max-width: 300px;
 }
@@ -9,7 +9,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: var(--space-10);
 }
 .value {
   font-family: var(--font-mono);
@@ -20,7 +20,7 @@
 .row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
   font-size: var(--fs-xs);
   color: var(--text-2);
   flex-wrap: wrap;
@@ -37,7 +37,7 @@
 }
 .conf {
   display: grid;
-  gap: 4px;
+  gap: var(--space-4);
 }
 .confTrack {
   height: 4px;
@@ -68,7 +68,7 @@
   background: var(--surface-2);
   border: 1px solid var(--hairline);
   border-radius: var(--r-sm);
-  padding: 7px 9px;
+  padding: var(--space-8) var(--space-8);
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
@@ -76,7 +76,7 @@
 }
 .sources {
   display: grid;
-  gap: 5px;
+  gap: var(--space-4);
 }
 .sourceRow {
   font-size: var(--fs-2xs);
@@ -91,12 +91,12 @@
 }
 .fields {
   display: grid;
-  gap: 6px;
+  gap: var(--space-6);
 }
 .fieldRow {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
   font-size: var(--fs-xs);
 }
 .fieldDot {

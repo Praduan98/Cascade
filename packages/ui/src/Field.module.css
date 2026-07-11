@@ -2,7 +2,7 @@
 .field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-6);
   width: 100%;
 }
 .field label {
@@ -11,7 +11,7 @@
   color: var(--text-2);
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-6);
 }
 .field label .ty {
   font-family: var(--font-mono);
