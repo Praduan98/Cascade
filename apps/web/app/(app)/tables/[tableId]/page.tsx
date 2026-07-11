@@ -75,6 +75,7 @@ export default function TableSurfacePage() {
   const [runOpen, setRunOpen] = useState(false)
   const [activeRunId, setActiveRunId] = useState<string | null>(null)
   const [refreshToken, setRefreshToken] = useState(0)
+  const [columnsToken, setColumnsToken] = useState(0)
   const [selection, setSelection] = useState<{ recordIds: string[]; count: number }>({ recordIds: [], count: 0 })
   const [provTarget, setProvTarget] = useState<ProvenanceTarget | null>(null)
 
@@ -345,34 +346,40 @@ export default function TableSurfacePage() {
   function onAiSaved() {
     void qc.invalidateQueries({ queryKey: ['ai', 'configs', tableId] })
     void qc.invalidateQueries({ queryKey: ['columns', tableId] })
-    remountGrid()
+    refreshColumns()
   }
 
   function onAgentSaved() {
     void qc.invalidateQueries({ queryKey: ['agent', 'configs', tableId] })
     void qc.invalidateQueries({ queryKey: ['columns', tableId] })
-    remountGrid()
+    refreshColumns()
   }
   function onHttpSaved() {
     void qc.invalidateQueries({ queryKey: ['http', 'configs', tableId] })
     void qc.invalidateQueries({ queryKey: ['columns', tableId] })
-    remountGrid()
+    refreshColumns()
   }
   function onFormulaSaved() {
     void qc.invalidateQueries({ queryKey: ['formula', 'configs', tableId] })
     void qc.invalidateQueries({ queryKey: ['columns', tableId] })
-    remountGrid()
+    refreshColumns()
   }
 
   function remountGrid() {
     setGridKey((k) => k + 1)
   }
+  // Column structure changed (add/edit/delete/reorder, smart-column or waterfall
+  // save): re-read columns + reload rows in place — no blank remount.
+  function refreshColumns() {
+    setColumnsToken((t) => t + 1)
+    setRefreshToken((t) => t + 1)
+  }
   function onColumnsChanged() {
-    remountGrid()
+    refreshColumns()
   }
   function onWaterfallSaved() {
     void qc.invalidateQueries({ queryKey: ['enrichment', 'configs', tableId] })
-    remountGrid()
+    refreshColumns()
   }
   function onRowsDeleted() {
     void qc.invalidateQueries({ queryKey: ['rowCount', tableId] })
@@ -388,7 +395,7 @@ export default function TableSurfacePage() {
       const name = deleteTarget?.id === columnId ? deleteTarget?.name : undefined
       toast(name ? `Deleted column “${name}”` : 'Column deleted', { variant: 'success' })
       setDeleteTarget(null)
-      remountGrid()
+      refreshColumns()
     },
     onError: (err) => toast(errorMessage(err, 'Could not delete column'), { variant: 'error' }),
   })
@@ -537,6 +544,7 @@ export default function TableSurfacePage() {
               httpColumnIds={httpColumnIds}
               formulaColumnIds={formulaColumnIds}
               refreshToken={refreshToken}
+              columnsToken={columnsToken}
               onReady={(h) => {
                 gridHandleRef.current = h
               }}

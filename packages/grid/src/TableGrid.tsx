@@ -37,6 +37,7 @@ import type { CascadeApi, CellEdit } from '@cascade/data'
 import type { AgentCellMeta, AiCellMeta, CellValue, Column, EnrichmentCellMeta, HttpCellMeta } from '@cascade/core'
 import { readAgent, readAi, readEnrichment, readHttp, toClipboard, validateValue } from '@cascade/core'
 import { useGlideTheme } from './useGlideTheme'
+import { TableGridSkeleton } from './TableGridSkeleton'
 import { useTableData } from './dataProvider'
 import { cascadeCellRenderers, makeCell, makeAgentCell, makeAiCell, makeEnrichCell, makeFormulaCell, makeHttpCell, makeStatusCell, rawFromCell } from './cells'
 import type { CascadeCell } from './cells'
@@ -113,6 +114,9 @@ export interface TableGridProps {
   onHttpCellClick?: (ref: { recordId: string; columnId: string }, bounds: CellRect) => void
   /** Bump to drop the cache and re-read (after a run terminal, config change). */
   refreshToken?: number
+  /** Bump to re-read the column list in place — after add/edit/delete/reorder or a
+   *  smart-column/enrichment config save — so the grid updates without remounting. */
+  columnsToken?: number
   /**
    * Surfaces the imperative handle to the parent. `next/dynamic` (TableGridDynamic)
    * cannot forward refs, so consumers that need `applyEnrichment` for live per-cell
@@ -135,7 +139,7 @@ function isEditingText(): boolean {
 }
 
 export const TableGrid = forwardRef<TableGridHandle, TableGridProps>(function TableGrid(
-  { tableId, viewId, api: apiProp, readOnly = false, enrichmentColumnIds, aiColumnIds, agentColumnIds, httpColumnIds, formulaColumnIds, onSelectionChange, onEnrichmentCellClick, onAiCellClick, onAgentCellClick, onHttpCellClick, refreshToken, onReady, onHistoryChange, className },
+  { tableId, viewId, api: apiProp, readOnly = false, enrichmentColumnIds, aiColumnIds, agentColumnIds, httpColumnIds, formulaColumnIds, onSelectionChange, onEnrichmentCellClick, onAiCellClick, onAgentCellClick, onHttpCellClick, refreshToken, columnsToken, onReady, onHistoryChange, className },
   ref,
 ) {
   const api = useMemo(() => apiProp ?? getApi(), [apiProp])
@@ -174,7 +178,8 @@ export const TableGrid = forwardRef<TableGridHandle, TableGridProps>(function Ta
     return () => {
       cancelled = true
     }
-  }, [api, tableId])
+    // columnsToken re-reads the list in place after a structural column change.
+  }, [api, tableId, columnsToken])
 
   const data = useTableData(api, tableId, viewId)
 
@@ -757,6 +762,7 @@ export const TableGrid = forwardRef<TableGridHandle, TableGridProps>(function Ta
             redoLabel={history.state.redoLabel}
           />
         )}
+        {!ready && <TableGridSkeleton />}
         {ready && (
           <DataEditor
             ref={editorRef}
