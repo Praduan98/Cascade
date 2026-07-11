@@ -145,6 +145,7 @@ export default function PlatformWorkspacesPage() {
       <Dialog
         open={selected != null}
         onOpenChange={(o) => { if (!o) setOpenId(null) }}
+        size="lg"
         title={selected?.workspace.name ?? ''}
         description={selected ? `${selected.ownerName} · ${selected.ownerEmail}` : undefined}
       >

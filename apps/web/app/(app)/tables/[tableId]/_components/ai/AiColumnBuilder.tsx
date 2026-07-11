@@ -186,6 +186,7 @@ export function AiColumnBuilder({ open, onOpenChange, tableId, columns, workspac
     <Dialog
       open={open}
       onOpenChange={onOpenChange}
+      size="lg"
       title="AI column"
       description="Write a prompt that references other columns. It runs per row on the shared status machine — cached and missing-input rows are free."
       footer={

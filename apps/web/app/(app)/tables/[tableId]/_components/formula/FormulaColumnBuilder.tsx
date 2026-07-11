@@ -100,6 +100,7 @@ export function FormulaColumnBuilder({ open, onOpenChange, tableId, columns, col
     <Dialog
       open={open}
       onOpenChange={onOpenChange}
+      size="lg"
       title="Formula column"
       description="Compute a value from other columns. It recomputes automatically when a referenced cell changes — no credits, no runs."
       footer={

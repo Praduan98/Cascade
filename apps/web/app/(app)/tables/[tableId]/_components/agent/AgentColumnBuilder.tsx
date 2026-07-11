@@ -181,6 +181,7 @@ export function AgentColumnBuilder({ open, onOpenChange, tableId, columns, works
     <Dialog
       open={open}
       onOpenChange={onOpenChange}
+      size="lg"
       title="Web-research agent column"
       description="Describe what to research per row. The agent browses up to the page cap, cites its sources, and runs on the shared status machine — cached and missing-input rows are free."
       footer={

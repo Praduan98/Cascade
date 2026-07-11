@@ -3,6 +3,8 @@ import * as RD from '@radix-ui/react-dialog'
 import type { ReactNode } from 'react'
 import styles from './Dialog.module.css'
 
+export type DialogSize = 'sm' | 'md' | 'lg' | 'xl'
+
 interface DialogProps {
   open?: boolean
   defaultOpen?: boolean
@@ -18,7 +20,18 @@ interface DialogProps {
   ariaLabel?: string
   /** Hide the default top-right close (✕) affordance. */
   hideClose?: boolean
+  /** Width tier — `md` (440px) default; `lg` (620px) / `xl` (740px) for config-heavy forms. */
+  size?: DialogSize
   className?: string
+}
+
+// Maps the size tier to its width class (md uses the base .content width).
+// Values may be undefined per the CSS-module typing; the className filters them.
+const SIZE_CLASS: Record<DialogSize, string | undefined> = {
+  sm: styles.sizeSm,
+  md: '',
+  lg: styles.sizeLg,
+  xl: styles.sizeXl,
 }
 
 // Radix Dialog styled from design-system.src.html `.modal-demo`.
@@ -33,6 +46,7 @@ export function Dialog({
   children,
   ariaLabel = 'Dialog',
   hideClose = false,
+  size = 'md',
   className = '',
 }: DialogProps) {
   return (
@@ -40,7 +54,7 @@ export function Dialog({
       {trigger != null && <RD.Trigger asChild>{trigger}</RD.Trigger>}
       <RD.Portal>
         <RD.Overlay className={styles.overlay} />
-        <RD.Content className={[styles.content, className].filter(Boolean).join(' ')}>
+        <RD.Content className={[styles.content, SIZE_CLASS[size], className].filter(Boolean).join(' ')}>
           {!hideClose && (
             <RD.Close className={styles.close} aria-label="Close">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">

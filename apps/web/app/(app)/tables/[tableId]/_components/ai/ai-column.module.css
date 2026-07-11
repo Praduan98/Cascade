@@ -6,7 +6,8 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-16);
-  min-width: min(600px, 82vw);
+  /* Fluid — the enclosing Dialog's size tier (lg) controls the width. */
+  width: 100%;
 }
 .builderHead {
   display: flex;

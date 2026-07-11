@@ -201,6 +201,7 @@ export function HttpColumnBuilder({ open, onOpenChange, tableId, columns, worksp
     <Dialog
       open={open}
       onOpenChange={onOpenChange}
+      size="lg"
       title="HTTP API column"
       description="Call an external API per row with a templated URL, headers and body, then map a value out of the JSON response. Non-2xx responses surface as Failed."
       footer={

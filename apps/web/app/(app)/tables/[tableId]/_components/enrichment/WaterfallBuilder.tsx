@@ -182,6 +182,7 @@ export function WaterfallBuilder({ open, onOpenChange, tableId, columns, workspa
     <Dialog
       open={open}
       onOpenChange={onOpenChange}
+      size="xl"
       title="Waterfall builder"
       description="Chain providers in fall-through order. A row only reaches a step if every step above returned nothing usable."
       footer={

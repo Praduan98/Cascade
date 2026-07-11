@@ -3,7 +3,8 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-16);
-  min-width: min(640px, 82vw);
+  /* Fluid — the enclosing Dialog's size tier (xl) controls the width. */
+  width: 100%;
 }
 .builderHead {
   display: flex;

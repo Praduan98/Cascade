@@ -516,7 +516,8 @@
 .detail {
   display: grid;
   gap: 14px;
-  min-width: min(560px, 82vw);
+  /* Fluid — the enclosing Dialog's size tier (lg) controls the width. */
+  width: 100%;
 }
 .detailKpis {
   display: grid;

@@ -26,6 +26,18 @@
   overflow: hidden;
   animation: content-in var(--dur-2) var(--ease);
 }
+/* Width tiers. Compound selectors (0,2,0) so they win over the base .content
+   max-width regardless of source order. Config-heavy builders use lg / xl so
+   their content gets real room instead of overflowing a 440px box. */
+.content.sizeSm {
+  max-width: 400px;
+}
+.content.sizeLg {
+  max-width: 620px;
+}
+.content.sizeXl {
+  max-width: 740px;
+}
 .close {
   position: absolute;
   top: 12px;
@@ -69,6 +81,11 @@
   font-size: var(--fs-sm);
   color: var(--text-2);
   overflow-y: auto;
+  /* Explicit: setting overflow-y alone makes overflow-x compute to `auto`,
+     which showed a spurious horizontal scrollbar on every dialog. The body
+     never scrolls sideways — genuinely wide content (e.g. a data preview)
+     owns its own overflow-x container. */
+  overflow-x: hidden;
   flex: 1 1 auto;
   min-height: 0;
 }
