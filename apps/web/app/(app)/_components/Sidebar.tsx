@@ -32,6 +32,12 @@ const GridIcon = () => (
     <rect x="14" y="14" width="7" height="7" rx="1" />
   </Icon>
 )
+const HomeIcon = () => (
+  <Icon>
+    <path d="M3 10.5 12 3l9 7.5" />
+    <path d="M5 9.5V21h14V9.5" />
+  </Icon>
+)
 const PlusIcon = () => (
   <Icon>
     <path d="M12 5v14M5 12h14" />
@@ -182,6 +188,9 @@ export function Sidebar() {
     <>
       <WorkspaceMenu />
       <SideNav>
+        <NavItem href="/home" active={pathname === '/home'} icon={<HomeIcon />}>
+          Home
+        </NavItem>
         <NavGroup>Tables</NavGroup>
         {tables.map((t) => (
           <NavItem

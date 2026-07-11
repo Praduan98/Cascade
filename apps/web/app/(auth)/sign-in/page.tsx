@@ -20,7 +20,7 @@ export default function SignInPage() {
 
   // Already signed in — skip the form.
   useEffect(() => {
-    if (status === 'authenticated') router.replace('/tables')
+    if (status === 'authenticated') router.replace('/home')
   }, [status, router])
 
   async function onSubmit(e: FormEvent) {
@@ -31,7 +31,7 @@ export default function SignInPage() {
     try {
       await getApi().auth.signIn(email.trim())
       await refresh()
-      router.replace('/tables')
+      router.replace('/home')
     } catch (err) {
       const message = errorMessage(err, 'Invalid email or password')
       setError(message)
@@ -45,7 +45,7 @@ export default function SignInPage() {
     setError(null)
     try {
       await switchUser(userId)
-      router.replace('/tables')
+      router.replace('/home')
     } catch (err) {
       toast(errorMessage(err, 'Could not switch account'), { variant: 'error' })
       setBusy(false)

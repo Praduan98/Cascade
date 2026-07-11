@@ -42,7 +42,7 @@ export default function Home() {
               minimise spend, and see exactly where every value came from.
             </p>
             <div className={`${styles.actions} ${styles.r4}`}>
-              <Link href="/tables" className="btn btn-primary btn-lg">
+              <Link href="/home" className="btn btn-primary btn-lg">
                 Start enriching
               </Link>
               <Link href="/kitchen-sink" className="btn btn-secondary btn-lg">

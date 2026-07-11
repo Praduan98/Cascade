@@ -22,7 +22,7 @@ export default function VerifyPage() {
           No real verification token is exchanged in Phase 1 — this screen simulates the confirmation
           step a backend would complete.
         </Alert>
-        <Link href="/tables" className={`btn btn-primary btn-lg ${styles.submit}`}>
+        <Link href="/home" className={`btn btn-primary btn-lg ${styles.submit}`}>
           Continue to your tables
         </Link>
       </Card>
