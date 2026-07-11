@@ -237,8 +237,20 @@ function AutomationsSection({
 
   const setEnabled = useMutation({
     mutationFn: (v: { id: string; enabled: boolean }) => getApi().automation.automations.setEnabled(workspaceId, v.id, v.enabled),
-    onSuccess: invalidate,
-    onError: (err) => toast(errorMessage(err, 'Could not update the automation'), { variant: 'error' }),
+    // Optimistic: flip the toggle instantly, roll back on error, reconcile after.
+    onMutate: async (v) => {
+      await qc.cancelQueries({ queryKey: key })
+      const prev = qc.getQueryData<Automation[]>(key)
+      qc.setQueryData<Automation[]>(key, (list) =>
+        list && list.map((a) => (a.id === v.id ? { ...a, isEnabled: v.enabled } : a)),
+      )
+      return { prev }
+    },
+    onError: (err, _v, ctx) => {
+      if (ctx?.prev) qc.setQueryData(key, ctx.prev)
+      toast(errorMessage(err, 'Could not update the automation'), { variant: 'error' })
+    },
+    onSettled: invalidate,
   })
   const runNow = useMutation({
     mutationFn: (id: string) => getApi().automation.automations.runNow(workspaceId, id),
@@ -387,8 +399,19 @@ function WebhooksSection({
 
   const setInboundEnabled = useMutation({
     mutationFn: (v: { id: string; enabled: boolean }) => getApi().automation.webhooks.setInboundEnabled(workspaceId, v.id, v.enabled),
-    onSuccess: invalidateIn,
-    onError: (err) => toast(errorMessage(err, 'Could not update the webhook'), { variant: 'error' }),
+    onMutate: async (v) => {
+      await qc.cancelQueries({ queryKey: inKey })
+      const prev = qc.getQueryData<InboundWebhook[]>(inKey)
+      qc.setQueryData<InboundWebhook[]>(inKey, (list) =>
+        list && list.map((w) => (w.id === v.id ? { ...w, isEnabled: v.enabled } : w)),
+      )
+      return { prev }
+    },
+    onError: (err, _v, ctx) => {
+      if (ctx?.prev) qc.setQueryData(inKey, ctx.prev)
+      toast(errorMessage(err, 'Could not update the webhook'), { variant: 'error' })
+    },
+    onSettled: invalidateIn,
   })
   const removeInbound = useMutation({
     mutationFn: (id: string) => getApi().automation.webhooks.removeInbound(workspaceId, id),
@@ -400,8 +423,19 @@ function WebhooksSection({
   })
   const setOutboundEnabled = useMutation({
     mutationFn: (v: { id: string; enabled: boolean }) => getApi().automation.webhooks.setOutboundEnabled(workspaceId, v.id, v.enabled),
-    onSuccess: invalidateOut,
-    onError: (err) => toast(errorMessage(err, 'Could not update the webhook'), { variant: 'error' }),
+    onMutate: async (v) => {
+      await qc.cancelQueries({ queryKey: outKey })
+      const prev = qc.getQueryData<OutboundWebhook[]>(outKey)
+      qc.setQueryData<OutboundWebhook[]>(outKey, (list) =>
+        list && list.map((w) => (w.id === v.id ? { ...w, isEnabled: v.enabled } : w)),
+      )
+      return { prev }
+    },
+    onError: (err, _v, ctx) => {
+      if (ctx?.prev) qc.setQueryData(outKey, ctx.prev)
+      toast(errorMessage(err, 'Could not update the webhook'), { variant: 'error' })
+    },
+    onSettled: invalidateOut,
   })
   const removeOutbound = useMutation({
     mutationFn: (id: string) => getApi().automation.webhooks.removeOutbound(workspaceId, id),

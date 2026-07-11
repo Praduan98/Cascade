@@ -17,10 +17,13 @@
   background: transparent;
   color: var(--text-2);
   cursor: pointer;
-  transition: color var(--dur-2), background var(--dur-2);
+  transition: color var(--dur-2), background var(--dur-2), transform var(--dur-1) var(--ease);
 }
 .seg button:hover {
   color: var(--text);
+}
+.seg button:active {
+  transform: scale(0.96);
 }
 .seg button.on {
   background: var(--surface);

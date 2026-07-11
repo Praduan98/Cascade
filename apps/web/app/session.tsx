@@ -14,6 +14,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react'
@@ -124,16 +125,29 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     void load()
   }, [load])
 
+  // Tracks the latest requested workspace so a slow membership lookup from an
+  // earlier switch can't clobber a newer one.
+  const switchTargetRef = useRef<string | null>(null)
+
   const switchWorkspace = useCallback(
     async (workspaceId: string) => {
       if (!user) return
       if (workspaceId === activeWorkspaceId) return
       if (!workspaces.some((w) => w.id === workspaceId)) return
-      const members = await getApi().members.list(workspaceId)
-      const mem = members.find((m) => m.userId === user.id) ?? null
+      // Optimistic: flip the active workspace immediately so the switcher label,
+      // topbar, and workspace-scoped queries update on click. Keep the prior
+      // membership until the new role resolves (avoids a role-gated UI flicker),
+      // then patch it in — ignoring a stale response if the user switched again.
+      switchTargetRef.current = workspaceId
       setActiveWorkspaceId(workspaceId)
-      setMembership(mem)
       persistWorkspace(workspaceId)
+      try {
+        const members = await getApi().members.list(workspaceId)
+        if (switchTargetRef.current !== workspaceId) return
+        setMembership(members.find((m) => m.userId === user.id) ?? null)
+      } catch {
+        /* keep the optimistic switch; role resolves on the next full load */
+      }
     },
     [user, activeWorkspaceId, workspaces],
   )
