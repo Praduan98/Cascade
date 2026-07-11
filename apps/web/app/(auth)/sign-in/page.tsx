@@ -51,7 +51,7 @@ export default function SignInPage() {
 
   // Already signed in — skip the form.
   useEffect(() => {
-    if (status === 'authenticated') router.replace('/home')
+    if (status === 'authenticated') router.replace('/welcome')
   }, [status, router])
 
   // Establish a mock session for the given account and enter the app.
@@ -62,7 +62,7 @@ export default function SignInPage() {
     try {
       await getApi().auth.signIn(addr.trim())
       await refresh()
-      router.replace('/home')
+      router.replace('/welcome')
     } catch (err) {
       setError(errorMessage(err, 'We couldn’t sign you in with that account.'))
       setBusy(null)
@@ -90,7 +90,7 @@ export default function SignInPage() {
     setError(null)
     try {
       await switchUser(userId)
-      router.replace('/home')
+      router.replace('/welcome')
     } catch (err) {
       setError(errorMessage(err, 'Could not switch account'))
       setBusy(null)

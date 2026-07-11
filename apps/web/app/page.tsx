@@ -11,7 +11,7 @@ export default function RootPage() {
   const { status } = useSession()
 
   useEffect(() => {
-    if (status === 'authenticated') router.replace('/home')
+    if (status === 'authenticated') router.replace('/welcome')
     else if (status === 'unauthenticated') router.replace('/sign-in')
   }, [status, router])
 

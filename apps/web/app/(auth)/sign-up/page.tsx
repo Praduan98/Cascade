@@ -21,7 +21,7 @@ export default function SignUpPage() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (status === 'authenticated') router.replace('/home')
+    if (status === 'authenticated') router.replace('/welcome')
   }, [status, router])
 
   async function onSubmit(e: FormEvent) {
@@ -39,7 +39,7 @@ export default function SignUpPage() {
       })
       await refresh()
       toast('Workspace created — welcome to Cascade', { variant: 'success' })
-      router.replace('/home')
+      router.replace('/welcome')
     } catch (err) {
       // The mock API returns a deliberately non-enumerating message for a
       // duplicate email ("Could not create an account with those details").
