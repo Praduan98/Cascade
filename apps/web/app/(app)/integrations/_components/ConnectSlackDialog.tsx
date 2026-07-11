@@ -63,7 +63,7 @@ export function ConnectSlackDialog({ open, onOpenChange, workspaceId, onConnecte
         </>
       }
     >
-      <Field label="Bot token" htmlFor="slack-token" hint="Stored securely and never shown again.">
+      <Field label="Bot token (required)" htmlFor="slack-token" hint="Stored securely and never shown again.">
         <Input
           id="slack-token"
           type="password"

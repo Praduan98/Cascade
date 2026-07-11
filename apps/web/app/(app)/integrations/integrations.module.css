@@ -231,6 +231,23 @@
   }
 }
 
+/* ---- Grouped form control (role="group" replacing an orphaned Field label) ---- */
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+.groupLabel {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--text-2);
+}
+.groupHint {
+  font-size: var(--fs-2xs);
+  color: var(--text-3);
+}
+
 /* ---- CRM field-mapping editor ---- */
 .mapEditor {
   display: flex;

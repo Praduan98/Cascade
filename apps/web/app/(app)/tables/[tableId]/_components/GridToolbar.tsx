@@ -169,9 +169,9 @@ export function GridToolbar({
           Tables
         </Link>
         <div className={styles.titleRow}>
-          <span className={styles.name} title={tableName}>
+          <h1 className={styles.name} title={tableName}>
             {tableName}
-          </span>
+          </h1>
           <Tag mono tone="brand" className={styles.countTag}>
             {rowCountLoading || rowCount === undefined ? '…' : `${rowCount.toLocaleString('en-US')} rows`}
           </Tag>

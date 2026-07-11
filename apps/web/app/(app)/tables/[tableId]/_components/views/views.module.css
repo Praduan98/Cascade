@@ -313,8 +313,8 @@
   flex: none;
 }
 .priority button {
-  width: 20px;
-  height: 15px;
+  width: 24px;
+  height: 24px;
   display: grid;
   place-items: center;
   border: 0;

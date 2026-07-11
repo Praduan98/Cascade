@@ -125,7 +125,7 @@ function WorkspaceMenu() {
 
   return (
     <div className={styles.wsWrap} ref={ref}>
-      <WorkspaceSwitcher name={workspace?.name ?? 'Workspace'} onClick={() => setOpen((o) => !o)} />
+      <WorkspaceSwitcher name={workspace?.name ?? 'Workspace'} expanded={open} onClick={() => setOpen((o) => !o)} />
       {open && (
         <div className={styles.wsMenu} role="menu">
           {workspaces.map((ws) => {

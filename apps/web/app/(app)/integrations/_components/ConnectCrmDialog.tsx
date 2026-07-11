@@ -121,7 +121,7 @@ export function ConnectCrmDialog({ open, onOpenChange, workspaceId, tables, onCo
         </Field>
       </div>
 
-      <Field label="API token" htmlFor="crm-token" hint="Stored securely and never shown again.">
+      <Field label="API token (required)" htmlFor="crm-token" hint="Stored securely and never shown again.">
         <Input
           id="crm-token"
           type="password"
@@ -132,7 +132,7 @@ export function ConnectCrmDialog({ open, onOpenChange, workspaceId, tables, onCo
         />
       </Field>
 
-      <Field label="Table to sync" htmlFor="crm-table">
+      <Field label="Table to sync (required)" htmlFor="crm-table">
         <Select
           id="crm-table"
           value={tableId}
@@ -151,11 +151,15 @@ export function ConnectCrmDialog({ open, onOpenChange, workspaceId, tables, onCo
         </Select>
       </Field>
 
-      <Field label="Field mapping" hint="Map CRM fields to table columns for push and pull.">
-        <div>
-          <MappingEditor rows={rows} columns={columns} onChange={setRows} loading={columnsQuery.isLoading} />
-        </div>
-      </Field>
+      <div role="group" aria-labelledby="crm-map-label" aria-describedby="crm-map-hint" className={styles.group}>
+        <span id="crm-map-label" className={styles.groupLabel}>
+          Field mapping
+        </span>
+        <MappingEditor rows={rows} columns={columns} onChange={setRows} loading={columnsQuery.isLoading} />
+        <span id="crm-map-hint" className={styles.groupHint}>
+          Map CRM fields to table columns for push and pull.
+        </span>
+      </div>
 
       <Field label="Dedupe column" htmlFor="crm-dedupe" hint="Key used to match records (e.g. email or domain).">
         <Select

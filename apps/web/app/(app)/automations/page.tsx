@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { getApi } from '@cascade/data'
@@ -15,7 +15,7 @@ import type {
   TableMeta,
 } from '@cascade/core'
 import { canManageAutomations } from '@cascade/core'
-import { Alert, Button, Card, EmptyState, Pill, Seg, Switch, Tag, useToast } from '@cascade/ui'
+import { Alert, Button, Card, ConfirmDialog, EmptyState, Pill, Seg, Switch, Tag, useToast } from '@cascade/ui'
 import type { PillStatus } from '@cascade/ui'
 import { useSession } from '../../session'
 import { errorMessage, formatDate } from '../../lib/ui'
@@ -96,6 +96,36 @@ function LockGlyph() {
   )
 }
 
+function BoltGlyph() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M13 2 4 14h7l-1 8 9-12h-7z" />
+    </svg>
+  )
+}
+
+function WebhookGlyph() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 8a3 3 0 1 0-2.6 2.97L6.5 16" />
+      <path d="M15 12a3 3 0 1 0-1.5 2.6L17 15" />
+      <path d="M9 18a3 3 0 1 0 3-3H8.5" />
+    </svg>
+  )
+}
+
+/** Full-page header shown on every state (including gated/no-workspace ones). */
+function PageHeader({ subtitle }: { subtitle: ReactNode }) {
+  return (
+    <header className={styles.header}>
+      <div className={styles.headTitle}>
+        <h1>Automations</h1>
+        <div className={styles.count}>{subtitle}</div>
+      </div>
+    </header>
+  )
+}
+
 export default function AutomationsPage() {
   const { workspace, role } = useSession()
   const workspaceId = workspace?.id
@@ -124,6 +154,7 @@ export default function AutomationsPage() {
   if (!workspace) {
     return (
       <div className={styles.page}>
+        <PageHeader subtitle="Schedules, row-event triggers, and webhooks" />
         <Alert variant="info" title="No workspace">
           You&rsquo;re not a member of any workspace yet.
         </Alert>
@@ -134,6 +165,7 @@ export default function AutomationsPage() {
   if (!authorized) {
     return (
       <div className={styles.page}>
+        <PageHeader subtitle={`Schedules, row-event triggers, and webhooks for ${workspace.name}`} />
         <EmptyState
           icon={<LockGlyph />}
           title="Automations are restricted"
@@ -150,12 +182,7 @@ export default function AutomationsPage() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.header}>
-        <div className={styles.headTitle}>
-          <h1>Automations</h1>
-          <div className={styles.count}>Schedules, row-event triggers, and webhooks for {workspace.name}</div>
-        </div>
-      </header>
+      <PageHeader subtitle={`Schedules, row-event triggers, and webhooks for ${workspace.name}`} />
 
       <div className={styles.tabs}>
         <Seg
@@ -251,7 +278,16 @@ function AutomationsSection({
       ) : query.isLoading ? (
         <ListSkeleton />
       ) : automations.length === 0 ? (
-        <EmptyState title="No automations yet" description="Create a schedule or a row-event trigger to run columns automatically." />
+        <EmptyState
+          icon={<BoltGlyph />}
+          title="No automations yet"
+          description="Create a schedule or a row-event trigger to run columns automatically."
+          action={
+            <Button variant="primary" size="sm" onClick={() => setDialogOpen(true)} disabled={tablesLoading || tables.length === 0}>
+              New automation
+            </Button>
+          }
+        />
       ) : (
         automations.map((a) => (
           <div key={a.id} className={styles.row}>
@@ -290,14 +326,18 @@ function AutomationsSection({
               >
                 Run now
               </button>
-              <button
-                type="button"
-                className={`${styles.linkBtn} ${styles.danger}`}
-                onClick={() => remove.mutate(a.id)}
-                disabled={remove.isPending}
-              >
-                Remove
-              </button>
+              <ConfirmDialog
+                trigger={
+                  <button type="button" className={`${styles.linkBtn} ${styles.danger}`} disabled={remove.isPending}>
+                    Remove
+                  </button>
+                }
+                title={`Remove “${a.name}”?`}
+                description="This automation and its schedule will stop running. This can’t be undone."
+                danger
+                confirmLabel="Remove"
+                onConfirm={() => remove.mutate(a.id)}
+              />
             </div>
           </div>
         ))
@@ -377,6 +417,10 @@ function WebhooksSection({
 
   return (
     <Card className={styles.card}>
+      <div className={styles.sectionHead}>
+        <h2>Webhooks</h2>
+      </div>
+
       {/* ---- Inbound ---- */}
       <div className={styles.subHead}>
         <h3>Inbound</h3>
@@ -391,7 +435,16 @@ function WebhooksSection({
       ) : inboundQuery.isLoading ? (
         <ListSkeleton rows={2} />
       ) : inbound.length === 0 ? (
-        <EmptyState title="No inbound webhooks" description="Create an endpoint so external services can POST rows in." />
+        <EmptyState
+          icon={<WebhookGlyph />}
+          title="No inbound webhooks"
+          description="Create an endpoint so external services can POST rows in."
+          action={
+            <Button variant="secondary" size="sm" onClick={() => setInboundOpen(true)} disabled={noTables}>
+              New inbound webhook
+            </Button>
+          }
+        />
       ) : (
         inbound.map((w: InboundWebhook) => (
           <div key={w.id} className={styles.row}>
@@ -415,9 +468,18 @@ function WebhooksSection({
                 onCheckedChange={(enabled) => setInboundEnabled.mutate({ id: w.id, enabled })}
                 aria-label={`${w.isEnabled ? 'Disable' : 'Enable'} ${w.name}`}
               />
-              <button type="button" className={`${styles.linkBtn} ${styles.danger}`} onClick={() => removeInbound.mutate(w.id)}>
-                Remove
-              </button>
+              <ConfirmDialog
+                trigger={
+                  <button type="button" className={`${styles.linkBtn} ${styles.danger}`} disabled={removeInbound.isPending}>
+                    Remove
+                  </button>
+                }
+                title={`Remove “${w.name}”?`}
+                description="The endpoint will stop accepting requests and its signing secret is revoked. This can’t be undone."
+                danger
+                confirmLabel="Remove"
+                onConfirm={() => removeInbound.mutate(w.id)}
+              />
             </div>
           </div>
         ))
@@ -437,7 +499,16 @@ function WebhooksSection({
       ) : outboundQuery.isLoading ? (
         <ListSkeleton rows={2} />
       ) : outbound.length === 0 ? (
-        <EmptyState title="No outbound webhooks" description="POST selected fields to an external URL when a row changes." />
+        <EmptyState
+          icon={<WebhookGlyph />}
+          title="No outbound webhooks"
+          description="POST selected fields to an external URL when a row changes."
+          action={
+            <Button variant="secondary" size="sm" onClick={() => setOutboundOpen(true)} disabled={noTables}>
+              New outbound webhook
+            </Button>
+          }
+        />
       ) : (
         outbound.map((w: OutboundWebhook) => (
           <div key={w.id} className={styles.row}>
@@ -462,9 +533,18 @@ function WebhooksSection({
                 onCheckedChange={(enabled) => setOutboundEnabled.mutate({ id: w.id, enabled })}
                 aria-label={`${w.isEnabled ? 'Disable' : 'Enable'} ${w.name}`}
               />
-              <button type="button" className={`${styles.linkBtn} ${styles.danger}`} onClick={() => removeOutbound.mutate(w.id)}>
-                Remove
-              </button>
+              <ConfirmDialog
+                trigger={
+                  <button type="button" className={`${styles.linkBtn} ${styles.danger}`} disabled={removeOutbound.isPending}>
+                    Remove
+                  </button>
+                }
+                title={`Remove “${w.name}”?`}
+                description="Cascade will stop POSTing to this URL when rows change. This can’t be undone."
+                danger
+                confirmLabel="Remove"
+                onConfirm={() => removeOutbound.mutate(w.id)}
+              />
             </div>
           </div>
         ))

@@ -105,7 +105,7 @@ export function OutboundWebhookDialog({
         </>
       }
     >
-      <Field label="Name" htmlFor="out-name">
+      <Field label="Name (required)" htmlFor="out-name">
         <Input
           id="out-name"
           autoFocus
@@ -134,7 +134,12 @@ export function OutboundWebhookDialog({
         </Select>
       </Field>
 
-      <Field label="Target URL" type="URL" htmlFor="out-url">
+      <Field
+        label="Target URL (required)"
+        type="URL"
+        htmlFor="out-url"
+        hint="Must start with http:// or https://."
+      >
         <Input
           id="out-url"
           type="url"
@@ -181,7 +186,10 @@ export function OutboundWebhookDialog({
         </Field>
       )}
 
-      <Field label="Payload fields" hint="Leave all unchecked to send every column.">
+      <div role="group" aria-labelledby="out-fields-label" aria-describedby="out-fields-hint" className={styles.group}>
+        <span id="out-fields-label" className={styles.groupLabel}>
+          Payload fields
+        </span>
         {columns.length === 0 ? (
           <span className={styles.sectionHint}>No columns in this table.</span>
         ) : (
@@ -198,7 +206,10 @@ export function OutboundWebhookDialog({
             ))}
           </div>
         )}
-      </Field>
+        <span id="out-fields-hint" className={styles.groupHint}>
+          Leave all unchecked to send every column.
+        </span>
+      </div>
     </Dialog>
   )
 }

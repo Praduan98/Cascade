@@ -50,6 +50,7 @@ export function AgentColumnBuilder({ open, onOpenChange, tableId, columns, works
   const [fields, setFields] = useState<DraftField[]>([])
   const [cacheTtlDays, setCacheTtlDays] = useState(30)
   const [autoRun, setAutoRun] = useState(false)
+  const [attempted, setAttempted] = useState(false)
 
   const modelsQuery = useQuery({
     queryKey: ['agent', 'models', workspaceId],
@@ -72,6 +73,7 @@ export function AgentColumnBuilder({ open, onOpenChange, tableId, columns, works
 
   useEffect(() => {
     if (!open) return
+    setAttempted(false)
     setNewName(seedName ?? '')
     const cfg = configQuery.data
     if (cfg) {
@@ -165,19 +167,13 @@ export function AgentColumnBuilder({ open, onOpenChange, tableId, columns, works
     onError: (err) => toast(errorMessage(err, 'Could not save the agent column'), { variant: 'error' }),
   })
 
+  const nameError = !column && newName.trim() === '' ? 'Name the agent column' : null
+  const objectiveError = objective.trim() === '' ? 'Write a research objective' : null
+  const structuredError = structured && cleanFields(fields).length === 0 ? 'Add at least one output field, or turn off structured output' : null
+
   function validateAndSave() {
-    if (!column && newName.trim() === '') {
-      toast('Name the agent column', { variant: 'warn' })
-      return
-    }
-    if (objective.trim() === '') {
-      toast('Write a research objective', { variant: 'warn' })
-      return
-    }
-    if (structured && cleanFields(fields).length === 0) {
-      toast('Add at least one output field, or turn off structured output', { variant: 'warn' })
-      return
-    }
+    setAttempted(true)
+    if (nameError || objectiveError || structuredError) return
     save.mutate()
   }
 
@@ -203,7 +199,12 @@ export function AgentColumnBuilder({ open, onOpenChange, tableId, columns, works
           {column ? (
             <span className={styles.anchorName}>{column.name}</span>
           ) : (
-            <Field label="Column name" htmlFor="agent-col-name">
+            <Field
+              label="Column name (required)"
+              htmlFor="agent-col-name"
+              hint={attempted && nameError ? nameError : undefined}
+              error={attempted && !!nameError}
+            >
               <Input id="agent-col-name" autoFocus placeholder="e.g. Agent: Company intel" value={newName} onChange={(e) => setNewName(e.target.value)} />
             </Field>
           )}
@@ -218,8 +219,12 @@ export function AgentColumnBuilder({ open, onOpenChange, tableId, columns, works
           </div>
         </Field>
 
-        <Field label="Research objective" hint="Insert {{column}} references; they're substituted per row.">
-          <PromptEditor value={objective} onChange={setObjective} columns={columns} />
+        <Field
+          label="Research objective (required)"
+          hint={attempted && objectiveError ? objectiveError : "Insert {{column}} references; they're substituted per row."}
+          error={attempted && !!objectiveError}
+        >
+          <PromptEditor label="Research objective" value={objective} onChange={setObjective} columns={columns} />
         </Field>
 
         <div className={styles.row2}>
@@ -247,11 +252,13 @@ export function AgentColumnBuilder({ open, onOpenChange, tableId, columns, works
           {structured && (
             <>
               <SchemaFieldsEditor fields={fields} columns={columns} onChange={setFields} />
-              {cleanFields(fields).length > 0 && (
+              {attempted && structuredError ? (
+                <span className={styles.reqError} role="alert">{structuredError}</span>
+              ) : cleanFields(fields).length > 0 ? (
                 <div className={styles.createsLine}>
                   Populates {cleanFields(fields).length} field{cleanFields(fields).length > 1 ? 's' : ''} · {cleanFields(fields).map((f) => f.name).join(', ')}
                 </div>
-              )}
+              ) : null}
             </>
           )}
         </div>

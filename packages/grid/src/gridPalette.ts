@@ -81,7 +81,7 @@ export function syncPalette(read: CssVarReader): void {
   }
 
   palette.text = v('--text', palette.text)
-  palette.textMuted = v('--text-faint', palette.textMuted)
+  palette.textMuted = v('--text-3', palette.textMuted)
   palette.textFaint = v('--text-faint', palette.textFaint)
   palette.brand = v('--brand', palette.brand)
   palette.brandInk = v('--brand-ink', palette.brandInk)

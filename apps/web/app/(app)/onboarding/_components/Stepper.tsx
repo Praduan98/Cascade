@@ -38,6 +38,7 @@ export function Stepper({ steps, current }: StepperProps) {
             >
               <span className={styles.dot}>{done ? <Check /> : n}</span>
               <span className={styles.stepLabel}>{label}</span>
+              {done && <span className={styles.srOnly}> completed</span>}
             </div>
           </Fragment>
         )

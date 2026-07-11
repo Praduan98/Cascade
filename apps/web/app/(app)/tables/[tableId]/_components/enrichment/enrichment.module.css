@@ -123,6 +123,11 @@
   border: 1px dashed var(--border-strong);
   width: 100%;
 }
+.reqError {
+  display: block;
+  font-size: var(--fs-xs);
+  color: var(--st-failed);
+}
 .previewLabel {
   font-family: var(--font-mono);
   font-size: var(--fs-2xs);

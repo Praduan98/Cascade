@@ -62,6 +62,12 @@ export function HttpColumnBuilder({ open, onOpenChange, tableId, columns, worksp
   const [maps, setMaps] = useState<MapRow[]>([])
   const [cacheTtlDays, setCacheTtlDays] = useState(7)
   const [autoRun, setAutoRun] = useState(false)
+  const [attempted, setAttempted] = useState(false)
+
+  // In-dialog "add secret" form (replaces the off-brand window.prompt flow).
+  const [addingSecret, setAddingSecret] = useState(false)
+  const [secretName, setSecretName] = useState('')
+  const [secretValue, setSecretValue] = useState('')
 
   const secretsQuery = useQuery({
     queryKey: ['http', 'secrets', workspaceId],
@@ -78,6 +84,10 @@ export function HttpColumnBuilder({ open, onOpenChange, tableId, columns, worksp
 
   useEffect(() => {
     if (!open) return
+    setAttempted(false)
+    setAddingSecret(false)
+    setSecretName('')
+    setSecretValue('')
     setNewName(seedName ?? '')
     const cfg = configQuery.data
     if (cfg) {
@@ -109,16 +119,23 @@ export function HttpColumnBuilder({ open, onOpenChange, tableId, columns, worksp
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['http', 'secrets', workspaceId] })
       toast('Secret stored', { variant: 'success' })
+      setAddingSecret(false)
+      setSecretName('')
+      setSecretValue('')
     },
     onError: (err) => toast(errorMessage(err, 'Could not store secret'), { variant: 'error' }),
   })
 
-  function addSecret() {
-    const name = window.prompt('Secret name (e.g. "API key")')?.trim()
-    if (!name) return
-    const token = window.prompt('Secret value — stored securely, never shown again')?.trim()
-    if (!token) return
+  function submitSecret() {
+    const name = secretName.trim()
+    const token = secretValue.trim()
+    if (!name || !token) return
     createSecret.mutate({ name, token })
+  }
+  function cancelSecret() {
+    setAddingSecret(false)
+    setSecretName('')
+    setSecretValue('')
   }
 
   const save = useMutation({
@@ -169,15 +186,12 @@ export function HttpColumnBuilder({ open, onOpenChange, tableId, columns, worksp
     onError: (err) => toast(errorMessage(err, 'Could not save the HTTP column'), { variant: 'error' }),
   })
 
+  const nameError = !column && newName.trim() === '' ? 'Name the HTTP column' : null
+  const urlError = url.trim() === '' ? 'Enter a request URL' : null
+
   function validateAndSave() {
-    if (!column && newName.trim() === '') {
-      toast('Name the HTTP column', { variant: 'warn' })
-      return
-    }
-    if (url.trim() === '') {
-      toast('Enter a request URL', { variant: 'warn' })
-      return
-    }
+    setAttempted(true)
+    if (nameError || urlError) return
     save.mutate()
   }
 
@@ -205,7 +219,12 @@ export function HttpColumnBuilder({ open, onOpenChange, tableId, columns, worksp
           {column ? (
             <span className={styles.anchorName}>{column.name}</span>
           ) : (
-            <Field label="Column name" htmlFor="http-col-name">
+            <Field
+              label="Column name (required)"
+              htmlFor="http-col-name"
+              hint={attempted && nameError ? nameError : undefined}
+              error={attempted && !!nameError}
+            >
               <Input id="http-col-name" autoFocus placeholder="e.g. HTTP: HQ city" value={newName} onChange={(e) => setNewName(e.target.value)} />
             </Field>
           )}
@@ -222,8 +241,12 @@ export function HttpColumnBuilder({ open, onOpenChange, tableId, columns, worksp
               ))}
             </Select>
           </Field>
-          <Field label="Request URL" hint="Insert {{column}} references; substituted per row.">
-            <PromptEditor value={url} onChange={setUrl} columns={columns} />
+          <Field
+            label="Request URL (required)"
+            hint={attempted && urlError ? urlError : 'Insert {{column}} references; substituted per row.'}
+            error={attempted && !!urlError}
+          >
+            <PromptEditor label="Request URL" value={url} onChange={setUrl} columns={columns} />
           </Field>
         </div>
 
@@ -231,15 +254,15 @@ export function HttpColumnBuilder({ open, onOpenChange, tableId, columns, worksp
           <div className={http.rows}>
             {headers.map((h, i) => (
               <div key={i} className={http.headerRow}>
-                <Input placeholder="Header" value={h.key} onChange={(e) => setHeaders((rows) => rows.map((r, j) => (j === i ? { ...r, key: e.target.value } : r)))} />
+                <Input aria-label="Header name" placeholder="Header" value={h.key} onChange={(e) => setHeaders((rows) => rows.map((r, j) => (j === i ? { ...r, key: e.target.value } : r)))} />
                 {h.secretRef ? (
-                  <Select value={h.secretRef} onChange={(e) => setHeaders((rows) => rows.map((r, j) => (j === i ? { ...r, secretRef: e.target.value } : r)))}>
+                  <Select aria-label="Header secret" value={h.secretRef} onChange={(e) => setHeaders((rows) => rows.map((r, j) => (j === i ? { ...r, secretRef: e.target.value } : r)))}>
                     {secrets.map((s) => (
                       <option key={s.id} value={s.id}>{s.name} ({s.maskedHint})</option>
                     ))}
                   </Select>
                 ) : (
-                  <Input placeholder="Value" value={h.value} onChange={(e) => setHeaders((rows) => rows.map((r, j) => (j === i ? { ...r, value: e.target.value } : r)))} />
+                  <Input aria-label="Header value" placeholder="Value" value={h.value} onChange={(e) => setHeaders((rows) => rows.map((r, j) => (j === i ? { ...r, value: e.target.value } : r)))} />
                 )}
                 <Select
                   aria-label="Value source"
@@ -257,14 +280,50 @@ export function HttpColumnBuilder({ open, onOpenChange, tableId, columns, worksp
             ))}
             <div className={http.rowActions}>
               <Button variant="ghost" size="sm" onClick={() => setHeaders((rows) => [...rows, { key: '', value: '', secretRef: '' }])}>+ Header</Button>
-              <Button variant="ghost" size="sm" onClick={addSecret}>+ Store a secret</Button>
+              {!addingSecret && (
+                <Button variant="ghost" size="sm" onClick={() => setAddingSecret(true)}>+ Store a secret</Button>
+              )}
             </div>
+            {addingSecret && (
+              <div className={http.secretForm} role="group" aria-labelledby="http-secret-head">
+                <span id="http-secret-head" className={http.secretHead}>Store a secret</span>
+                <div className={http.secretRow}>
+                  <Input
+                    aria-label="Secret name"
+                    placeholder="Name (e.g. API key)"
+                    value={secretName}
+                    onChange={(e) => setSecretName(e.target.value)}
+                  />
+                  <Input
+                    type="password"
+                    aria-label="Secret value"
+                    placeholder="Value"
+                    autoComplete="off"
+                    value={secretValue}
+                    onChange={(e) => setSecretValue(e.target.value)}
+                  />
+                </div>
+                <span className={http.secretHint}>Stored securely and never shown again — only a masked hint appears afterwards.</span>
+                <div className={http.rowActions}>
+                  <Button variant="ghost" size="sm" onClick={cancelSecret} disabled={createSecret.isPending}>Cancel</Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={submitSecret}
+                    loading={createSecret.isPending}
+                    disabled={!secretName.trim() || !secretValue.trim()}
+                  >
+                    Save secret
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </Field>
 
         {nonGet && (
           <Field label="Request body" hint="JSON with {{column}} references.">
-            <PromptEditor value={body} onChange={setBody} columns={columns} />
+            <PromptEditor label="Request body" value={body} onChange={setBody} columns={columns} />
           </Field>
         )}
 
@@ -276,9 +335,9 @@ export function HttpColumnBuilder({ open, onOpenChange, tableId, columns, worksp
           <div className={http.rows}>
             {maps.map((m, i) => (
               <div key={m.key} className={http.mapRow}>
-                <Input placeholder="Field" value={m.field} onChange={(e) => setMaps((rows) => rows.map((r, j) => (j === i ? { ...r, field: e.target.value } : r)))} />
-                <Input placeholder="JSON path" value={m.path} onChange={(e) => setMaps((rows) => rows.map((r, j) => (j === i ? { ...r, path: e.target.value } : r)))} />
-                <Select value={m.destColumnId} onChange={(e) => setMaps((rows) => rows.map((r, j) => (j === i ? { ...r, destColumnId: e.target.value } : r)))}>
+                <Input aria-label="Field name" placeholder="Field" value={m.field} onChange={(e) => setMaps((rows) => rows.map((r, j) => (j === i ? { ...r, field: e.target.value } : r)))} />
+                <Input aria-label="JSON path" placeholder="JSON path" value={m.path} onChange={(e) => setMaps((rows) => rows.map((r, j) => (j === i ? { ...r, path: e.target.value } : r)))} />
+                <Select aria-label="Destination column" value={m.destColumnId} onChange={(e) => setMaps((rows) => rows.map((r, j) => (j === i ? { ...r, destColumnId: e.target.value } : r)))}>
                   <option value={NEW_COLUMN}>Create column</option>
                   {columns.map((c) => (
                     <option key={c.id} value={c.id}>{c.name}</option>

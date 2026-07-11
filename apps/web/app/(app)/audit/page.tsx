@@ -299,24 +299,36 @@ export default function AuditPage() {
 
       {auditQuery.isLoading ? (
         <div className={styles.tableWrap}>
-          <div className={styles.table}>
-            <div className={styles.headRow}>
-              <span className={styles.th}>Actor</span>
-              <span className={styles.th}>Action</span>
-              <span className={styles.th}>Target</span>
-              <span className={styles.th} style={{ textAlign: 'right' }}>
-                When
-              </span>
-            </div>
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className={styles.skelRow}>
-                <div className={styles.skelBlock} style={{ width: '70%' }} />
-                <div className={styles.skelBlock} style={{ width: '80%' }} />
-                <div className={styles.skelBlock} style={{ width: '60%' }} />
-                <div className={styles.skelBlock} style={{ width: '90%' }} />
-              </div>
-            ))}
-          </div>
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th scope="col">Actor</th>
+                <th scope="col">Action</th>
+                <th scope="col">Target</th>
+                <th scope="col" style={{ textAlign: 'right' }}>
+                  When
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {Array.from({ length: 8 }).map((_, i) => (
+                <tr key={i}>
+                  <td>
+                    <div className={styles.skelBlock} style={{ width: '70%', height: 12 }} />
+                  </td>
+                  <td>
+                    <div className={styles.skelBlock} style={{ width: '80%', height: 12 }} />
+                  </td>
+                  <td>
+                    <div className={styles.skelBlock} style={{ width: '60%', height: 12 }} />
+                  </td>
+                  <td>
+                    <div className={styles.skelBlock} style={{ width: '90%', height: 12 }} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       ) : entries.length === 0 ? (
         <EmptyState
@@ -345,42 +357,50 @@ export default function AuditPage() {
         />
       ) : (
         <div className={styles.tableWrap}>
-          <div className={styles.table}>
-            <div className={styles.headRow}>
-              <span className={styles.th}>Actor</span>
-              <span className={styles.th}>Action</span>
-              <span className={styles.th}>Target</span>
-              <span className={styles.th} style={{ textAlign: 'right' }}>
-                When
-              </span>
-            </div>
-            {filtered.map((e) => {
-              const bg = avatarColor(e.actorUserId || e.actorName)
-              const label = targetLabel(e)
-              const isTypeFallback = label === e.targetType
-              return (
-                <div key={e.id} className={styles.row}>
-                  <div className={styles.actor}>
-                    <Avatar initials={initials(e.actorName)} bg={bg} color={textOn(bg)} size={30} />
-                    <span className={styles.actorName}>{e.actorName}</span>
-                  </div>
-                  <div className={styles.action}>
-                    <span className={styles.dot} style={{ background: actionColor(e.action) }} />
-                    <span className={styles.verb}>{ACTION_LABEL[e.action]}</span>
-                  </div>
-                  <span
-                    className={`${styles.target} ${isTypeFallback ? styles.targetEmpty : ''}`}
-                    title={label}
-                  >
-                    {label}
-                  </span>
-                  <span className={styles.when} title={e.createdAt}>
-                    {formatDateTime(e.createdAt)}
-                  </span>
-                </div>
-              )
-            })}
-          </div>
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th scope="col">Actor</th>
+                <th scope="col">Action</th>
+                <th scope="col">Target</th>
+                <th scope="col" style={{ textAlign: 'right' }}>
+                  When
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((e) => {
+                const bg = avatarColor(e.actorUserId || e.actorName)
+                const label = targetLabel(e)
+                const isTypeFallback = label === e.targetType
+                return (
+                  <tr key={e.id}>
+                    <td>
+                      <div className={styles.actor}>
+                        <Avatar initials={initials(e.actorName)} bg={bg} color={textOn(bg)} size={30} />
+                        <span className={styles.actorName}>{e.actorName}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div className={styles.action}>
+                        <span className={styles.dot} style={{ background: actionColor(e.action) }} />
+                        <span className={styles.verb}>{ACTION_LABEL[e.action]}</span>
+                      </div>
+                    </td>
+                    <td
+                      className={`${styles.target} ${isTypeFallback ? styles.targetEmpty : ''}`}
+                      title={label}
+                    >
+                      {label}
+                    </td>
+                    <td className={styles.when} title={e.createdAt}>
+                      {formatDateTime(e.createdAt)}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
         </div>
       )}
     </div>

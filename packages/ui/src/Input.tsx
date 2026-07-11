@@ -14,7 +14,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   ref,
 ) {
   const cls = [styles.input, state ? styles[state] : '', className].filter(Boolean).join(' ')
-  return <input ref={ref} className={cls} {...rest} />
+  return <input ref={ref} className={cls} aria-invalid={state === 'err' ? true : undefined} {...rest} />
 })
 
 interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
@@ -27,5 +27,13 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function 
   ref,
 ) {
   const cls = [styles.input, styles.area, state ? styles[state] : '', className].filter(Boolean).join(' ')
-  return <textarea ref={ref} className={cls} rows={rows} {...rest} />
+  return (
+    <textarea
+      ref={ref}
+      className={cls}
+      rows={rows}
+      aria-invalid={state === 'err' ? true : undefined}
+      {...rest}
+    />
+  )
 })

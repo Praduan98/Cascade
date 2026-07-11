@@ -36,6 +36,12 @@ function AuditIcon() {
   )
 }
 
+const NAV = [
+  { href: '/admin', label: 'Overview', icon: <OverviewIcon /> },
+  { href: '/admin/workspaces', label: 'Workspaces', icon: <WorkspacesIcon /> },
+  { href: '/admin/audit', label: 'Platform audit', icon: <AuditIcon /> },
+]
+
 export function AdminShell({ children }: { children: ReactNode }) {
   const pathname = usePathname()
   const { platformUser, signOut } = usePlatformSession()
@@ -43,11 +49,27 @@ export function AdminShell({ children }: { children: ReactNode }) {
   return (
     <div className={styles.root}>
       <Topbar
+        className={styles.topbar}
         brand="Cascade"
         sub="Superadmin"
         nav={<Tag mono tone="gold">platform</Tag>}
-        actions={<ThemeButton />}
+        actions={
+          <>
+            <button type="button" className={['btn btn-ghost btn-sm', styles.topbarSignOut].join(' ')} onClick={() => void signOut()}>Sign out</button>
+            <ThemeButton />
+          </>
+        }
       />
+      {/* Mobile nav — the sidebar is hidden <=720px, so surface nav + sign-out here. */}
+      <nav className={styles.mobileNav} aria-label="Platform navigation">
+        {NAV.map((n) => (
+          <Link key={n.href} href={n.href} className={[styles.mobileNavItem, pathname === n.href ? styles.mobileNavActive : ''].filter(Boolean).join(' ')} aria-current={pathname === n.href ? 'page' : undefined}>
+            {n.icon}
+            <span>{n.label}</span>
+          </Link>
+        ))}
+        <Link href="/tables" className={styles.mobileNavItem}>← Back to app</Link>
+      </nav>
       <div className={styles.body}>
         <aside className={styles.side}>
           <div className={styles.sideBrand}>

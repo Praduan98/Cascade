@@ -1,10 +1,41 @@
+/* Landing — Deep Current. Dark-first, full light parity via shared tokens. */
+
 .main {
-  min-height: 100dvh;
-  display: grid;
-  place-items: center;
-  padding: 80px 20px 40px;
   position: relative;
+  isolation: isolate;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  padding: 128px clamp(20px, 6vw, 72px) 64px;
+  overflow: hidden;
 }
+/* Atmosphere: a brand/cobalt glow bloom over the top-right, riding a --grad-flow wash. */
+.main::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background:
+    radial-gradient(115% 80% at 82% -12%, var(--brand-glow), transparent 55%),
+    radial-gradient(90% 70% at 8% 4%, var(--cobalt-soft), transparent 52%),
+    var(--grad-flow);
+}
+/* Faint grid texture, masked so it fades toward the fold — never a flat solid ground. */
+.main::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 46px 46px;
+  -webkit-mask-image: radial-gradient(130% 100% at 50% -6%, #000 32%, transparent 80%);
+  mask-image: radial-gradient(130% 100% at 50% -6%, #000 32%, transparent 80%);
+}
+
 .top {
   position: fixed;
   inset: 0 0 auto 0;
@@ -27,15 +58,29 @@
   width: 26px;
   height: 26px;
 }
+
+/* Asymmetric split: copy leads, the product visual balances it on the right. */
 .hero {
-  max-width: 660px;
-  text-align: center;
+  width: 100%;
+  max-width: var(--maxw);
+  margin-inline: auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  align-items: center;
+  gap: clamp(32px, 5vw, 72px);
 }
-.hero h1 {
-  font-size: clamp(2.4rem, 6vw, 4rem);
+.copy {
+  max-width: 560px;
+}
+.eyebrow {
+  display: inline-block;
+}
+.headline {
+  margin-top: 18px;
+  font-size: var(--fs-hero);
   font-weight: 800;
   letter-spacing: -0.045em;
-  line-height: 1.02;
+  line-height: 1.0;
 }
 .flow {
   background: var(--grad-brand);
@@ -43,8 +88,8 @@
   background-clip: text;
   color: transparent;
 }
-.hero p {
-  margin-top: 18px;
+.lede {
+  margin-top: 20px;
   color: var(--text-2);
   font-size: 1.08rem;
   line-height: 1.62;
@@ -53,6 +98,233 @@
   margin-top: 30px;
   display: flex;
   gap: 12px;
-  justify-content: center;
   flex-wrap: wrap;
+}
+.trust {
+  margin-top: 34px;
+  padding-top: 22px;
+  border-top: 1px solid var(--hairline);
+}
+.trustLabel {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.trustRow {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+}
+.prov {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--r-sm);
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  font-weight: 700;
+  color: #fff;
+  flex: none;
+}
+
+/* ---- Product visual: a small bento built from divs + tokens ---- */
+.visual {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  min-width: 0;
+}
+.gridCard {
+  grid-column: 1 / -1;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-3);
+  padding: 8px;
+  overflow: hidden;
+}
+.gridHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px 12px;
+}
+.gridName {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.gridCount {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  color: var(--text-3);
+}
+.gridRow {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.3fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border-top: 1px solid var(--hairline);
+  font-size: var(--fs-sm);
+}
+.cellCo {
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cellVal,
+.cellValMuted {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cellVal {
+  color: var(--text-2);
+}
+.cellValMuted {
+  color: var(--text-faint);
+}
+.stat {
+  justify-self: end;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-2xs);
+  font-weight: 600;
+  color: var(--text-2);
+  white-space: nowrap;
+}
+.stat::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: var(--r-full);
+  background: currentColor;
+  flex: none;
+}
+.ok {
+  color: var(--st-success);
+}
+.cached {
+  color: var(--st-cached);
+}
+.running {
+  color: var(--st-running);
+}
+.empty {
+  color: var(--st-empty);
+}
+
+.meterCard,
+.flowCard {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 14px;
+}
+.meterCap {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+}
+.meterVal {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--gold);
+  font-size: var(--fs-sm);
+}
+.meterTrack {
+  margin-top: 12px;
+  height: 8px;
+  border-radius: var(--r-full);
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.meterFill {
+  height: 100%;
+  width: 64%;
+  border-radius: var(--r-full);
+  background: linear-gradient(90deg, var(--gold-2), var(--gold));
+}
+.flowCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: center;
+}
+.flowStep {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--text-2);
+}
+.flowArrow {
+  font-size: var(--fs-2xs);
+  color: var(--text-3);
+  padding-left: 34px;
+  position: relative;
+}
+.flowArrow::before {
+  content: '';
+  position: absolute;
+  left: 12px;
+  top: -2px;
+  bottom: -2px;
+  width: 1px;
+  background: var(--border-strong);
+}
+
+/* ---- Page-load stagger — gated so reduced-motion keeps content fully visible ---- */
+@media (prefers-reduced-motion: no-preference) {
+  .r1,
+  .r2,
+  .r3,
+  .r4,
+  .r5 {
+    opacity: 0;
+    animation: rise var(--dur-4) var(--ease) both;
+  }
+  .r1 { animation-delay: 0.04s; }
+  .r2 { animation-delay: 0.12s; }
+  .r3 { animation-delay: 0.2s; }
+  .r4 { animation-delay: 0.28s; }
+  .r5 { animation-delay: 0.36s; }
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ---- Responsive: single column, no horizontal scroll ---- */
+@media (max-width: 860px) {
+  .hero {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+  .copy {
+    max-width: 620px;
+  }
+  .visual {
+    max-width: 460px;
+  }
 }

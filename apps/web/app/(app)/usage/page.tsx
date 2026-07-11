@@ -27,6 +27,27 @@ import styles from './usage.module.css'
 
 type Dim = 'provider' | 'column' | 'table' | 'model'
 const nf = new Intl.NumberFormat('en-US')
+const cf = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
+const usd = (n: number) => cf.format(n)
+
+// A run-outcome pill (color-coded count). Wrapped so assistive tech announces
+// the meaning of the colour, e.g. "12 succeeded", not a bare "12".
+function OutcomePill({
+  status,
+  count,
+  label,
+}: {
+  status: 'success' | 'cached' | 'empty' | 'failed'
+  count: number
+  label: string
+}) {
+  const text = `${nf.format(count)} ${label}`
+  return (
+    <span role="img" aria-label={text} title={text}>
+      <Pill status={status}>{count}</Pill>
+    </span>
+  )
+}
 const AVATAR_COLORS = ['#2fe6c8', '#4f9dff', '#38d08c', '#ab8cfb', '#f2666b', '#16b79e', '#f5b544']
 function avatarColor(seed: string): string {
   let h = 0
@@ -163,7 +184,7 @@ export default function UsagePage() {
             used={used}
             total={balance.budgetCap}
             renewsLabel="renews next period"
-            estCharge={canCost ? `$${totalUsd.toFixed(0)}` : undefined}
+            estCharge={canCost ? usd(totalUsd) : undefined}
             segments={segments}
           />
         ) : (
@@ -202,7 +223,7 @@ export default function UsagePage() {
                 key={b.key}
                 label={b.label}
                 credits={`${nf.format(b.credits)} cr`}
-                cost={canCost && b.providerCostUsd != null ? `$${b.providerCostUsd.toFixed(2)}` : undefined}
+                cost={canCost && b.providerCostUsd != null ? usd(b.providerCostUsd) : undefined}
                 fraction={b.credits / maxCredits}
               />
             ))}
@@ -234,12 +255,12 @@ export default function UsagePage() {
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th>Who</th>
-                  <th>When</th>
-                  <th>Scope</th>
-                  <th>Outcome</th>
-                  <th style={{ textAlign: 'right' }}>Credits</th>
-                  {canCost && <th style={{ textAlign: 'right' }}>Provider cost</th>}
+                  <th scope="col">Who</th>
+                  <th scope="col">When</th>
+                  <th scope="col">Scope</th>
+                  <th scope="col">Outcome</th>
+                  <th scope="col" style={{ textAlign: 'right' }}>Credits</th>
+                  {canCost && <th scope="col" style={{ textAlign: 'right' }}>Provider cost</th>}
                 </tr>
               </thead>
               <tbody>
@@ -257,15 +278,15 @@ export default function UsagePage() {
                       <td className={styles.scope}>{scopeLabel(run)}</td>
                       <td>
                         <span className={styles.counts}>
-                          {run.counts.success > 0 && <Pill status="success">{run.counts.success}</Pill>}
-                          {run.counts.cached > 0 && <Pill status="cached">{run.counts.cached}</Pill>}
-                          {run.counts.empty > 0 && <Pill status="empty">{run.counts.empty}</Pill>}
-                          {run.counts.failed > 0 && <Pill status="failed">{run.counts.failed}</Pill>}
+                          {run.counts.success > 0 && <OutcomePill status="success" count={run.counts.success} label="succeeded" />}
+                          {run.counts.cached > 0 && <OutcomePill status="cached" count={run.counts.cached} label="cached" />}
+                          {run.counts.empty > 0 && <OutcomePill status="empty" count={run.counts.empty} label="empty" />}
+                          {run.counts.failed > 0 && <OutcomePill status="failed" count={run.counts.failed} label="failed" />}
                           {run.status === 'paused' && <Pill status="queued">paused</Pill>}
                         </span>
                       </td>
                       <td className={styles.num}>{nf.format(run.creditsConsumed)}</td>
-                      {canCost && <td className={styles.money}>${run.providerCostUsd.toFixed(2)}</td>}
+                      {canCost && <td className={styles.money}>{usd(run.providerCostUsd)}</td>}
                     </tr>
                   )
                 })}

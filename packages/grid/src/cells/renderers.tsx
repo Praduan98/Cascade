@@ -16,10 +16,11 @@ import {
   monoFont,
   paintChip,
   paintCheckbox,
-  paintDot,
+  paintProvenanceHint,
   paintOverflowChip,
   paintRunningBar,
   paintShimmer,
+  paintStatusGlyph,
   paintText,
   CHIP_GAP,
 } from './paint'
@@ -134,7 +135,8 @@ export const multiSelectCellRenderer: CustomRenderer<CascadeCell> = {
 export const statusCellRenderer: CustomRenderer<CascadeCell> = {
   kind: GridCellKind.Custom,
   isMatch: (c): c is CascadeCell => isCascade(c, 'status'),
-  needsHover: false,
+  // Hover-tracked so resolved cells can fade in a "opens provenance" chevron.
+  needsHover: true,
   draw: (args) => {
     const { ctx, rect } = args
     const d = args.cell.data
@@ -150,13 +152,26 @@ export const statusCellRenderer: CustomRenderer<CascadeCell> = {
     }
     const cy = rect.y + rect.height / 2
     const color = statusColor(status)
-    paintDot(ctx, rect.x + H_PAD + 3.5, cy, color)
+    // Only enrichment/AI/agent/HTTP status cells open a provenance popover — a
+    // formula-error or forward-compat status cell has no metadata and must not
+    // advertise an interaction it doesn't have.
+    const hasProvenance = !!(d.enrichment || d.ai || d.agent || d.http)
+    // A shape-bearing glyph (not just a coloured dot) so success/cached read
+    // apart without relying on hue (WCAG 1.4.1).
+    paintStatusGlyph(ctx, rect.x + H_PAD + 3.5, cy, status, color)
+    // Reserve room on the right for the hover affordance so text width is stable
+    // whether or not the cell is hovered (only when a chevron can actually appear).
+    const hintPad = hasProvenance ? 14 : 0
     paintText(
       ctx,
-      { x: rect.x + H_PAD + 13, y: rect.y, width: rect.width - H_PAD - 13, height: rect.height },
+      { x: rect.x + H_PAD + 13, y: rect.y, width: rect.width - H_PAD - 13 - hintPad, height: rect.height },
       d.display,
       { font: bodyFont(), color: d.muted ? palette.textMuted : palette.text, padX: 0 },
     )
+    // A resolved provenance cell opens its popover on click; hint at it on hover.
+    if (hasProvenance) {
+      paintProvenanceHint(ctx, rect.x + rect.width - H_PAD, cy, palette.textMuted, args.hoverAmount)
+    }
   },
 }
 

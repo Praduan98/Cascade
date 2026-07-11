@@ -9,6 +9,7 @@ import type { CrmConnection } from '@cascade/core'
 import { Button, Dialog, DialogClose, Field, Select, useToast } from '@cascade/ui'
 import { errorMessage } from '../../../lib/ui'
 import { MappingEditor, type MappingRow } from './MappingEditor'
+import styles from '../integrations.module.css'
 
 export interface EditMappingDialogProps {
   connection: CrmConnection
@@ -72,11 +73,15 @@ export function EditMappingDialog({ connection, workspaceId, onClose, onSaved }:
         </>
       }
     >
-      <Field label="Field mapping" hint="CRM field → table column.">
-        <div>
-          <MappingEditor rows={rows} columns={columns} onChange={setRows} loading={columnsQuery.isLoading} />
-        </div>
-      </Field>
+      <div role="group" aria-labelledby="edit-map-label" aria-describedby="edit-map-hint" className={styles.group}>
+        <span id="edit-map-label" className={styles.groupLabel}>
+          Field mapping
+        </span>
+        <MappingEditor rows={rows} columns={columns} onChange={setRows} loading={columnsQuery.isLoading} />
+        <span id="edit-map-hint" className={styles.groupHint}>
+          CRM field → table column.
+        </span>
+      </div>
 
       <Field label="Dedupe column" htmlFor="edit-dedupe" hint="Key used to match records on sync.">
         <Select

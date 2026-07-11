@@ -16,12 +16,30 @@ interface NavItemProps {
   active?: boolean
   disabled?: boolean
   href?: string
-  onClick?: MouseEventHandler<HTMLAnchorElement>
+  onClick?: MouseEventHandler<HTMLElement>
 }
 
 // Ported from architecture.src.html — `.sh-nav a` / `.on`.
 export function NavItem({ children, icon, active = false, disabled = false, href, onClick }: NavItemProps) {
   const cls = [active ? styles.on : '', disabled ? styles.disabled : ''].filter(Boolean).join(' ')
+
+  // With no href this is an action, not a link — render a real <button> so it is
+  // keyboard-operable (Enter/Space) rather than a role="button" <a> that isn't.
+  if (!href) {
+    return (
+      <button
+        type="button"
+        className={cls || undefined}
+        onClick={disabled ? undefined : onClick}
+        disabled={disabled}
+        aria-current={active ? 'page' : undefined}
+      >
+        {icon}
+        {children}
+      </button>
+    )
+  }
+
   return (
     <a
       className={cls || undefined}
@@ -29,8 +47,7 @@ export function NavItem({ children, icon, active = false, disabled = false, href
       onClick={disabled ? undefined : onClick}
       aria-current={active ? 'page' : undefined}
       aria-disabled={disabled || undefined}
-      role={href ? undefined : 'button'}
-      tabIndex={disabled ? -1 : 0}
+      tabIndex={disabled ? -1 : undefined}
     >
       {icon}
       {children}

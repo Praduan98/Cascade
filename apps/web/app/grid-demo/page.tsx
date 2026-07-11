@@ -54,7 +54,9 @@ export default function GridDemoPage() {
         {seeded ? (
           <TableGridDynamic api={seeded.api} tableId={seeded.tableId} viewId={seeded.viewId} />
         ) : (
-          <div className={styles.seeding}>Seeding {TARGET_ROWS.toLocaleString('en-US')} rows…</div>
+          <div className={styles.seeding} role="status" aria-live="polite">
+            Seeding {TARGET_ROWS.toLocaleString('en-US')} rows…
+          </div>
         )}
       </section>
     </main>

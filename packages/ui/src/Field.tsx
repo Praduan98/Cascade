@@ -8,7 +8,7 @@ interface FieldProps {
   type?: ReactNode
   /** Helper text shown under the control. */
   hint?: ReactNode
-  /** Render the hint in the error tone. */
+  /** Render the hint in the error tone (also flags the control `aria-invalid`). */
   error?: boolean
   /** Associates the label with a control id. */
   htmlFor?: string
@@ -17,17 +17,37 @@ interface FieldProps {
   className?: string
 }
 
+/** Props Field injects into its single control child so label + hint bind correctly. */
+type Injectable = {
+  id?: string
+  'aria-describedby'?: string
+  'aria-invalid'?: boolean | 'true' | 'false'
+}
+
 // Ported from design-system.src.html `.field` (label + mono `.ty` badge + `.hint`/`.hint.err`).
+// The label is associated with the control by injecting an id; when a `hint` is present it is
+// also wired via `aria-describedby`, and an `error` sets `aria-invalid` + announces the hint,
+// so screen readers get the label, the helper text, and the invalid state.
 export function Field({ label, type, hint, error, htmlFor, children, className = '' }: FieldProps) {
   const autoId = useId()
-  const controlId = htmlFor ?? autoId
-  // Associate the label with the control: inject an id into the single control
-  // child (unless it already has one) so <label htmlFor> binds it — screen
-  // readers announce the label and clicking it focuses the input.
-  const control =
-    isValidElement(children) && (children as ReactElement<{ id?: string }>).props.id === undefined
-      ? cloneElement(children as ReactElement<{ id?: string }>, { id: controlId })
-      : children
+  const hintId = useId()
+  const childProps: Injectable = isValidElement(children)
+    ? ((children as ReactElement<Injectable>).props ?? {})
+    : {}
+  const controlId = htmlFor ?? childProps.id ?? autoId
+  const describedBy =
+    hint != null
+      ? [childProps['aria-describedby'], hintId].filter(Boolean).join(' ')
+      : childProps['aria-describedby']
+
+  const control = isValidElement(children)
+    ? cloneElement(children as ReactElement<Injectable>, {
+        id: controlId,
+        'aria-describedby': describedBy || undefined,
+        'aria-invalid': error ? true : childProps['aria-invalid'],
+      })
+    : children
+
   const cls = [styles.field, className].filter(Boolean).join(' ')
   return (
     <div className={cls}>
@@ -39,7 +59,13 @@ export function Field({ label, type, hint, error, htmlFor, children, className =
       )}
       {control}
       {hint != null && (
-        <span className={[styles.hint, error ? styles.err : ''].filter(Boolean).join(' ')}>{hint}</span>
+        <span
+          id={hintId}
+          role={error ? 'alert' : undefined}
+          className={[styles.hint, error ? styles.err : ''].filter(Boolean).join(' ')}
+        >
+          {hint}
+        </span>
       )}
     </div>
   )

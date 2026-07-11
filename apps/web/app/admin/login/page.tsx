@@ -59,7 +59,7 @@ export default function PlatformLoginPage() {
             void submit(email)
           }}
         >
-          <Field label="Staff email" htmlFor="pemail" type="Email">
+          <Field label="Staff email" htmlFor="pemail">
             <Input id="pemail" type="email" autoComplete="email" placeholder="you@sdtcdigital.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
           </Field>
           <Button type="submit" variant="primary" size="lg" disabled={busy}>

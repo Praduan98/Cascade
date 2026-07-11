@@ -4,7 +4,7 @@
 // integration-event feed. Frontend-only on the mock API; admin+ gated
 // (canManageIntegrations), which the API also enforces.
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { getApi } from '@cascade/data'
@@ -16,7 +16,7 @@ import type {
   IntegrationEventStatus,
 } from '@cascade/core'
 import { canManageIntegrations } from '@cascade/core'
-import { Alert, Button, Card, EmptyState, Field, Input, Pill, Seg, Tag, useToast } from '@cascade/ui'
+import { Alert, Button, Card, ConfirmDialog, EmptyState, Field, Input, Pill, Seg, Tag, useToast } from '@cascade/ui'
 import { useSession } from '../../session'
 import { errorMessage, formatDate } from '../../lib/ui'
 import { ConnectCrmDialog } from './_components/ConnectCrmDialog'
@@ -57,6 +57,28 @@ function LockGlyph() {
   )
 }
 
+function PlugGlyph() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M9 2v6M15 2v6" />
+      <path d="M6 8h12v3a6 6 0 0 1-12 0z" />
+      <path d="M12 17v5" />
+    </svg>
+  )
+}
+
+/** Full-page header shown on every state (including gated/no-workspace ones). */
+function PageHeader({ subtitle }: { subtitle: ReactNode }) {
+  return (
+    <header className={styles.header}>
+      <div className={styles.headTitle}>
+        <h1>Integrations</h1>
+        <div className={styles.count}>{subtitle}</div>
+      </div>
+    </header>
+  )
+}
+
 export default function IntegrationsPage() {
   const { workspace, role } = useSession()
   const authorized = role ? canManageIntegrations(role) : false
@@ -65,6 +87,7 @@ export default function IntegrationsPage() {
   if (!workspace) {
     return (
       <div className={styles.page}>
+        <PageHeader subtitle="CRM sync, Slack alerts & activity" />
         <Alert variant="info" title="No workspace">
           You&rsquo;re not a member of any workspace yet.
         </Alert>
@@ -75,6 +98,7 @@ export default function IntegrationsPage() {
   if (!authorized) {
     return (
       <div className={styles.page}>
+        <PageHeader subtitle={`CRM sync, Slack alerts & activity for ${workspace.name}`} />
         <EmptyState
           icon={<LockGlyph />}
           title="Integrations are restricted"
@@ -91,12 +115,7 @@ export default function IntegrationsPage() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.header}>
-        <div className={styles.headTitle}>
-          <h1>Integrations</h1>
-          <div className={styles.count}>CRM sync, Slack alerts &amp; activity for {workspace.name}</div>
-        </div>
-      </header>
+      <PageHeader subtitle={`CRM sync, Slack alerts & activity for ${workspace.name}`} />
 
       <div className={styles.tabs}>
         <Seg
@@ -201,8 +220,14 @@ function CrmSection({ workspaceId }: { workspaceId: string }) {
           ))
         ) : connections.length === 0 ? (
           <EmptyState
+            icon={<PlugGlyph />}
             title="No CRM connected"
             description="Connect HubSpot, Salesforce, or Pipedrive to sync a table both ways."
+            action={
+              <Button variant="primary" size="sm" onClick={() => setConnectOpen(true)}>
+                Connect CRM
+              </Button>
+            }
           />
         ) : (
           connections.map((c) => (
@@ -244,14 +269,18 @@ function CrmSection({ workspaceId }: { workspaceId: string }) {
                 <button type="button" className={styles.linkBtn} onClick={() => setMappingTarget(c)}>
                   Edit mapping
                 </button>
-                <button
-                  type="button"
-                  className={[styles.linkBtn, styles.danger].join(' ')}
-                  disabled={disconnect.isPending}
-                  onClick={() => disconnect.mutate(c.id)}
-                >
-                  Disconnect
-                </button>
+                <ConfirmDialog
+                  trigger={
+                    <button type="button" className={[styles.linkBtn, styles.danger].join(' ')} disabled={disconnect.isPending}>
+                      Disconnect
+                    </button>
+                  }
+                  title={`Disconnect ${CRM_LABEL[c.provider]}?`}
+                  description="Syncing stops and the stored API token is removed. You’ll need to reconnect and re-enter the token to sync again."
+                  danger
+                  confirmLabel="Disconnect"
+                  onConfirm={() => disconnect.mutate(c.id)}
+                />
               </div>
             </div>
           ))
@@ -410,14 +439,18 @@ function SlackSection({ workspaceId }: { workspaceId: string }) {
                 </div>
               </div>
               <div className={styles.rowActions}>
-                <button
-                  type="button"
-                  className={[styles.linkBtn, styles.danger].join(' ')}
-                  disabled={disconnect.isPending}
-                  onClick={() => disconnect.mutate()}
-                >
-                  Disconnect
-                </button>
+                <ConfirmDialog
+                  trigger={
+                    <button type="button" className={[styles.linkBtn, styles.danger].join(' ')} disabled={disconnect.isPending}>
+                      Disconnect
+                    </button>
+                  }
+                  title={`Disconnect ${slack.teamName}?`}
+                  description="Alerts and automation notifications will stop posting to Slack, and the stored bot token is removed."
+                  danger
+                  confirmLabel="Disconnect"
+                  onConfirm={() => disconnect.mutate()}
+                />
               </div>
             </div>
 

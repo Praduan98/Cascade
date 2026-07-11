@@ -66,6 +66,97 @@ export function paintDot(ctx: CanvasRenderingContext2D, cx: number, cy: number, 
 }
 
 /**
+ * A status marker whose SHAPE encodes the state, so hue is never the only cue
+ * (WCAG 1.4.1 — success/cached must be distinguishable without colour). Drawn in
+ * an ~8px box centred on (cx, cy), replacing the plain dot for resolved states:
+ *  • success → check   • cached → circular-arrow (refresh)   • failed → ✕
+ *  • empty → dash   • anything else (queued) → the filled dot.
+ */
+export function paintStatusGlyph(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  status: CellStatus,
+  color: string,
+): void {
+  ctx.save()
+  ctx.strokeStyle = color
+  ctx.fillStyle = color
+  ctx.lineWidth = 1.5
+  ctx.lineCap = 'round'
+  ctx.lineJoin = 'round'
+  const r = 3.5
+  switch (status) {
+    case 'success': {
+      ctx.beginPath()
+      ctx.moveTo(cx - 3.2, cy + 0.2)
+      ctx.lineTo(cx - 0.9, cy + 2.6)
+      ctx.lineTo(cx + 3.4, cy - 2.8)
+      ctx.stroke()
+      break
+    }
+    case 'cached': {
+      // Open ring + arrowhead — reads as a refresh / cache mark.
+      const from = TAU * 0.12
+      const to = TAU * 0.86
+      ctx.beginPath()
+      ctx.arc(cx, cy, r, from, to)
+      ctx.stroke()
+      const ax = cx + r * Math.cos(from)
+      const ay = cy + r * Math.sin(from)
+      ctx.beginPath()
+      ctx.moveTo(ax - 2.4, ay - 0.6)
+      ctx.lineTo(ax, ay)
+      ctx.lineTo(ax + 0.4, ay - 2.6)
+      ctx.stroke()
+      break
+    }
+    case 'failed': {
+      ctx.beginPath()
+      ctx.moveTo(cx - 2.8, cy - 2.8)
+      ctx.lineTo(cx + 2.8, cy + 2.8)
+      ctx.moveTo(cx + 2.8, cy - 2.8)
+      ctx.lineTo(cx - 2.8, cy + 2.8)
+      ctx.stroke()
+      break
+    }
+    case 'empty': {
+      ctx.beginPath()
+      ctx.moveTo(cx - 3, cy)
+      ctx.lineTo(cx + 3, cy)
+      ctx.stroke()
+      break
+    }
+    default: {
+      ctx.beginPath()
+      ctx.arc(cx, cy, r, 0, TAU)
+      ctx.fill()
+    }
+  }
+  ctx.restore()
+}
+
+/**
+ * A faint right-aligned chevron hinting that a resolved status cell opens its
+ * provenance popover. `alpha` (0→1) fades it in with the cell's hover amount.
+ */
+export function paintProvenanceHint(ctx: CanvasRenderingContext2D, cx: number, cy: number, color: string, alpha: number): void {
+  if (alpha <= 0) return
+  ctx.save()
+  ctx.globalAlpha = Math.max(0, Math.min(1, alpha))
+  ctx.strokeStyle = color
+  ctx.lineWidth = 1.5
+  ctx.lineCap = 'round'
+  ctx.lineJoin = 'round'
+  ctx.beginPath()
+  ctx.moveTo(cx - 2.5, cy - 3.5)
+  ctx.lineTo(cx + 1, cy)
+  ctx.lineTo(cx - 2.5, cy + 3.5)
+  ctx.stroke()
+  ctx.restore()
+}
+
+/**
  * A single select chip (the `.tag`/select-pill look): soft tinted fill, a
  * colour-mixed border, and label text in the chip colour. Returns its width so
  * multi-select can lay chips out in a row.

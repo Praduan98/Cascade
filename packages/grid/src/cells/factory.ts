@@ -90,7 +90,11 @@ export function makeEnrichCell(column: Column, cell: Cell | undefined): CascadeC
   const copyData = def.toCsv(value, column.config)
   const base = { columnId: column.id, value, config: column.config, kind: 'status' as const, enrichment: meta }
 
-  const build = (data: CascadeCellData): CascadeCell => ({ kind: GridCellKind.Custom, allowOverlay: false, copyData, data })
+  // Resolved cells open a provenance popover, so give them a pointer cursor as a
+  // discoverable affordance. Non-value states carry a human status label in
+  // `copyData` so clipboard / screen readers get the state, not a blank string.
+  const build = (data: CascadeCellData, copy: string = copyData): CascadeCell =>
+    ({ kind: GridCellKind.Custom, allowOverlay: false, copyData: copy, cursor: 'pointer', data })
 
   switch (meta.status) {
     case 'success':
@@ -99,13 +103,15 @@ export function makeEnrichCell(column: Column, cell: Cell | undefined): CascadeC
       return build({ ...base, status: meta.status, display: empty ? EMDASH : def.formatDisplay(value, column.config), muted: empty })
     }
     case 'running':
-      return build({ ...base, status: 'running', display: '', muted: true })
-    case 'empty':
-      return build({ ...base, status: 'empty', display: meta.reason ?? 'no match found', muted: true })
+      return build({ ...base, status: 'running', display: '', muted: true }, 'running')
+    case 'empty': {
+      const label = meta.reason ?? 'no match found'
+      return build({ ...base, status: 'empty', display: label, muted: true }, label)
+    }
     case 'failed':
-      return build({ ...base, status: 'failed', display: meta.reason ?? 'failed', muted: true })
+      return build({ ...base, status: 'failed', display: meta.reason ?? 'failed', muted: true }, meta.reason ? `failed — ${meta.reason}` : 'failed')
     default:
-      return build({ ...base, status: 'queued', display: 'queued', muted: true })
+      return build({ ...base, status: 'queued', display: 'queued', muted: true }, 'queued')
   }
 }
 
@@ -124,7 +130,8 @@ export function makeAiCell(column: Column, cell: Cell | undefined): CascadeCell 
   const copyData = def.toCsv(value, column.config)
   const base = { columnId: column.id, value, config: column.config, kind: 'status' as const, ai: meta }
 
-  const build = (data: CascadeCellData): CascadeCell => ({ kind: GridCellKind.Custom, allowOverlay: false, copyData, data })
+  const build = (data: CascadeCellData, copy: string = copyData): CascadeCell =>
+    ({ kind: GridCellKind.Custom, allowOverlay: false, copyData: copy, cursor: 'pointer', data })
 
   switch (meta.status) {
     case 'success':
@@ -133,13 +140,15 @@ export function makeAiCell(column: Column, cell: Cell | undefined): CascadeCell 
       return build({ ...base, status: meta.status, display: empty ? EMDASH : def.formatDisplay(value, column.config), muted: empty })
     }
     case 'running':
-      return build({ ...base, status: 'running', display: '', muted: true })
-    case 'empty':
-      return build({ ...base, status: 'empty', display: meta.reason ?? 'no result', muted: true })
+      return build({ ...base, status: 'running', display: '', muted: true }, 'running')
+    case 'empty': {
+      const label = meta.reason ?? 'no result'
+      return build({ ...base, status: 'empty', display: label, muted: true }, label)
+    }
     case 'failed':
-      return build({ ...base, status: 'failed', display: meta.reason ?? 'failed', muted: true })
+      return build({ ...base, status: 'failed', display: meta.reason ?? 'failed', muted: true }, meta.reason ? `failed — ${meta.reason}` : 'failed')
     default:
-      return build({ ...base, status: 'queued', display: 'queued', muted: true })
+      return build({ ...base, status: 'queued', display: 'queued', muted: true }, 'queued')
   }
 }
 
@@ -152,7 +161,8 @@ export function makeAgentCell(column: Column, cell: Cell | undefined): CascadeCe
   const def = columnTypeRegistry[column.type]
   const copyData = def.toCsv(value, column.config)
   const base = { columnId: column.id, value, config: column.config, kind: 'status' as const, agent: meta }
-  const build = (data: CascadeCellData): CascadeCell => ({ kind: GridCellKind.Custom, allowOverlay: false, copyData, data })
+  const build = (data: CascadeCellData, copy: string = copyData): CascadeCell =>
+    ({ kind: GridCellKind.Custom, allowOverlay: false, copyData: copy, cursor: 'pointer', data })
 
   switch (meta.status) {
     case 'success':
@@ -161,13 +171,15 @@ export function makeAgentCell(column: Column, cell: Cell | undefined): CascadeCe
       return build({ ...base, status: meta.status, display: empty ? EMDASH : def.formatDisplay(value, column.config), muted: empty })
     }
     case 'running':
-      return build({ ...base, status: 'running', display: '', muted: true })
-    case 'empty':
-      return build({ ...base, status: 'empty', display: meta.reason ?? 'no result', muted: true })
+      return build({ ...base, status: 'running', display: '', muted: true }, 'running')
+    case 'empty': {
+      const label = meta.reason ?? 'no result'
+      return build({ ...base, status: 'empty', display: label, muted: true }, label)
+    }
     case 'failed':
-      return build({ ...base, status: 'failed', display: meta.reason ?? 'failed', muted: true })
+      return build({ ...base, status: 'failed', display: meta.reason ?? 'failed', muted: true }, meta.reason ? `failed — ${meta.reason}` : 'failed')
     default:
-      return build({ ...base, status: 'queued', display: 'queued', muted: true })
+      return build({ ...base, status: 'queued', display: 'queued', muted: true }, 'queued')
   }
 }
 
@@ -180,7 +192,8 @@ export function makeHttpCell(column: Column, cell: Cell | undefined): CascadeCel
   const def = columnTypeRegistry[column.type]
   const copyData = def.toCsv(value, column.config)
   const base = { columnId: column.id, value, config: column.config, kind: 'status' as const, http: meta }
-  const build = (data: CascadeCellData): CascadeCell => ({ kind: GridCellKind.Custom, allowOverlay: false, copyData, data })
+  const build = (data: CascadeCellData, copy: string = copyData): CascadeCell =>
+    ({ kind: GridCellKind.Custom, allowOverlay: false, copyData: copy, cursor: 'pointer', data })
 
   switch (meta.status) {
     case 'success':
@@ -189,13 +202,17 @@ export function makeHttpCell(column: Column, cell: Cell | undefined): CascadeCel
       return build({ ...base, status: meta.status, display: empty ? EMDASH : def.formatDisplay(value, column.config), muted: empty })
     }
     case 'running':
-      return build({ ...base, status: 'running', display: '', muted: true })
-    case 'empty':
-      return build({ ...base, status: 'empty', display: meta.reason ?? 'no value', muted: true })
-    case 'failed':
-      return build({ ...base, status: 'failed', display: meta.reason ?? `HTTP ${meta.statusCode ?? 'error'}`, muted: true })
+      return build({ ...base, status: 'running', display: '', muted: true }, 'running')
+    case 'empty': {
+      const label = meta.reason ?? 'no value'
+      return build({ ...base, status: 'empty', display: label, muted: true }, label)
+    }
+    case 'failed': {
+      const label = meta.reason ?? `HTTP ${meta.statusCode ?? 'error'}`
+      return build({ ...base, status: 'failed', display: label, muted: true }, `failed — ${label}`)
+    }
     default:
-      return build({ ...base, status: 'queued', display: 'queued', muted: true })
+      return build({ ...base, status: 'queued', display: 'queued', muted: true }, 'queued')
   }
 }
 
@@ -209,7 +226,8 @@ export function makeFormulaCell(column: Column, cell: Cell | undefined): Cascade
   const value = cell?.value ?? null
   if (meta?.status === 'error') {
     const base = { columnId: column.id, value, config: column.config, kind: 'status' as const }
-    return { kind: GridCellKind.Custom, allowOverlay: false, copyData: '', data: { ...base, status: 'failed', display: meta.error ?? 'formula error', muted: true, formulaError: meta.error } }
+    const label = meta.error ?? 'formula error'
+    return { kind: GridCellKind.Custom, allowOverlay: false, copyData: meta.error ? `formula error — ${meta.error}` : 'formula error', data: { ...base, status: 'failed', display: label, muted: true, formulaError: meta.error } }
   }
   // A computed value renders exactly like a plain text cell, but non-editable.
   const text = makeCell(column, value)

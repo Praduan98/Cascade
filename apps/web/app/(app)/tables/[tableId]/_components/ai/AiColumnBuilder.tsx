@@ -51,6 +51,7 @@ export function AiColumnBuilder({ open, onOpenChange, tableId, columns, workspac
   const [fields, setFields] = useState<DraftField[]>([])
   const [cacheTtlDays, setCacheTtlDays] = useState(30)
   const [autoRun, setAutoRun] = useState(false)
+  const [attempted, setAttempted] = useState(false)
 
   const modelsQuery = useQuery({
     queryKey: ['ai', 'models', workspaceId],
@@ -75,6 +76,7 @@ export function AiColumnBuilder({ open, onOpenChange, tableId, columns, workspac
   // Reset / seed drafts when the dialog opens.
   useEffect(() => {
     if (!open) return
+    setAttempted(false)
     setNewName(seedName ?? '')
     const cfg = configQuery.data
     if (cfg) {
@@ -168,19 +170,13 @@ export function AiColumnBuilder({ open, onOpenChange, tableId, columns, workspac
     onError: (err) => toast(errorMessage(err, 'Could not save the AI column'), { variant: 'error' }),
   })
 
+  const nameError = !column && newName.trim() === '' ? 'Name the AI column' : null
+  const promptError = prompt.trim() === '' ? 'Write a prompt for the AI column' : null
+  const structuredError = structured && cleanFields(fields).length === 0 ? 'Add at least one output field, or turn off structured output' : null
+
   function validateAndSave() {
-    if (!column && newName.trim() === '') {
-      toast('Name the AI column', { variant: 'warn' })
-      return
-    }
-    if (prompt.trim() === '') {
-      toast('Write a prompt for the AI column', { variant: 'warn' })
-      return
-    }
-    if (structured && cleanFields(fields).length === 0) {
-      toast('Add at least one output field, or turn off structured output', { variant: 'warn' })
-      return
-    }
+    setAttempted(true)
+    if (nameError || promptError || structuredError) return
     save.mutate()
   }
 
@@ -208,7 +204,12 @@ export function AiColumnBuilder({ open, onOpenChange, tableId, columns, workspac
           {column ? (
             <span className={styles.anchorName}>{column.name}</span>
           ) : (
-            <Field label="Column name" htmlFor="ai-col-name">
+            <Field
+              label="Column name (required)"
+              htmlFor="ai-col-name"
+              hint={attempted && nameError ? nameError : undefined}
+              error={attempted && !!nameError}
+            >
               <Input id="ai-col-name" autoFocus placeholder="e.g. AI: One-line pitch" value={newName} onChange={(e) => setNewName(e.target.value)} />
             </Field>
           )}
@@ -234,8 +235,12 @@ export function AiColumnBuilder({ open, onOpenChange, tableId, columns, workspac
           {opHint && <div className={styles.modelHint}>{opHint}</div>}
         </Field>
 
-        <Field label="Prompt" hint="Insert {{column}} references; they're substituted per row.">
-          <PromptEditor value={prompt} onChange={setPrompt} columns={columns} />
+        <Field
+          label="Prompt (required)"
+          hint={attempted && promptError ? promptError : "Insert {{column}} references; they're substituted per row."}
+          error={attempted && !!promptError}
+        >
+          <PromptEditor label="AI prompt" value={prompt} onChange={setPrompt} columns={columns} />
         </Field>
 
         <div>
@@ -246,11 +251,13 @@ export function AiColumnBuilder({ open, onOpenChange, tableId, columns, workspac
           {structured && (
             <>
               <SchemaFieldsEditor fields={fields} columns={columns} onChange={setFields} />
-              {cleanFields(fields).length > 0 && (
+              {attempted && structuredError ? (
+                <span className={styles.reqError} role="alert">{structuredError}</span>
+              ) : cleanFields(fields).length > 0 ? (
                 <div className={styles.createsLine}>
                   Populates {cleanFields(fields).length} field{cleanFields(fields).length > 1 ? 's' : ''} · {cleanFields(fields).map((f) => f.name).join(', ')}
                 </div>
-              )}
+              ) : null}
             </>
           )}
         </div>

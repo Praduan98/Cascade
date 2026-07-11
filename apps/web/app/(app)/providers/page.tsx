@@ -153,9 +153,9 @@ export default function ProvidersPage() {
                 </div>
                 <div className={styles.rowActions}>
                   {p.supportsByoKey ? (
-                    <button type="button" className={styles.linkBtn} onClick={() => setKeyTarget(p)}>
+                    <Button variant="secondary" size="sm" onClick={() => setKeyTarget(p)}>
                       {cred && !cred.isPlatformManaged ? 'Update key' : 'Add key'}
-                    </button>
+                    </Button>
                   ) : (
                     <span className={styles.keyHint}>Platform only</span>
                   )}

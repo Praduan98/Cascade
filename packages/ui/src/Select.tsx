@@ -13,7 +13,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
 ) {
   const cls = [styles.select, state ? styles[state] : '', className].filter(Boolean).join(' ')
   return (
-    <select ref={ref} className={cls} {...rest}>
+    <select ref={ref} className={cls} aria-invalid={state === 'err' ? true : undefined} {...rest}>
       {children}
     </select>
   )

@@ -95,7 +95,7 @@ export function ConnectSequencerDialog(props: {
         </Field>
       </div>
 
-      <Field label="API token" htmlFor="seq-token" hint="Stored securely and never shown again.">
+      <Field label="API token (required)" htmlFor="seq-token" hint="Stored securely and never shown again.">
         <Input
           id="seq-token"
           type="password"

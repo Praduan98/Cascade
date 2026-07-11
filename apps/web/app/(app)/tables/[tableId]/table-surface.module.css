@@ -85,6 +85,7 @@
   min-width: 0;
 }
 .name {
+  margin: 0;
   font-family: var(--font-display);
   font-size: var(--fs-h3);
   line-height: 1.1;

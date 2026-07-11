@@ -16,7 +16,8 @@ import { errorMessage, formatDate } from '../../lib/ui'
 import styles from './billing.module.css'
 
 const nf = new Intl.NumberFormat('en-US')
-const usd = (n: number) => `$${nf.format(Math.round(n * 100) / 100)}`
+const cf = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
+const usd = (n: number) => cf.format(n)
 
 function Check() {
   return (
@@ -238,7 +239,7 @@ export default function BillingPage() {
             <div key={pack.id} className={styles.packCard}>
               <span className={styles.packCredits}>{nf.format(pack.credits)} credits</span>
               <span className={styles.packPrice}>{usd(pack.amountUsd)}</span>
-              <span className={styles.packRate}>${(pack.amountUsd / pack.credits * 1000).toFixed(2)} / 1k credits</span>
+              <span className={styles.packRate}>{usd((pack.amountUsd / pack.credits) * 1000)} / 1k credits</span>
               <Button variant="secondary" size="sm" onClick={() => setPackTarget(pack)}>Buy pack</Button>
             </div>
           ))}
@@ -259,7 +260,7 @@ export default function BillingPage() {
           <div className={styles.scrollX}>
             <table className={styles.table}>
               <thead>
-                <tr><th>Date</th><th>Description</th><th>Status</th><th style={{ textAlign: 'right' }}>Amount</th><th></th></tr>
+                <tr><th scope="col">Date</th><th scope="col">Description</th><th scope="col">Status</th><th scope="col" style={{ textAlign: 'right' }}>Amount</th><th scope="col"><span className={styles.srOnly}>Download</span></th></tr>
               </thead>
               <tbody>
                 {invoices.map((inv) => (

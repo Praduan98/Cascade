@@ -147,6 +147,13 @@ export const TableGrid = forwardRef<TableGridHandle, TableGridProps>(function Ta
   const theme = useGlideTheme()
   const editorRef = useRef<DataEditorRef>(null)
   const [warning, setWarning] = useState<string | null>(null)
+  // Conflicts are assertive (role="alert"); plain validation/info is polite
+  // (role="status"). `notify` sets both the message and its severity together.
+  const [warningAlert, setWarningAlert] = useState(false)
+  const notify = useCallback((text: string | null, alert = false) => {
+    setWarning(text)
+    setWarningAlert(alert)
+  }, [])
 
   const [columns, setColumns] = useState<Column[]>([])
   const [widths, setWidths] = useState<Record<string, number>>({})
@@ -161,7 +168,7 @@ export const TableGrid = forwardRef<TableGridHandle, TableGridProps>(function Ta
         if (!cancelled) setColumns(cols.slice().sort((a, b) => a.position - b.position))
       },
       () => {
-        if (!cancelled) setWarning('Could not load columns.')
+        if (!cancelled) notify('Could not load columns.')
       },
     )
     return () => {
@@ -298,19 +305,19 @@ export const TableGrid = forwardRef<TableGridHandle, TableGridProps>(function Ta
             for (const c of result.conflicts) {
               data.applyEdit(c.recordId, c.columnId, c.currentValue as CellValue, c.currentUpdatedAt)
             }
-            setWarning('Some cells changed since you loaded them and were not overwritten.')
+            notify('Some cells changed since you loaded them and were not overwritten.', true)
           } else {
-            setWarning(null)
+            notify(null)
           }
         })
         .catch((err: unknown) => {
-          if (err instanceof ConflictError) setWarning('That value changed since you loaded it.')
-          else if (isApiError(err)) setWarning(err.message)
-          else setWarning('Could not save your edit.')
+          if (err instanceof ConflictError) notify('That value changed since you loaded it.', true)
+          else if (isApiError(err)) notify(err.message)
+          else notify('Could not save your edit.')
           data.reload()
         })
     },
-    [api, data],
+    [api, data, notify],
   )
 
   // Persist `forward` now and record an undoable command. Undo/redo force the
@@ -330,15 +337,15 @@ export const TableGrid = forwardRef<TableGridHandle, TableGridProps>(function Ta
   )
 
   const surface = useCallback((err: unknown, fallback: string) => {
-    setWarning(isApiError(err) ? err.message : fallback)
-  }, [])
+    notify(isApiError(err) ? err.message : fallback)
+  }, [notify])
 
   // --- editing -----------------------------------------------------------
 
   const onCellsEdited = useCallback(
     (edits: readonly EditListItem[]): boolean => {
       if (readOnly) {
-        setWarning('Viewers have read-only access.')
+        notify('Viewers have read-only access.')
         return true
       }
       const forward: CellEdit[] = []
@@ -354,7 +361,7 @@ export const TableGrid = forwardRef<TableGridHandle, TableGridProps>(function Ta
         if (cdata.draft === undefined) continue // opened but not changed
         const res = validateValue(column.type, rawFromCell(cdata), column.config)
         if (!res.ok) {
-          setWarning(res.error)
+          notify(res.error)
           continue
         }
         const prev = rowData.cells[column.id]?.value ?? emptyValueFor(column)
@@ -369,7 +376,7 @@ export const TableGrid = forwardRef<TableGridHandle, TableGridProps>(function Ta
       if (forward.length > 0) commitCellChange(forward, inverse, forward.length > 1 ? 'Edit cells' : 'Edit cell')
       return true
     },
-    [readOnly, columns, data, commitCellChange],
+    [readOnly, columns, data, commitCellChange, notify],
   )
 
   const onCellClicked = useCallback(
@@ -427,7 +434,7 @@ export const TableGrid = forwardRef<TableGridHandle, TableGridProps>(function Ta
 
       if (column.type === 'boolean') {
         if (readOnly) {
-          setWarning('Viewers have read-only access.')
+          notify('Viewers have read-only access.')
           return
         }
         const prev = stored?.value ?? null
@@ -449,7 +456,7 @@ export const TableGrid = forwardRef<TableGridHandle, TableGridProps>(function Ta
         }
       }
     },
-    [columns, data, readOnly, commitCellChange, enrichCols, onEnrichmentCellClick, aiCols, onAiCellClick, agentCols, onAgentCellClick, httpCols, onHttpCellClick],
+    [columns, data, readOnly, commitCellChange, enrichCols, onEnrichmentCellClick, aiCols, onAiCellClick, agentCols, onAgentCellClick, httpCols, onHttpCellClick, notify],
   )
 
   // --- copy / paste ------------------------------------------------------
@@ -480,7 +487,7 @@ export const TableGrid = forwardRef<TableGridHandle, TableGridProps>(function Ta
     (e: ReactClipboardEvent<HTMLDivElement>) => {
       if (isEditingText()) return // let the overlay editor receive the paste
       if (readOnly) {
-        setWarning('Viewers have read-only access.')
+        notify('Viewers have read-only access.')
         e.preventDefault()
         return
       }
@@ -492,23 +499,23 @@ export const TableGrid = forwardRef<TableGridHandle, TableGridProps>(function Ta
       const plan = planPaste(text, range, columns, data.rowCount, data.getRow)
       if (plan.forward.length > 0) {
         commitCellChange(plan.forward, plan.inverse, 'Paste')
-        setWarning(
+        notify(
           plan.skipped > 0
             ? `Pasted ${plan.applied} cell${plan.applied === 1 ? '' : 's'}; skipped ${plan.skipped} that didn't fit or match the column type.`
             : null,
         )
       } else if (plan.skipped > 0) {
-        setWarning('Nothing pasted — the values did not match the target columns.')
+        notify('Nothing pasted — the values did not match the target columns.')
       }
     },
-    [readOnly, selection, columns, data, commitCellChange],
+    [readOnly, selection, columns, data, commitCellChange, notify],
   )
 
   // --- row add / delete --------------------------------------------------
 
   const onRowAppended = useCallback(async (): Promise<undefined> => {
     if (readOnly) {
-      setWarning('Viewers have read-only access.')
+      notify('Viewers have read-only access.')
       return undefined
     }
     try {
@@ -528,7 +535,7 @@ export const TableGrid = forwardRef<TableGridHandle, TableGridProps>(function Ta
       surface(err, 'Could not add a row.')
     }
     return undefined
-  }, [api, tableId, data, readOnly, history, surface])
+  }, [api, tableId, data, readOnly, history, surface, notify])
 
   const deleteRowsAtIndices = useCallback(
     (rowIndices: number[]) => {
@@ -578,7 +585,7 @@ export const TableGrid = forwardRef<TableGridHandle, TableGridProps>(function Ta
   const onDelete = useCallback(
     (sel: GridSelection): boolean => {
       if (readOnly) {
-        setWarning('Viewers have read-only access.')
+        notify('Viewers have read-only access.')
         return false
       }
       if (sel.rows.length > 0) {
@@ -587,13 +594,45 @@ export const TableGrid = forwardRef<TableGridHandle, TableGridProps>(function Ta
       }
       return true
     },
-    [readOnly, deleteRowsAtIndices],
+    [readOnly, deleteRowsAtIndices, notify],
   )
 
   // --- undo / redo shortcuts + imperative handle -------------------------
 
   const onKeyDown = useCallback(
     (e: ReactKeyboardEvent<HTMLDivElement>) => {
+      // Enter / Space on a resolved provenance cell opens its popover, so the
+      // provenance is reachable without a mouse (keyboard access). We fall
+      // through to Glide's native handling when the active cell isn't one.
+      if ((e.key === 'Enter' || e.key === ' ') && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        if (isEditingText()) return
+        const pos = selection.current?.cell
+        if (!pos) return
+        const [col, row] = pos
+        const column = columns[col]
+        const rowData = data.getRow(row)
+        if (!column || !rowData) return
+        const stored = rowData.cells[column.id]
+        if (!stored) return
+        const b = editorRef.current?.getBounds(col, row)
+        if (!b) return
+        const rect: CellRect = { x: b.x, y: b.y, width: b.width, height: b.height }
+        const cref = { recordId: rowData.row.id, columnId: column.id }
+        if (enrichCols.has(column.id) && onEnrichmentCellClick && readEnrichment(stored.meta)) {
+          e.preventDefault()
+          onEnrichmentCellClick(cref, rect)
+        } else if (aiCols.has(column.id) && onAiCellClick && readAi(stored.meta)) {
+          e.preventDefault()
+          onAiCellClick(cref, rect)
+        } else if (agentCols.has(column.id) && onAgentCellClick && readAgent(stored.meta)) {
+          e.preventDefault()
+          onAgentCellClick(cref, rect)
+        } else if (httpCols.has(column.id) && onHttpCellClick && readHttp(stored.meta)) {
+          e.preventDefault()
+          onHttpCellClick(cref, rect)
+        }
+        return
+      }
       if (!(e.metaKey || e.ctrlKey) || e.altKey) return
       if (isEditingText()) return // don't hijack the overlay editor's native undo
       const key = e.key.toLowerCase()
@@ -606,7 +645,7 @@ export const TableGrid = forwardRef<TableGridHandle, TableGridProps>(function Ta
         history.redo()
       }
     },
-    [history],
+    [history, selection, columns, data, enrichCols, aiCols, agentCols, httpCols, onEnrichmentCellClick, onAiCellClick, onAgentCellClick, onHttpCellClick],
   )
 
   const handle = useMemo<TableGridHandle>(
@@ -639,7 +678,16 @@ export const TableGrid = forwardRef<TableGridHandle, TableGridProps>(function Ta
     [data],
   )
 
-  const onColumnResize = useCallback(
+  // During the drag, only track the width locally (one setState per tick). The
+  // API persistence is deferred to onColumnResizeEnd so we write once on release
+  // instead of firing api.columns.update on every resize tick.
+  const onColumnResize = useCallback((column: GridColumn, newSize: number) => {
+    const id = column.id
+    if (!id) return
+    setWidths((w) => ({ ...w, [id]: newSize }))
+  }, [])
+
+  const onColumnResizeEnd = useCallback(
     (column: GridColumn, newSize: number) => {
       const id = column.id
       if (!id) return
@@ -690,9 +738,9 @@ export const TableGrid = forwardRef<TableGridHandle, TableGridProps>(function Ta
       onPaste={handlePaste}
     >
       {warning && (
-        <div className={styles.warning} role="status">
+        <div className={styles.warning} role={warningAlert ? 'alert' : 'status'}>
           <span>{warning}</span>
-          <button type="button" className={styles.dismiss} onClick={() => setWarning(null)} aria-label="Dismiss">
+          <button type="button" className={styles.dismiss} onClick={() => notify(null)} aria-label="Dismiss">
             ×
           </button>
         </div>
@@ -733,6 +781,7 @@ export const TableGrid = forwardRef<TableGridHandle, TableGridProps>(function Ta
             onCellsEdited={onCellsEdited}
             onCellClicked={onCellClicked}
             onColumnResize={onColumnResize}
+            onColumnResizeEnd={onColumnResizeEnd}
             onVisibleRegionChanged={onVisibleRegionChanged}
             trailingRowOptions={readOnly ? undefined : { hint: 'New row', sticky: true }}
             onRowAppended={readOnly ? undefined : onRowAppended}

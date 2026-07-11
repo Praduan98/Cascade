@@ -18,8 +18,12 @@
 .select:focus {
   outline: none;
   border-color: var(--brand-line);
-  box-shadow: 0 0 0 3px var(--brand-soft);
   background-color: var(--surface);
+}
+/* Keyboard focus gets the strong, AA-contrast ring; the faint brand-soft glow
+   that used to override the global focus-visible ring is gone. */
+.select:focus-visible {
+  box-shadow: var(--ring);
 }
 .select.ok {
   border-color: color-mix(in srgb, var(--st-success) 45%, transparent);

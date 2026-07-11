@@ -46,10 +46,12 @@ describe('FormulaColumnBuilder — validation', () => {
 
   it('warns on an invalid expression and disables Save', () => {
     renderBuilder()
-    const editor = screen.getByLabelText('AI prompt') as HTMLTextAreaElement
+    // The expression textarea is labelled by its visible "Expression" field label.
+    const editor = screen.getByLabelText('Expression') as HTMLTextAreaElement
     fireEvent.change(editor, { target: { value: 'IF(' } })
 
-    expect(screen.getByText('Check the expression')).toBeTruthy()
+    // The validation error is announced inline at the field (role="alert").
+    expect(screen.getByRole('alert')).toBeTruthy()
     const save = screen.getByRole('button', { name: /Save formula column/ }) as HTMLButtonElement
     expect(save.disabled).toBe(true)
   })

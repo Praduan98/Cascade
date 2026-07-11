@@ -9,7 +9,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { getApi, PLANS } from '@cascade/data'
 import type { PlatformWorkspaceSummary } from '@cascade/data'
 import { canIssueBillingExceptions, canOperateWorkspaces } from '@cascade/core'
-import { Avatar, Button, Dialog, DialogClose, EmptyState, Input, Pill, Select, useToast } from '@cascade/ui'
+import { Avatar, Button, ConfirmDialog, Dialog, DialogClose, EmptyState, Input, Pill, Select, useToast } from '@cascade/ui'
 import { usePlatformSession } from '../PlatformSession'
 import { errorMessage, initials } from '../../lib/ui'
 import styles from '../admin.module.css'
@@ -104,12 +104,12 @@ export default function PlatformWorkspacesPage() {
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th>Workspace</th><th>Plan</th><th>Status</th>
-                  <th style={{ textAlign: 'right' }}>Balance</th>
-                  <th style={{ textAlign: 'right' }}>Seats</th>
-                  <th style={{ textAlign: 'right' }}>MRR</th>
-                  <th style={{ textAlign: 'right' }}>Margin</th>
-                  <th></th>
+                  <th scope="col">Workspace</th><th scope="col">Plan</th><th scope="col">Status</th>
+                  <th scope="col" style={{ textAlign: 'right' }}>Balance</th>
+                  <th scope="col" style={{ textAlign: 'right' }}>Seats</th>
+                  <th scope="col" style={{ textAlign: 'right' }}>MRR</th>
+                  <th scope="col" style={{ textAlign: 'right' }}>Margin</th>
+                  <th scope="col"><span className={styles.srOnly}>Actions</span></th>
                 </tr>
               </thead>
               <tbody>
@@ -166,7 +166,14 @@ export default function PlatformWorkspacesPage() {
                 {selected.suspended ? (
                   <Button variant="secondary" size="sm" disabled={suspend.isPending} onClick={() => suspend.mutate({ id: selected.workspace.id, suspended: false })}>Reactivate workspace</Button>
                 ) : (
-                  <Button variant="danger" size="sm" disabled={suspend.isPending} onClick={() => suspend.mutate({ id: selected.workspace.id, suspended: true })}>Suspend workspace</Button>
+                  <ConfirmDialog
+                    trigger={<Button variant="danger" size="sm">Suspend workspace</Button>}
+                    danger
+                    title={`Suspend ${selected.workspace.name}?`}
+                    description="The workspace loses access immediately and its enrichment jobs stop. You can reactivate it later."
+                    confirmLabel="Suspend workspace"
+                    onConfirm={async () => { await suspend.mutateAsync({ id: selected.workspace.id, suspended: true }) }}
+                  />
                 )}
               </div>
             )}
@@ -187,7 +194,14 @@ export default function PlatformWorkspacesPage() {
                     <Select value={planId} onChange={(e) => setPlanId(e.target.value)} aria-label="Plan">
                       {PLANS.map((p) => <option key={p.id} value={p.id}>{p.name} · {usd(p.priceUsdMonthly)}/mo</option>)}
                     </Select>
-                    <Button variant="secondary" size="sm" disabled={override.isPending || planId === selected.plan?.id} onClick={() => override.mutate({ id: selected.workspace.id, planId })}>Apply</Button>
+                    <ConfirmDialog
+                      trigger={<Button variant="danger" size="sm" disabled={override.isPending || planId === selected.plan?.id}>Apply</Button>}
+                      danger
+                      title={`Override ${selected.workspace.name}'s plan?`}
+                      description={`This moves ${selected.workspace.name} to ${PLANS.find((p) => p.id === planId)?.name ?? 'the selected plan'} and changes what they are billed. The change is logged to the platform audit.`}
+                      confirmLabel="Override plan"
+                      onConfirm={async () => { await override.mutateAsync({ id: selected.workspace.id, planId }) }}
+                    />
                   </div>
                 </div>
               </>
@@ -201,7 +215,14 @@ export default function PlatformWorkspacesPage() {
                   <div key={m.id} className={styles.miniRow}>
                     <span className={styles.miniName}><b>{m.name}</b><span>{m.email} · {m.role}</span></span>
                     {canOperate && m.role !== 'owner' && (
-                      <button type="button" className="btn btn-ghost btn-sm" disabled={deactivate.isPending} onClick={() => deactivate.mutate({ id: selected.workspace.id, userId: m.userId })}>Deactivate</button>
+                      <ConfirmDialog
+                        trigger={<Button variant="danger" size="sm">Deactivate</Button>}
+                        danger
+                        title={`Deactivate ${m.name}?`}
+                        description={`${m.name} (${m.email}) will lose access to ${selected.workspace.name} immediately. This is logged to the platform audit.`}
+                        confirmLabel="Deactivate user"
+                        onConfirm={async () => { await deactivate.mutateAsync({ id: selected.workspace.id, userId: m.userId }) }}
+                      />
                     )}
                   </div>
                 ))}
@@ -219,7 +240,14 @@ export default function PlatformWorkspacesPage() {
                     <span style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
                       <Pill status={inv.status === 'refunded' ? 'failed' : inv.status === 'paid' ? 'success' : 'empty'}>{inv.status}</Pill>
                       {canExcept && inv.status === 'paid' && (
-                        <button type="button" className="btn btn-ghost btn-sm" disabled={refund.isPending} onClick={() => refund.mutate(inv.id)}>Refund</button>
+                        <ConfirmDialog
+                          trigger={<Button variant="danger" size="sm">Refund</Button>}
+                          danger
+                          title={`Refund ${usd(inv.amountUsd)}?`}
+                          description={`This issues a ${usd(inv.amountUsd)} refund for "${inv.lines[0]?.label ?? 'invoice'}" to ${selected.workspace.name}. Refunds cannot be undone and are logged to the platform audit.`}
+                          confirmLabel="Issue refund"
+                          onConfirm={async () => { await refund.mutateAsync(inv.id) }}
+                        />
                       )}
                     </span>
                   </div>

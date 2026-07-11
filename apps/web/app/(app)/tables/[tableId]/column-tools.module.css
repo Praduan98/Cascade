@@ -183,8 +183,8 @@
   flex: none;
 }
 .reorder button {
-  width: 20px;
-  height: 15px;
+  width: 24px;
+  height: 24px;
   display: grid;
   place-items: center;
   border: 0;
@@ -313,6 +313,23 @@
 .rowLabel.empty {
   color: var(--text-faint);
   font-style: italic;
+}
+/* Native checkbox kept in the DOM for keyboard + a11y, visually replaced by the
+   styled .check box next to it (which mirrors its checked state). */
+.srCheck {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+.srCheck:focus-visible + .check {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
 }
 .check {
   flex: none;

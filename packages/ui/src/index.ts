@@ -22,7 +22,7 @@ export type { InputState } from './Input'
 export { Select } from './Select'
 export { Switch } from './Switch'
 export { Seg } from './Seg'
-export type { SegOption } from './Seg'
+export type { SegOption, SegVariant } from './Seg'
 
 // ---- Feedback ----
 export { Alert } from './Alert'
@@ -40,6 +40,7 @@ export { ProvChip, ProvMono } from './ProvChip'
 
 // ---- Overlays (Radix-backed) ----
 export { Dialog, DialogRoot, DialogTrigger, DialogClose } from './Dialog'
+export { ConfirmDialog } from './ConfirmDialog'
 export {
   DropdownMenu,
   DropdownMenuTrigger,

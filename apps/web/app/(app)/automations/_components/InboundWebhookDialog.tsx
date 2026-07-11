@@ -143,7 +143,7 @@ export function InboundWebhookDialog({
         </div>
       ) : (
         <>
-          <Field label="Name" htmlFor="in-name">
+          <Field label="Name (required)" htmlFor="in-name">
             <Input
               id="in-name"
               autoFocus
@@ -171,19 +171,22 @@ export function InboundWebhookDialog({
             </Select>
           </Field>
 
-          <Field label="Field mapping" hint="Map incoming JSON keys to destination columns.">
+          <div role="group" aria-labelledby="in-map-label" aria-describedby="in-map-hint" className={styles.group}>
+            <span id="in-map-label" className={styles.groupLabel}>
+              Field mapping
+            </span>
             <div>
               {rows.map((r, i) => (
                 <div key={i} className={styles.mapRow}>
                   <Input
-                    aria-label="Incoming JSON key"
+                    aria-label={`Incoming JSON key ${i + 1}`}
                     placeholder="email"
                     value={r.field}
                     onChange={(e) => setRow(i, { field: e.target.value })}
                   />
                   <ArrowGlyph />
                   <Select
-                    aria-label="Destination column"
+                    aria-label={`Destination column ${i + 1}`}
                     value={r.columnId}
                     onChange={(e) => setRow(i, { columnId: e.target.value })}
                   >
@@ -197,7 +200,7 @@ export function InboundWebhookDialog({
                   <button
                     type="button"
                     className={styles.iconBtn}
-                    aria-label="Remove mapping row"
+                    aria-label={`Remove mapping row ${i + 1}`}
                     onClick={() => removeRow(i)}
                     disabled={rows.length === 1}
                   >
@@ -211,7 +214,10 @@ export function InboundWebhookDialog({
                 </Button>
               </div>
             </div>
-          </Field>
+            <span id="in-map-hint" className={styles.groupHint}>
+              Map incoming JSON keys to destination columns — at least one is required.
+            </span>
+          </div>
         </>
       )}
     </Dialog>

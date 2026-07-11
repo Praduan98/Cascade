@@ -71,6 +71,19 @@
   box-shadow: none;
 }
 
+/* Read-only ("View only") card: rendered as a plain <div> that does nothing —
+   reset the interactive affordances so it doesn't imply it's clickable. */
+.cardStatic {
+  cursor: default;
+}
+.cardStatic:hover {
+  border-color: var(--border);
+  box-shadow: none;
+}
+.cardStatic:hover .cta svg {
+  transform: none;
+}
+
 .cardTop {
   display: flex;
   align-items: flex-start;
@@ -85,6 +98,7 @@
   font-family: var(--font-mono);
   font-weight: 700;
   font-size: var(--fs-sm);
+  /* Ink is computed per-accent by luminance (see onAccentInk); this is a fallback. */
   color: #fff;
   flex: none;
 }

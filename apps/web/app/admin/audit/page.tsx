@@ -59,7 +59,7 @@ export default function PlatformAuditPage() {
           <div className={styles.scrollX}>
             <table className={styles.table}>
               <thead>
-                <tr><th>Who</th><th>Action</th><th>Detail</th><th style={{ textAlign: 'right' }}>When</th></tr>
+                <tr><th scope="col">Who</th><th scope="col">Action</th><th scope="col">Detail</th><th scope="col" style={{ textAlign: 'right' }}>When</th></tr>
               </thead>
               <tbody>
                 {entries.map((e) => {

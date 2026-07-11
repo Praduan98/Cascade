@@ -2,11 +2,83 @@
    distinguished from the workspace app by the gold "platform" accent. */
 
 .root {
+  position: relative;
   height: 100dvh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   background: var(--ground);
+}
+/* Persistent operator signal — a thin gold stripe so the platform superadmin
+   area is never mistaken for a tenant workspace (FR-4.2). */
+.root::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: var(--grad-brand, var(--gold));
+  background: linear-gradient(90deg, var(--gold), var(--brand));
+  z-index: 60;
+  pointer-events: none;
+}
+/* Gold-tinted topbar reinforces the operator context (higher specificity than
+   the shared shell .topbar so it wins regardless of stylesheet order). */
+.root .topbar {
+  background: linear-gradient(180deg, var(--gold-soft), color-mix(in srgb, var(--ground) 82%, transparent) 68%);
+  border-bottom-color: var(--gold-line);
+}
+.topbarSignOut {
+  display: none;
+}
+
+/* Visually hidden, still announced to assistive tech. */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Mobile nav — the sidebar is hidden <=720px; this carries nav + back-to-app,
+   and the topbar exposes Sign out at that width. */
+.mobileNav {
+  display: none;
+  gap: 6px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--hairline);
+  background: var(--ground-2);
+  overflow-x: auto;
+}
+.mobileNavItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex: none;
+  padding: 7px 11px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  white-space: nowrap;
+}
+.mobileNavItem svg {
+  width: 15px;
+  height: 15px;
+}
+.mobileNavItem:hover {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+.mobileNavActive {
+  border-color: var(--gold-line);
+  background: var(--gold-soft);
+  color: var(--gold);
 }
 .body {
   flex: 1;
@@ -32,6 +104,12 @@
 @media (max-width: 720px) {
   .side {
     display: none;
+  }
+  .mobileNav {
+    display: flex;
+  }
+  .topbarSignOut {
+    display: inline-flex;
   }
 }
 

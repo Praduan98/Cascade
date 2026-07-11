@@ -33,6 +33,26 @@ const FILTER_OPTIONS: { value: Filter; label: string }[] = [
   { value: 'operations', label: 'Operations' },
 ]
 
+/**
+ * Pick a readable ink (near-black or white) for text/glyphs sitting on a
+ * data-driven accent, using the WCAG relative-luminance of the accent. Keeps the
+ * template glyph legible on light *and* dark accents, in either theme. Falls back
+ * to white for a non-hex accent.
+ */
+function onAccentInk(accent: string): string {
+  const hex = accent.trim().replace(/^#/, '')
+  const full = hex.length === 3 ? hex.replace(/(.)/g, '$1$1') : hex
+  if (!/^[0-9a-fA-F]{6}$/.test(full)) return '#ffffff'
+  const n = Number.parseInt(full, 16)
+  const lin = (v: number) => {
+    const s = v / 255
+    return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4
+  }
+  const L = 0.2126 * lin((n >> 16) & 255) + 0.7152 * lin((n >> 8) & 255) + 0.0722 * lin(n & 255)
+  // Crossover (equal contrast vs black & white) is at L ≈ 0.179.
+  return L > 0.179 ? '#0b0d12' : '#ffffff'
+}
+
 /** Configured-column kinds a template sets up, with counts (waterfall/AI/agent/formula). */
 function configuredKinds(t: Template): { label: string; tone: 'brand' | 'cobalt' | 'default' }[] {
   const kinds: { label: string; tone: 'brand' | 'cobalt' | 'default' }[] = []
@@ -68,7 +88,11 @@ function TemplateCard({ template, writable, onUse }: { template: Template; writa
   const inner = (
     <>
       <div className={styles.cardTop}>
-        <span className={styles.glyph} style={{ background: template.accent }} aria-hidden="true">
+        <span
+          className={styles.glyph}
+          style={{ background: template.accent, color: onAccentInk(template.accent) }}
+          aria-hidden="true"
+        >
           {template.glyph}
         </span>
         <div className={styles.cardTitle}>
@@ -120,7 +144,7 @@ function TemplateCard({ template, writable, onUse }: { template: Template; writa
   )
 
   if (!writable) {
-    return <div className={styles.card}>{inner}</div>
+    return <div className={[styles.card, styles.cardStatic].join(' ')}>{inner}</div>
   }
   return (
     <button type="button" className={styles.card} onClick={onUse}>

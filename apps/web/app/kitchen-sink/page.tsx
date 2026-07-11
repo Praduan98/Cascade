@@ -158,7 +158,7 @@ export default function KitchenSink() {
         <div className={styles.page}>
           <header className={styles.head}>
             <div>
-              <div className={styles.title}>Component gallery</div>
+              <h1 className={styles.title}>Component gallery</h1>
               <Link href="/" style={{ fontSize: '0.82rem', color: 'var(--text-3)' }}>
                 ← Cascade
               </Link>

@@ -5,17 +5,21 @@ import styles from './shell.module.css'
 interface WorkspaceSwitcherProps {
   name: ReactNode
   onClick?: MouseEventHandler<HTMLButtonElement>
+  /** Whether the workspace menu this triggers is currently open. */
+  expanded?: boolean
   className?: string
 }
 
 // Ported from architecture.src.html — `.sh-ws` / `.wsq` / `.wsn`.
-export function WorkspaceSwitcher({ name, onClick, className = '' }: WorkspaceSwitcherProps) {
+export function WorkspaceSwitcher({ name, onClick, expanded, className = '' }: WorkspaceSwitcherProps) {
   return (
     <button
       type="button"
       className={[styles['sh-ws'], className].filter(Boolean).join(' ')}
       onClick={onClick}
       aria-label="Switch workspace"
+      aria-haspopup="menu"
+      aria-expanded={expanded}
     >
       <span className={styles.wsq} />
       <span className={styles.wsn}>{name}</span>

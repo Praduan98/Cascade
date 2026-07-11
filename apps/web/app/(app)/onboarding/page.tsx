@@ -6,7 +6,7 @@
 // Frontend-only on the mock API. The coordinator wires the first-run trigger and
 // a "revisit onboarding" entry point elsewhere; this page is self-contained.
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -21,6 +21,21 @@ import styles from './onboarding.module.css'
 
 const nf = new Intl.NumberFormat('en-US')
 const STEP_LABELS = ['Welcome', 'Starting point', 'Create & run']
+
+/** Readable ink (near-black or white) for a glyph on a data-driven accent, by
+ *  WCAG relative luminance — legible on light *and* dark accents, either theme. */
+function onAccentInk(accent: string): string {
+  const hex = accent.trim().replace(/^#/, '')
+  const full = hex.length === 3 ? hex.replace(/(.)/g, '$1$1') : hex
+  if (!/^[0-9a-fA-F]{6}$/.test(full)) return '#ffffff'
+  const n = Number.parseInt(full, 16)
+  const lin = (v: number) => {
+    const s = v / 255
+    return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4
+  }
+  const L = 0.2126 * lin((n >> 16) & 255) + 0.7152 * lin((n >> 8) & 255) + 0.0722 * lin(n & 255)
+  return L > 0.179 ? '#0b0d12' : '#ffffff'
+}
 
 export default function OnboardingPage() {
   const { workspace } = useSession()
@@ -70,6 +85,19 @@ export default function OnboardingPage() {
   const createdTable = instantiate.data ?? null
   const busy = skip.isPending || complete.isPending
 
+  // Move focus to the active step's heading when the step (or the step-3
+  // building→ready/error sub-state) changes, so keyboard + screen-reader users
+  // land on the new content instead of being stranded. Skip the initial mount.
+  const headingRef = useRef<HTMLHeadingElement>(null)
+  const mounted = useRef(false)
+  useEffect(() => {
+    if (!mounted.current) {
+      mounted.current = true
+      return
+    }
+    headingRef.current?.focus()
+  }, [step, instantiate.isError, instantiate.isPending, createdTable])
+
   function goCreate() {
     if (!selectedId || !workspaceId) return
     instantiate.mutate(selectedId)
@@ -100,7 +128,9 @@ export default function OnboardingPage() {
       {step === 1 && (
         <Card className={styles.card}>
           <span className={styles.kicker}>Welcome to {workspace.name}</span>
-          <h1 className={styles.title}>Turn a list into enriched, ready-to-work data</h1>
+          <h1 ref={headingRef} tabIndex={-1} className={styles.title}>
+            Turn a list into enriched, ready-to-work data
+          </h1>
           <p className={styles.lede}>
             Cascade is your GTM data workspace. Build a table of companies or people, then fill it with a
             few clicks — chain providers in a <b>waterfall</b>, ask an <b>AI</b> column to classify or write,
@@ -157,7 +187,9 @@ export default function OnboardingPage() {
       {step === 2 && (
         <Card className={styles.card}>
           <span className={styles.kicker}>Step 2 of 3</span>
-          <h1 className={styles.title}>Pick a starting point</h1>
+          <h1 ref={headingRef} tabIndex={-1} className={styles.title}>
+            Pick a starting point
+          </h1>
           <p className={styles.lede}>
             Each template creates a table with its columns already configured — ready to run. Pick the one
             closest to your goal, or start from a blank companies table.
@@ -198,7 +230,9 @@ export default function OnboardingPage() {
 
           {instantiate.isError ? (
             <>
-              <h1 className={styles.title}>We couldn’t build your table</h1>
+              <h1 ref={headingRef} tabIndex={-1} className={styles.title}>
+                We couldn’t build your table
+              </h1>
               <Alert variant="error" title="Table creation failed">
                 {errorMessage(instantiate.error)}
               </Alert>
@@ -220,7 +254,9 @@ export default function OnboardingPage() {
             </>
           ) : instantiate.isPending || !createdTable ? (
             <>
-              <h1 className={styles.title}>Building your table…</h1>
+              <h1 ref={headingRef} tabIndex={-1} className={styles.title}>
+                Building your table…
+              </h1>
               <p className={styles.lede}>Setting up columns and sample rows.</p>
               <div className={styles.skelBlock} style={{ height: 76, borderRadius: 12 }} />
               <div className={styles.skelBlock} style={{ height: 14, width: '70%', marginTop: 4 }} />
@@ -228,10 +264,19 @@ export default function OnboardingPage() {
             </>
           ) : (
             <>
-              <h1 className={styles.title}>Your table is ready</h1>
+              <h1 ref={headingRef} tabIndex={-1} className={styles.title}>
+                Your table is ready
+              </h1>
 
               <div className={styles.created}>
-                <span className={styles.createdGlyph} style={{ background: selected?.accent ?? 'var(--brand)' }}>
+                <span
+                  className={styles.createdGlyph}
+                  style={{
+                    background: selected?.accent ?? 'var(--brand)',
+                    color: selected?.accent ? onAccentInk(selected.accent) : '#ffffff',
+                  }}
+                  aria-hidden="true"
+                >
                   {selected?.glyph ?? '＋'}
                 </span>
                 <div className={styles.createdMain}>

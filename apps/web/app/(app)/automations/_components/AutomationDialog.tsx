@@ -128,7 +128,7 @@ export function AutomationDialog({
         </>
       }
     >
-      <Field label="Name" htmlFor="auto-name">
+      <Field label="Name (required)" htmlFor="auto-name">
         <Input
           id="auto-name"
           autoFocus
@@ -151,6 +151,7 @@ export function AutomationDialog({
 
       <Field label="Trigger">
         <Seg
+          variant="radio"
           aria-label="Trigger type"
           value={trigger}
           onChange={setTrigger}
@@ -216,6 +217,7 @@ export function AutomationDialog({
 
       <Field label="Action">
         <Seg
+          variant="radio"
           aria-label="Action type"
           value={action}
           onChange={setAction}
@@ -227,7 +229,7 @@ export function AutomationDialog({
       </Field>
 
       {action === 'run_column' && (
-        <Field label="Target column" htmlFor="auto-target">
+        <Field label="Target column (required)" htmlFor="auto-target">
           <Select
             id="auto-target"
             value={targetColumnId}

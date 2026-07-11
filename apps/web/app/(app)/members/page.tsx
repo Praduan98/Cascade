@@ -34,6 +34,10 @@ import styles from './members.module.css'
 // workspace-level action (Settings, Phase 2) and is intentionally excluded here.
 const ASSIGNABLE_ROLES: Role[] = ['admin', 'member', 'viewer']
 
+// Lightweight client-side format check for inline feedback only — the server
+// remains the source of truth for validity (US-4.x). Do not tighten past this.
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
 const ROLE_BLURB: Record<Role, string> = {
   owner: 'Full control — billing, roles, and deleting the workspace.',
   admin: 'Manage members and invitations, view the audit log, edit all data.',
@@ -103,6 +107,7 @@ export default function MembersPage() {
 
   const [inviteOpen, setInviteOpen] = useState(false)
   const [inviteEmail, setInviteEmail] = useState('')
+  const [inviteTouched, setInviteTouched] = useState(false)
   const [inviteRole, setInviteRole] = useState<Role>('member')
   const [removeTarget, setRemoveTarget] = useState<MemberRecord | null>(null)
 
@@ -142,6 +147,7 @@ export default function MembersPage() {
       toast(`Invitation sent to ${invite.email}`, { variant: 'success' })
       setInviteOpen(false)
       setInviteEmail('')
+      setInviteTouched(false)
       setInviteRole('member')
     },
     onError: (err) => toast(errorMessage(err, 'Could not send the invitation'), { variant: 'error' }),
@@ -191,9 +197,24 @@ export default function MembersPage() {
     onError: (err) => toast(errorMessage(err, 'Could not resend the invitation'), { variant: 'error' }),
   })
 
+  // Inline invite-email validation (display only; server still validates).
+  const inviteEmailTrimmed = inviteEmail.trim()
+  const inviteEmailInvalid = inviteEmailTrimmed.length > 0 && !EMAIL_RE.test(inviteEmailTrimmed)
+  const inviteEmailError = inviteTouched
+    ? inviteEmailTrimmed.length === 0
+      ? 'Email address is required.'
+      : inviteEmailInvalid
+        ? 'Enter a valid email address.'
+        : undefined
+    : undefined
+
   function submitInvite() {
     const email = inviteEmail.trim()
-    if (!email || inviteMutation.isPending) return
+    if (!email || inviteEmailInvalid) {
+      setInviteTouched(true)
+      return
+    }
+    if (inviteMutation.isPending) return
     inviteMutation.mutate({ email, role: inviteRole })
   }
 
@@ -426,6 +447,7 @@ export default function MembersPage() {
           if (!o && !inviteMutation.isPending) {
             setInviteOpen(false)
             setInviteEmail('')
+            setInviteTouched(false)
             setInviteRole('member')
           } else if (o) {
             setInviteOpen(true)
@@ -438,20 +460,36 @@ export default function MembersPage() {
             <DialogClose asChild>
               <Button variant="ghost">Cancel</Button>
             </DialogClose>
-            <Button variant="primary" onClick={submitInvite} disabled={!inviteEmail.trim() || inviteMutation.isPending}>
+            <Button variant="primary" onClick={submitInvite} disabled={!inviteEmail.trim() || inviteEmailInvalid || inviteMutation.isPending}>
               {inviteMutation.isPending ? 'Sending…' : 'Send invitation'}
             </Button>
           </>
         }
       >
-        <Field label="Email address" htmlFor="invite-email">
+        <Field
+          label={
+            <>
+              Email address{' '}
+              <span aria-hidden="true" style={{ color: 'var(--st-failed)' }}>
+                *
+              </span>
+            </>
+          }
+          htmlFor="invite-email"
+          hint={inviteEmailError}
+          error={!!inviteEmailError}
+        >
           <Input
             id="invite-email"
             type="email"
+            required
+            aria-required="true"
+            state={inviteEmailError ? 'err' : undefined}
             autoFocus
             placeholder="teammate@company.com"
             value={inviteEmail}
             onChange={(e) => setInviteEmail(e.target.value)}
+            onBlur={() => setInviteTouched(true)}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 e.preventDefault()

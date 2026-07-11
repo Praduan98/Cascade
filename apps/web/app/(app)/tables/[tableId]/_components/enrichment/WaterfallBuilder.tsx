@@ -49,6 +49,7 @@ export function WaterfallBuilder({ open, onOpenChange, tableId, columns, workspa
   const [anchorId, setAnchorId] = useState(column?.id ?? columns[0]?.id ?? '')
   const [steps, setSteps] = useState<DraftStep[]>([])
   const [autoRun, setAutoRun] = useState(false)
+  const [attempted, setAttempted] = useState(false)
 
   const providersQuery = useQuery({
     queryKey: ['enrichment', 'providers', workspaceId],
@@ -66,6 +67,7 @@ export function WaterfallBuilder({ open, onOpenChange, tableId, columns, workspa
   // Seed drafts from the existing config (or start empty) when it loads.
   useEffect(() => {
     if (!open) return
+    setAttempted(false)
     const cfg = configQuery.data
     if (cfg) {
       setSteps(cfg.steps.map((s) => ({ key: nextKey(), ...s })))
@@ -161,16 +163,16 @@ export function WaterfallBuilder({ open, onOpenChange, tableId, columns, workspa
     onError: (err) => toast(errorMessage(err, 'Could not save the waterfall'), { variant: 'error' }),
   })
 
+  function stepIncomplete(s: DraftStep): boolean {
+    return (
+      Object.values(s.inputMapping).filter(Boolean).length === 0 ||
+      Object.values(s.outputMapping).filter(Boolean).length === 0
+    )
+  }
+
   function validateAndSave() {
-    if (steps.length === 0) {
-      toast('Add at least one provider step', { variant: 'warn' })
-      return
-    }
-    const bad = steps.find((s) => Object.values(s.inputMapping).filter(Boolean).length === 0 || Object.values(s.outputMapping).filter(Boolean).length === 0)
-    if (bad) {
-      toast('Each step needs at least one input and one output mapped', { variant: 'warn' })
-      return
-    }
+    setAttempted(true)
+    if (steps.length === 0 || steps.some(stepIncomplete)) return
     saveMutation.mutate()
   }
 
@@ -295,6 +297,12 @@ export function WaterfallBuilder({ open, onOpenChange, tableId, columns, workspa
                 </div>
               </div>
 
+              {attempted && stepIncomplete(step) && (
+                <span className={styles.reqError} role="alert">
+                  Map at least one input and one output for this step.
+                </span>
+              )}
+
               <div className={styles.acceptRow}>
                 <Field label="Accept when" htmlFor={`acc-${step.key}`}>
                   <Select
@@ -342,6 +350,9 @@ export function WaterfallBuilder({ open, onOpenChange, tableId, columns, workspa
         <Button variant="ghost" size="sm" className={styles.addStep} onClick={addStep} disabled={providers.length === 0}>
           + Add provider step
         </Button>
+        {attempted && steps.length === 0 && (
+          <span className={styles.reqError} role="alert">Add at least one provider step.</span>
+        )}
 
         <div className={styles.switchRow}>
           <span className={styles.lbl}>

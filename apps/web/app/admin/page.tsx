@@ -104,9 +104,17 @@ export default function PlatformOverviewPage() {
                 <h2>Credit consumption</h2>
                 <span className={styles.sectionHint}>all workspaces</span>
               </div>
-              <div className={styles.spark}>
+              <div
+                className={styles.spark}
+                role="img"
+                aria-label={
+                  a.consumptionTrend.length
+                    ? `Credit consumption by period across all workspaces: ${a.consumptionTrend.map((t) => `${t.label} ${nf.format(t.credits)} credits`).join(', ')}`
+                    : 'No credit consumption yet'
+                }
+              >
                 {a.consumptionTrend.map((t) => (
-                  <div key={t.label} className={styles.sparkCol}>
+                  <div key={t.label} className={styles.sparkCol} aria-hidden="true">
                     <div className={styles.sparkBar} style={{ height: `${Math.max(4, Math.round((t.credits / maxTrend) * 96))}px` }} title={`${nf.format(t.credits)} credits`} />
                     <span className={styles.sparkLabel}>{t.label.slice(5)}</span>
                   </div>

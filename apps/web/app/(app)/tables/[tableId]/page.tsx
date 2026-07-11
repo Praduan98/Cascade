@@ -397,9 +397,33 @@ export default function TableSurfacePage() {
     setManageOpen(false)
     setTimeout(() => setAddOpen(true), 0)
   }
+  // Smart columns (ai/agent/http/formula) can't be edited through the plain
+  // EditColumnDialog — their config lives in a dedicated builder. Re-open that
+  // builder with the existing column loaded (edit mode); everything else goes to
+  // the standard rename/retype dialog.
   function requestEdit(col: Column) {
     setManageOpen(false)
-    setTimeout(() => setEditTarget(col), 0)
+    setTimeout(() => {
+      if (col.type === 'ai') {
+        setAiBuilderColumn(col)
+        setAiSeedName('')
+        setAiBuilderOpen(true)
+      } else if (col.type === 'agent') {
+        setAgentBuilderColumn(col)
+        setAgentSeedName('')
+        setAgentBuilderOpen(true)
+      } else if (col.type === 'http') {
+        setHttpBuilderColumn(col)
+        setHttpSeedName('')
+        setHttpBuilderOpen(true)
+      } else if (col.type === 'formula') {
+        setFormulaBuilderColumn(col)
+        setFormulaSeedName('')
+        setFormulaBuilderOpen(true)
+      } else {
+        setEditTarget(col)
+      }
+    }, 0)
   }
   function requestDelete(col: Column) {
     setManageOpen(false)

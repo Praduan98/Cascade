@@ -39,7 +39,7 @@ export function MappingEditor({ rows, columns, onChange, loading = false }: Mapp
       {rows.map((row, i) => (
         <div key={i} className={styles.mapRow}>
           <Input
-            aria-label="CRM field"
+            aria-label={`CRM field ${i + 1}`}
             placeholder="CRM field"
             value={row.crmField}
             onChange={(e) => setRow(i, { crmField: e.target.value })}
@@ -48,7 +48,7 @@ export function MappingEditor({ rows, columns, onChange, loading = false }: Mapp
             &rarr;
           </span>
           <Select
-            aria-label="Column"
+            aria-label={`Column ${i + 1}`}
             value={row.columnId}
             disabled={loading}
             onChange={(e) => setRow(i, { columnId: e.target.value })}
@@ -63,7 +63,7 @@ export function MappingEditor({ rows, columns, onChange, loading = false }: Mapp
           <button
             type="button"
             className={styles.mapRemove}
-            aria-label="Remove field"
+            aria-label={`Remove field ${i + 1}`}
             onClick={() => removeRow(i)}
           >
             <RemoveGlyph />

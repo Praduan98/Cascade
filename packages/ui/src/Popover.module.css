@@ -15,8 +15,17 @@
   fill: var(--surface);
   stroke: var(--border);
 }
+.content[data-state='closed'] {
+  animation: pop-out var(--dur-1) var(--ease);
+}
 @keyframes pop-in {
   from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+@keyframes pop-out {
+  to {
     opacity: 0;
     transform: scale(0.97);
   }

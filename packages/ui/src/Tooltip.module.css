@@ -16,8 +16,17 @@
   fill: var(--surface-3);
   stroke: var(--border-strong);
 }
+.content[data-state='closed'] {
+  animation: tip-out var(--dur-1) var(--ease);
+}
 @keyframes tip-in {
   from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+}
+@keyframes tip-out {
+  to {
     opacity: 0;
     transform: scale(0.94);
   }

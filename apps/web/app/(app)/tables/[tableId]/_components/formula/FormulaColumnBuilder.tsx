@@ -9,7 +9,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { getApi } from '@cascade/data'
 import type { Column } from '@cascade/core'
 import { validateFormula } from '@cascade/core'
-import { Alert, Button, Dialog, DialogClose, Field, Input, useToast } from '@cascade/ui'
+import { Button, Dialog, DialogClose, Field, Input, useToast } from '@cascade/ui'
 import { errorMessage } from '../../../../../lib/ui'
 import { PromptEditor } from '../ai/PromptEditor'
 import styles from '../ai/ai-column.module.css'
@@ -120,15 +120,15 @@ export function FormulaColumnBuilder({ open, onOpenChange, tableId, columns, col
           </Field>
         )}
 
-        <Field label="Expression" hint="Insert {{column}} references; substituted per row.">
-          <PromptEditor value={expression} onChange={setExpression} columns={columns} />
+        <Field
+          label="Expression"
+          hint={error ?? 'Insert {{column}} references; substituted per row.'}
+          error={!!error}
+        >
+          <PromptEditor label="Expression" value={expression} onChange={setExpression} columns={columns} />
         </Field>
 
-        {error ? (
-          <Alert variant="warn" title="Check the expression">{error}</Alert>
-        ) : expression.trim() ? (
-          <div className={fx.ok}>Expression is valid.</div>
-        ) : null}
+        {!error && expression.trim() ? <div className={fx.ok}>Expression is valid.</div> : null}
 
         <div className={fx.help}>
           <div className={fx.helpHead}>Functions</div>

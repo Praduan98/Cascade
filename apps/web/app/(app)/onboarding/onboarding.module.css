@@ -99,6 +99,24 @@
   font-size: var(--fs-h2);
   line-height: 1.15;
 }
+/* Headings receive focus programmatically on step change (tabIndex=-1); suppress
+   the focus ring since it's a scripted focus move, not a tab stop. */
+.title:focus {
+  outline: none;
+}
+
+/* Visually hidden but available to assistive tech. */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
 .lede {
   color: var(--text-2);
   font-size: var(--fs-md);

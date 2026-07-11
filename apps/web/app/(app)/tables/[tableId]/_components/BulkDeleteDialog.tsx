@@ -135,12 +135,14 @@ export function BulkDeleteDialog({ open, onOpenChange, tableId, viewId, columns,
         <>
           <div className={styles.rowsHead}>
             <label className={styles.selectAll}>
-              <span
-                className={[styles.check, allOnPageSelected ? styles.on : ''].filter(Boolean).join(' ')}
-                onClick={toggleAllOnPage}
-                role="checkbox"
-                aria-checked={allOnPageSelected}
-              >
+              <input
+                type="checkbox"
+                className={styles.srCheck}
+                checked={allOnPageSelected}
+                onChange={toggleAllOnPage}
+                aria-label="Select all rows on this page"
+              />
+              <span className={[styles.check, allOnPageSelected ? styles.on : ''].filter(Boolean).join(' ')} aria-hidden="true">
                 {allOnPageSelected && <CheckIcon />}
               </span>
               Select all on page
@@ -157,21 +159,25 @@ export function BulkDeleteDialog({ open, onOpenChange, tableId, viewId, columns,
                 const value = primary ? r.cells[primary.id]?.value ?? null : null
                 const label = primary ? getColumnType(primary.type).formatDisplay(value, primary.config) : ''
                 return (
-                  <div
+                  <label
                     key={r.row.id}
                     className={[styles.rowItem, on ? styles.on : ''].filter(Boolean).join(' ')}
-                    onClick={() => toggle(r.row.id)}
-                    role="checkbox"
-                    aria-checked={on}
                   >
-                    <span className={[styles.check, on ? styles.on : ''].filter(Boolean).join(' ')}>
+                    <input
+                      type="checkbox"
+                      className={styles.srCheck}
+                      checked={on}
+                      onChange={() => toggle(r.row.id)}
+                      aria-label={`Select row ${r.row.position + 1}${label ? ` — ${label}` : ''}`}
+                    />
+                    <span className={[styles.check, on ? styles.on : ''].filter(Boolean).join(' ')} aria-hidden="true">
                       {on && <CheckIcon />}
                     </span>
                     <span className={styles.rowPos}>#{r.row.position + 1}</span>
                     <span className={[styles.rowLabel, label ? '' : styles.empty].filter(Boolean).join(' ')}>
                       {label || 'Empty'}
                     </span>
-                  </div>
+                  </label>
                 )
               })
             )}

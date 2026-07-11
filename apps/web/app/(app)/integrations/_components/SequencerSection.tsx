@@ -9,7 +9,7 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { getApi } from '@cascade/data'
 import type { SequencerConnection, SequencerProvider } from '@cascade/core'
-import { Alert, Button, Card, EmptyState, Pill, Tag, useToast } from '@cascade/ui'
+import { Alert, Button, Card, ConfirmDialog, EmptyState, Pill, Tag, useToast } from '@cascade/ui'
 import { errorMessage, formatDate } from '../../../lib/ui'
 import { ConnectSequencerDialog } from './ConnectSequencerDialog'
 import { PushToSequencerDialog } from './PushToSequencerDialog'
@@ -19,6 +19,15 @@ const SEQ_LABEL: Record<SequencerProvider, string> = {
   instantly: 'Instantly',
   smartlead: 'Smartlead',
   heyreach: 'HeyReach',
+}
+
+function SendGlyph() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M22 2 11 13" />
+      <path d="M22 2 15 22l-4-9-9-4z" />
+    </svg>
+  )
 }
 
 export function SequencerSection(props: { workspaceId: string }) {
@@ -80,8 +89,14 @@ export function SequencerSection(props: { workspaceId: string }) {
           ))
         ) : connections.length === 0 ? (
           <EmptyState
+            icon={<SendGlyph />}
             title="No sequencer connected"
             description="Connect Instantly, Smartlead, or HeyReach to push an enriched list straight into a campaign."
+            action={
+              <Button variant="primary" size="sm" onClick={() => setConnectOpen(true)}>
+                Connect sequencer
+              </Button>
+            }
           />
         ) : (
           connections.map((c) => (
@@ -103,14 +118,18 @@ export function SequencerSection(props: { workspaceId: string }) {
                 <Button variant="secondary" size="sm" disabled={!c.isConnected} onClick={() => setPushTarget(c)}>
                   Push list
                 </Button>
-                <button
-                  type="button"
-                  className={[styles.linkBtn, styles.danger].join(' ')}
-                  disabled={disconnect.isPending}
-                  onClick={() => disconnect.mutate(c.id)}
-                >
-                  Disconnect
-                </button>
+                <ConfirmDialog
+                  trigger={
+                    <button type="button" className={[styles.linkBtn, styles.danger].join(' ')} disabled={disconnect.isPending}>
+                      Disconnect
+                    </button>
+                  }
+                  title={`Disconnect ${SEQ_LABEL[c.provider]}?`}
+                  description="You’ll no longer be able to push lists to this account, and the stored API token is removed."
+                  danger
+                  confirmLabel="Disconnect"
+                  onConfirm={() => disconnect.mutate(c.id)}
+                />
               </div>
             </div>
           ))

@@ -26,9 +26,23 @@ interface Props {
   value: string
   onChange: (v: string) => void
   columns: Column[]
+  /** Accessible name for the textarea — differs per surface (AI prompt, HTTP URL, agent objective, formula). */
+  label: string
+  /** Injected by a wrapping Field so the visible label + hint bind to the textarea, not the wrapper div. */
+  id?: string
+  'aria-describedby'?: string
+  'aria-invalid'?: boolean | 'true' | 'false'
 }
 
-export function PromptEditor({ value, onChange, columns }: Props) {
+export function PromptEditor({
+  value,
+  onChange,
+  columns,
+  label,
+  id,
+  'aria-describedby': describedBy,
+  'aria-invalid': ariaInvalid,
+}: Props) {
   const ref = useRef<HTMLTextAreaElement>(null)
   const { known, unknown } = parseRefs(value, columns)
 
@@ -72,11 +86,18 @@ export function PromptEditor({ value, onChange, columns }: Props) {
 
       <Textarea
         ref={ref}
+        id={id}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         rows={5}
         placeholder={'Write a one-line pitch for {{Company}} ({{Domain}})…'}
-        aria-label="AI prompt"
+        // When wrapped by a Field (id injected), the visible <label> is the accessible
+        // name — don't override it with aria-label (avoids a label-in-name mismatch).
+        // Standalone (no id), fall back to the provided label.
+        aria-label={id ? undefined : label}
+        aria-describedby={describedBy}
+        aria-invalid={ariaInvalid}
+        state={ariaInvalid ? 'err' : undefined}
       />
 
       <div className={styles.refRow}>

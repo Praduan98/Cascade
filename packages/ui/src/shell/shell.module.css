@@ -136,7 +136,10 @@
 }
 
 /* ---- Side nav ---- */
-.sh-nav a {
+/* Items are <a> links, or a real <button> for actions with no href (e.g. "New
+   table") — both share the same look. */
+.sh-nav a,
+.sh-nav button {
   display: flex;
   align-items: center;
   gap: 9px;
@@ -148,28 +151,41 @@
   cursor: pointer;
   transition: color var(--dur-2), background var(--dur-2);
 }
-.sh-nav a.on {
+.sh-nav button {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  font-family: inherit;
+}
+.sh-nav a.on,
+.sh-nav button.on {
   background: var(--brand-soft);
   color: var(--text);
   font-weight: 600;
 }
-.sh-nav a.on svg {
+.sh-nav a.on svg,
+.sh-nav button.on svg {
   color: var(--brand);
   opacity: 1;
 }
-.sh-nav a:hover {
+.sh-nav a:hover,
+.sh-nav button:hover {
   background: var(--surface-3);
 }
-.sh-nav a.on:hover {
+.sh-nav a.on:hover,
+.sh-nav button.on:hover {
   background: var(--brand-soft);
 }
-.sh-nav a svg {
+.sh-nav a svg,
+.sh-nav button svg {
   width: 15px;
   height: 15px;
   opacity: 0.8;
   flex: none;
 }
-.sh-nav a.disabled {
+.sh-nav a.disabled,
+.sh-nav button.disabled {
   color: var(--text-faint);
   pointer-events: none;
   opacity: 0.6;
