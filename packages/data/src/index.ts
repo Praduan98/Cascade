@@ -19,13 +19,48 @@ export type { HttpApiConfig } from './httpApi'
 
 import type { CascadeApi } from './api'
 import { MockApi } from './mockApi'
+import { HttpApi } from './httpApi'
 import type { MockApiOptions } from './mockApi'
 
 let singleton: CascadeApi | null = null
 
-/** The process-wide API singleton (MockApi in Phase 1). */
+/**
+ * Pick a CascadeApi implementation from explicit config. Split out from getApi()
+ * so the selection is unit-testable without the module-level singleton or env.
+ *   • backend 'mock' (default, or anything unrecognized) → in-memory MockApi.
+ *   • backend 'http' → the real HttpApi; requires `baseUrl` (the client then
+ *     calls `${baseUrl}/v1`, per CONTRACT.md). Throws if it is missing.
+ */
+export function resolveApi(config?: { backend?: string; baseUrl?: string }): CascadeApi {
+  const backend = (config?.backend ?? 'mock').trim().toLowerCase()
+  if (backend === 'http' || backend === 'https' || backend === 'real') {
+    const base = config?.baseUrl?.trim()
+    if (!base) {
+      throw new Error('Data backend is "http" (NEXT_PUBLIC_API_BACKEND) but NEXT_PUBLIC_API_BASE_URL is not set.')
+    }
+    return new HttpApi({ baseUrl: `${base.replace(/\/+$/, '')}/v1` })
+  }
+  return new MockApi()
+}
+
+// Literal NEXT_PUBLIC_* reads, kept as bare `process.env.<NAME>` member accesses
+// so Next.js inlines them into the client bundle at build time. Guarded for
+// runtimes where `process` is absent.
+function envConfig(): { backend?: string; baseUrl?: string } {
+  if (typeof process === 'undefined' || !process.env) return {}
+  return {
+    backend: process.env.NEXT_PUBLIC_API_BACKEND,
+    baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL,
+  }
+}
+
+/**
+ * The process-wide API singleton. Defaults to MockApi (Phase 1 behavior); set
+ * NEXT_PUBLIC_API_BACKEND=http (plus NEXT_PUBLIC_API_BASE_URL) to drive the app
+ * against the real HttpApi with no other change. Constructed once, then cached.
+ */
 export function getApi(): CascadeApi {
-  if (!singleton) singleton = new MockApi()
+  if (!singleton) singleton = resolveApi(envConfig())
   return singleton
 }
 
