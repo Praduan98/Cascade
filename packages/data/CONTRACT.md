@@ -67,7 +67,7 @@ Non-2xx responses carry:
 | 404 | `not_found` | `NotFoundError` | — |
 | 409 | `conflict` | `ConflictError` | `currentValue` |
 | 422 | `validation` | `ValidationError` | `fields` |
-| 401 | `unauthorized` / `token_expired` | `ApiError` (propose adding `UnauthorizedError`) | — |
+| 401 | `unauthorized` / `token_expired` | `UnauthorizedError` | — |
 | 5xx / other | `api_error` | `ApiError` (generic) | — |
 
 > **Batch note:** `POST /cells/batch` returns **`200`** even when some edits are stale — per-cell conflicts are reported in the response body's `conflicts[]`, **not** as a `409`. The `409 ConflictError` is reserved for single-entity writes.
@@ -86,20 +86,22 @@ Per-cell status (`Queued → Running → Success/Empty/Failed/Cached`) is produc
 | WebSocket | Rejected — bidirectional duplex we don't need; adds upgrade handling, ping/pong, sticky-session/load-balancer concerns for zero benefit here. |
 | Polling | Kept as the **degraded fallback** (below), not the primary. |
 
-### Endpoint — one multiplexed stream
+### Endpoint — one multiplexed, per-workspace stream
 
 ```
-GET /v1/stream?workspaceId={ws}&tableId={tableId?}&runId={runId?}&kinds=enrichment,ai,agent,http
+GET /v1/stream?workspaceId={ws}&kinds=enrichment,ai,agent,http
 Authorization: Bearer <token>
 Accept: text/event-stream
+Last-Event-ID: <last cursor>   # only on reconnect
 ```
 
-- **Auth over SSE:** browser `EventSource` **cannot set headers**. `HttpApi` should therefore open the stream with a **`fetch()` + `ReadableStream` reader** (which *does* allow `Authorization: Bearer`) and parse the `text/event-stream` frames itself. This keeps the same bearer scheme as every other call — no token-in-URL. (Alternative if a raw `EventSource` is ever required: mint a short-lived one-time ticket via `POST /v1/stream/ticket` → `{ ticket }`, then `GET /v1/stream?ticket=…`.)
-- **One connection, many subscribers.** The four namespace `subscribe()` methods (`enrichment`/`ai`/`agent`/`http`) and every `{runId|tableId}` target multiplex over a **single** shared connection. `HttpApi` fans events out client-side to the matching callbacks and returns each caller its own unsubscribe function (closing the socket only when the last subscriber leaves).
+- **Connection scope is per-workspace.** `HttpApi` opens **one** connection for the acting workspace (the `workspaceId` from the current `Session`). All four namespace `subscribe()` methods and every `{runId|tableId}` target multiplex over that single connection; the client fans events out to the matching callbacks and returns each caller its own unsubscribe (closing the socket only when the last subscriber leaves). Narrower single-subscriber streams may still pass `tableId`/`runId` query filters, but the shared client stream is workspace-scoped and filters client-side.
+- **Auth over SSE:** browser `EventSource` **cannot set headers**. `HttpApi` therefore opens the stream with a **`fetch()` + `ReadableStream` reader** (which *does* allow `Authorization: Bearer`) and parses the `text/event-stream` frames itself. This keeps the same bearer scheme as every other call — no token-in-URL.
+- **Fallback (documented, not primary):** if a raw `EventSource` is ever required (no `fetch`-stream support), mint a short-lived one-time ticket via `POST /v1/stream/ticket` (bearer-authed) → `{ ticket, expiresAt }`, then `GET /v1/stream?ticket=…&workspaceId={ws}`. The ticket is single-use and short-lived so the long-lived token never lands in a URL or proxy log.
 
 ### Event frame
 
-Each SSE message has an `id:` (monotonic cursor) and a `data:` JSON envelope:
+Each SSE message carries an `id:` (monotonic cursor) and a `data:` JSON envelope:
 
 ```
 id: 000000123
@@ -108,14 +110,24 @@ data: { "kind": "enrichment", "event": { "type": "cell", "runId": "run_…", "ta
         "recordId": "rec_…", "columnId": "col_…", "meta": { …EnrichmentCellMeta }, "value": <CellValue?> } }
 ```
 
-- `kind` ∈ `enrichment | ai | agent | http`.
-- `event` is **exactly** the existing union for that kind — `EnrichmentEvent | AiEvent | AgentEvent | HttpEvent` from `api.ts` (`{type:'cell',…}` / `{type:'run', run}` / `{type:'budget', workspaceId, balance, paused}`). The only per-kind difference is the `cell` event's `meta` type. `HttpApi` routes on `kind` + `type` and delivers to the right typed callback.
-- **Heartbeat:** a `:` comment line every ~15 s keeps intermediaries from timing the connection out.
+**Envelope guarantees (required for correct client fan-out):** every frame's `event` MUST carry, at minimum:
+- **operation type** — the top-level `kind` (`enrichment | ai | agent | http`), so one connection routes to the correct namespace subscriber.
+- **runId** — on `cell` and (via `run.id`) `run` events, so a `subscribe({ runId })` caller receives only its run's transitions.
+- **cell id** — the `(recordId, columnId)` pair on `cell` events, so the client patches the exact grid cell.
+- **tableId** — on `cell`/`run` events, so a `subscribe({ tableId })` caller is matched.
 
-### Resume & reconcile
+`event` is **exactly** the existing union for that `kind` — `EnrichmentEvent | AiEvent | AgentEvent | HttpEvent` from `api.ts` (`{type:'cell',…}` / `{type:'run', run}` / `{type:'budget', workspaceId, balance, paused}`). The only per-kind difference is the `cell` event's `meta` type. `HttpApi` routes on `kind` + `type` and delivers to the right typed callback. **Heartbeat:** a `:` comment line every ~15 s keeps intermediaries from timing the connection out.
 
-- On reconnect the client sends `Last-Event-ID: <last cursor>`; the server **replays** events after that id for the still-active run(s).
-- Belt-and-suspenders: after any reconnect the client may re-`GET /runs/{runId}` and the affected `…-results` to reconcile any terminal state it missed.
+### Reconnect, resume & missed-event backfill — **BACKEND REQUIREMENT**
+
+A run executes server-side over seconds-to-minutes. If the `/stream` connection drops mid-run (network blip, proxy idle-timeout, tab sleep) and the client silently misses the terminal `cell` events, affected cells would be **stuck on "Running" forever**. Preventing that is a hard requirement on the stream server, not a client nicety:
+
+1. The server assigns every emitted event a **monotonic `id:`** (the resume cursor), unique and ordered within a workspace stream.
+2. `HttpApi` records the last id it saw and, on every reconnect, sends it back as **`Last-Event-ID: <cursor>`**.
+3. On receiving `Last-Event-ID`, the server **MUST backfill** — replay every event after that cursor for the workspace's still-active runs (at least the missed `cell`/`run`/`budget` transitions) **before** resuming the live tail. This drives every mid-flight cell to its correct terminal status even though the client was disconnected when it happened.
+4. Backfill must survive a brief server-side buffer window (long enough to cover realistic reconnects for the longest run); events for runs already terminal at reconnect may be coalesced to their final state.
+
+Belt-and-suspenders on the client (in addition to, not instead of, the above): after a reconnect it MAY re-`GET /runs/{runId}` + the affected `…-results` to reconcile, but correctness must not depend on it — the `Last-Event-ID` backfill is the contract.
 
 ### Polling fallback (degraded)
 
@@ -435,5 +447,5 @@ All `/platform/*` calls carry the **`PlatformSession.token`** bearer (not a work
 1. **`switchUser`** — keep in production (impersonation, audited) or restrict to dev/demo? Affects whether `HttpApi` exposes it against prod.
 2. **SSE auth** — confirm the `fetch`-stream-reader approach (Bearer header preserved) vs. the `POST /stream/ticket` fallback for raw `EventSource`.
 3. **Cell-status polling** — is the proposed `GET /tables/{tableId}/cell-status?since=` delta endpoint acceptable as the streaming fallback, or should the client re-read `…-results`?
-4. **401 taxonomy** — OK to add an `UnauthorizedError` (401) subclass to `errors.ts`? Today the taxonomy stops at 402; `HttpApi` will map 401 → generic `ApiError` until then.
+4. **401 taxonomy** — ✅ **resolved.** `UnauthorizedError` (401, code `unauthorized`) added to `errors.ts`; `HttpApi` maps 401 → it and clears the stored token.
 5. **Idempotency** — should mutating POSTs (`run`, `purchaseCredits`, `push`) accept an `Idempotency-Key` header to make retries safe?
