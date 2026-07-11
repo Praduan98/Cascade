@@ -9,14 +9,14 @@
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 24px;
+  gap: var(--space-16);
+  margin-bottom: var(--space-24);
 }
 .headTitle h1 {
   font-size: var(--fs-h1);
 }
 .count {
-  margin-top: 6px;
+  margin-top: var(--space-6);
   color: var(--text-3);
   font-size: var(--fs-sm);
   font-family: var(--font-mono);
@@ -24,20 +24,20 @@
 
 /* ---- Cards / sections ---- */
 .card {
-  padding: 20px 22px;
+  padding: var(--space-20) var(--space-24);
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-4);
 }
 .card + .card {
-  margin-top: 18px;
+  margin-top: var(--space-20);
 }
 .sectionHead {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 8px;
+  gap: var(--space-12);
+  margin-bottom: var(--space-8);
 }
 .sectionHead h2 {
   font-size: var(--fs-h4);
@@ -50,7 +50,7 @@
 }
 
 .state {
-  margin-bottom: 18px;
+  margin-bottom: var(--space-20);
 }
 
 /* ---- List ---- */
@@ -62,7 +62,7 @@
 .rowActions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
 }
 .youTag {
   font-family: var(--font-mono);
@@ -99,7 +99,7 @@
 .pendingActions {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-6);
 }
 .linkBtn {
   border: 1px solid transparent;
@@ -107,7 +107,7 @@
   color: var(--text-2);
   font-size: var(--fs-xs);
   font-weight: 600;
-  padding: 5px 9px;
+  padding: var(--space-4) var(--space-8);
   border-radius: var(--r-sm);
   cursor: pointer;
   font-family: var(--font-body);
@@ -140,8 +140,8 @@
 .roleRow {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 11px 14px;
+  gap: var(--space-12);
+  padding: var(--space-12) var(--space-16);
   background: var(--surface);
 }
 .roleRow > :first-child {
@@ -157,8 +157,8 @@
 .skelRow {
   display: flex;
   align-items: center;
-  gap: 11px;
-  padding: 11px 4px;
+  gap: var(--space-12);
+  padding: var(--space-12) var(--space-4);
   border-bottom: 1px solid var(--hairline);
 }
 .skelDot {
@@ -171,7 +171,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: var(--space-8);
 }
 .skelBlock {
   border-radius: var(--r-sm);

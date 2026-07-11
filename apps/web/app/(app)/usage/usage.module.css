@@ -9,14 +9,14 @@
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 24px;
+  gap: var(--space-16);
+  margin-bottom: var(--space-24);
 }
 .headTitle h1 {
   font-size: var(--fs-h1);
 }
 .count {
-  margin-top: 6px;
+  margin-top: var(--space-6);
   color: var(--text-3);
   font-size: var(--fs-sm);
   font-family: var(--font-mono);
@@ -26,17 +26,17 @@
   padding: var(--space-20);
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-4);
 }
 .card + .card {
-  margin-top: 18px;
+  margin-top: var(--space-20);
 }
 .sectionHead {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 14px;
+  gap: var(--space-12);
+  margin-bottom: var(--space-16);
 }
 .sectionHead h2 {
   font-size: var(--fs-h4);
@@ -48,7 +48,7 @@
   font-family: var(--font-mono);
 }
 .state {
-  margin-bottom: 18px;
+  margin-bottom: var(--space-20);
 }
 
 /* ---- Run history table ---- */
@@ -66,11 +66,11 @@
   text-transform: uppercase;
   color: var(--text-3);
   font-weight: 500;
-  padding: 6px 10px;
+  padding: var(--space-6) var(--space-10);
   border-bottom: 1px solid var(--hairline);
 }
 .table td {
-  padding: 10px;
+  padding: var(--space-10);
   border-bottom: 1px solid var(--hairline);
   vertical-align: middle;
 }
@@ -80,7 +80,7 @@
 .who {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: var(--space-8);
 }
 .whoName {
   font-weight: 600;
@@ -98,7 +98,7 @@
 }
 .counts {
   display: flex;
-  gap: 6px;
+  gap: var(--space-6);
   flex-wrap: wrap;
 }
 .num {
@@ -122,15 +122,15 @@
 .skelRow {
   display: flex;
   align-items: center;
-  gap: 11px;
-  padding: 11px 4px;
+  gap: var(--space-12);
+  padding: var(--space-12) var(--space-4);
   border-bottom: 1px solid var(--hairline);
 }
 .skelLines {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: var(--space-8);
 }
 .skelBlock {
   border-radius: var(--r-sm);

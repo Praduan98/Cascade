@@ -5,13 +5,13 @@
   padding: clamp(20px, 3.2vw, 36px);
 }
 .header {
-  margin-bottom: 24px;
+  margin-bottom: var(--space-24);
 }
 .header h1 {
   font-size: var(--fs-h1);
 }
 .header p {
-  margin-top: 6px;
+  margin-top: var(--space-6);
   color: var(--text-2);
   font-size: var(--fs-sm);
 }
@@ -20,15 +20,15 @@
   padding: var(--space-20);
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: var(--space-20);
 }
 .card + .card {
-  margin-top: 18px;
+  margin-top: var(--space-20);
 }
 .cardHead {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: var(--space-4);
 }
 .cardHead h2 {
   font-size: var(--fs-h4);
@@ -42,7 +42,7 @@
 .formRow {
   display: flex;
   align-items: flex-end;
-  gap: 10px;
+  gap: var(--space-10);
 }
 .formRow > :first-child {
   flex: 1;
@@ -61,8 +61,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 11px 14px;
+  gap: var(--space-12);
+  padding: var(--space-12) var(--space-16);
   background: var(--surface);
 }
 .detailKey {

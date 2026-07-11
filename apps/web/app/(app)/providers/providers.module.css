@@ -5,29 +5,29 @@
   padding: clamp(20px, 3.2vw, 36px);
 }
 .header {
-  margin-bottom: 24px;
+  margin-bottom: var(--space-24);
 }
 .header h1 {
   font-size: var(--fs-h1);
 }
 .count {
-  margin-top: 6px;
+  margin-top: var(--space-6);
   color: var(--text-3);
   font-size: var(--fs-sm);
   font-family: var(--font-mono);
 }
 .state {
-  margin-bottom: 18px;
+  margin-bottom: var(--space-20);
 }
 .card {
-  padding: 8px 20px;
+  padding: var(--space-8) var(--space-20);
 }
 
 .row {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 14px 4px;
+  gap: var(--space-16);
+  padding: var(--space-16) var(--space-4);
   border-bottom: 1px solid var(--hairline);
 }
 .row:last-child {
@@ -38,12 +38,12 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-6);
 }
 .rowTop {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-10);
   flex-wrap: wrap;
 }
 .specs {
@@ -51,13 +51,13 @@
   font-size: var(--fs-2xs);
   color: var(--text-3);
   display: flex;
-  gap: 12px;
+  gap: var(--space-12);
   flex-wrap: wrap;
 }
 .rowActions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
   flex: none;
 }
 .keyHint {
@@ -71,7 +71,7 @@
   color: var(--text-2);
   font-size: var(--fs-xs);
   font-weight: 600;
-  padding: 5px 9px;
+  padding: var(--space-4) var(--space-8);
   border-radius: var(--r-sm);
   cursor: pointer;
 }

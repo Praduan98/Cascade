@@ -8,7 +8,7 @@
   padding: clamp(24px, 4vw, 48px) clamp(16px, 3vw, 28px);
   display: flex;
   flex-direction: column;
-  gap: 22px;
+  gap: var(--space-24);
 }
 
 /* ---- Progress stepper ---- */
@@ -22,7 +22,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
   flex: none;
   width: 108px;
   text-align: center;
@@ -71,7 +71,7 @@
 .connector {
   flex: 1;
   height: 1.5px;
-  margin-top: 15px;
+  margin-top: var(--space-16);
   min-width: 18px;
   background: var(--hairline);
   border-radius: 2px;
@@ -85,7 +85,7 @@
   padding: clamp(22px, 3.4vw, 34px);
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-16);
 }
 .kicker {
   font-size: var(--fs-2xs);
@@ -136,7 +136,7 @@
   padding: var(--space-16);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-12);
 }
 .explainHead {
   font-family: var(--font-display);
@@ -149,12 +149,12 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-10);
 }
 .exRow {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
+  gap: var(--space-10);
   font-size: var(--fs-sm);
   color: var(--text-2);
   line-height: 1.45;
@@ -164,7 +164,7 @@
   width: 9px;
   height: 9px;
   border-radius: 50%;
-  margin-top: 6px;
+  margin-top: var(--space-6);
 }
 .exSpend {
   background: var(--brand);
@@ -195,7 +195,7 @@
 .grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: var(--space-12);
 }
 @media (max-width: 560px) {
   .grid {
@@ -211,7 +211,7 @@
   padding: var(--space-16);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-8);
   cursor: pointer;
   transition: border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
 }
@@ -226,7 +226,7 @@
 .tmplTop {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-10);
 }
 .glyph {
   flex: none;
@@ -256,7 +256,7 @@
 .tmplMeta {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
   flex-wrap: wrap;
 }
 .check {
@@ -280,7 +280,7 @@
 .divider {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-12);
   color: var(--text-3);
   font-family: var(--font-mono);
   font-size: var(--fs-2xs);
@@ -297,13 +297,13 @@
 .blank {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-12);
   width: 100%;
   text-align: left;
   border: 1px dashed var(--border);
   border-radius: var(--r-md);
   background: transparent;
-  padding: 12px 14px;
+  padding: var(--space-12) var(--space-16);
   cursor: pointer;
   transition: border-color 0.16s ease, background 0.16s ease;
 }
@@ -326,7 +326,7 @@
 .blankSummary {
   font-size: var(--fs-xs);
   color: var(--text-3);
-  margin-top: 2px;
+  margin-top: var(--space-2);
 }
 
 /* ---- Step 3: created + run ---- */
@@ -337,7 +337,7 @@
   padding: var(--space-20);
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: var(--space-16);
 }
 .createdGlyph {
   flex: none;
@@ -366,7 +366,7 @@
   font-weight: 700;
   font-size: var(--fs-h4);
   line-height: 1.2;
-  margin-top: 2px;
+  margin-top: var(--space-2);
 }
 .runList {
   list-style: none;
@@ -374,12 +374,12 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-10);
 }
 .runItem {
   display: flex;
   align-items: flex-start;
-  gap: 11px;
+  gap: var(--space-12);
   font-size: var(--fs-sm);
   color: var(--text-2);
   line-height: 1.45;
@@ -410,13 +410,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-top: 2px;
+  gap: var(--space-12);
+  margin-top: var(--space-2);
 }
 .actionsRight {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-10);
 }
 .skip {
   border: none;
@@ -424,7 +424,7 @@
   color: var(--text-3);
   font-size: var(--fs-xs);
   font-weight: 600;
-  padding: 6px 4px;
+  padding: var(--space-6) var(--space-4);
   cursor: pointer;
   border-radius: var(--r-sm);
 }

@@ -9,14 +9,14 @@
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 20px;
+  gap: var(--space-16);
+  margin-bottom: var(--space-20);
 }
 .headTitle h1 {
   font-size: var(--fs-h1);
 }
 .count {
-  margin-top: 6px;
+  margin-top: var(--space-6);
   color: var(--text-3);
   font-size: var(--fs-sm);
   font-family: var(--font-mono);
@@ -25,9 +25,9 @@
 .filters {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-10);
   flex-wrap: wrap;
-  margin-bottom: 16px;
+  margin-bottom: var(--space-16);
 }
 .filters :where(select) {
   min-width: 150px;
@@ -42,7 +42,7 @@
 }
 
 .state {
-  margin-top: 8px;
+  margin-top: var(--space-8);
 }
 
 /* ---- Log table ---- */
@@ -61,17 +61,17 @@
 }
 .table th,
 .table td {
-  padding: 12px 7px;
+  padding: var(--space-12) var(--space-8);
   text-align: left;
   vertical-align: middle;
 }
 .table th:first-child,
 .table td:first-child {
-  padding-left: 18px;
+  padding-left: var(--space-20);
 }
 .table th:last-child,
 .table td:last-child {
-  padding-right: 18px;
+  padding-right: var(--space-20);
 }
 .table th:nth-child(1),
 .table td:nth-child(1) {
@@ -111,7 +111,7 @@
 .actor {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-10);
   min-width: 0;
 }
 .actorName {
@@ -125,7 +125,7 @@
 .action {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
   min-width: 0;
 }
 .dot {

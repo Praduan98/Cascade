@@ -9,23 +9,23 @@
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 18px;
+  gap: var(--space-16);
+  margin-bottom: var(--space-20);
 }
 .headTitle h1 {
   font-size: var(--fs-h1);
 }
 .count {
-  margin-top: 6px;
+  margin-top: var(--space-6);
   color: var(--text-3);
   font-size: var(--fs-sm);
   font-family: var(--font-mono);
 }
 .tabs {
-  margin-bottom: 18px;
+  margin-bottom: var(--space-20);
 }
 .state {
-  margin-bottom: 18px;
+  margin-bottom: var(--space-20);
 }
 
 /* ---- Cards / sections ---- */
@@ -33,17 +33,17 @@
   padding: var(--space-20);
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-4);
 }
 .card + .card {
-  margin-top: 18px;
+  margin-top: var(--space-20);
 }
 .sectionHead {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 14px;
+  gap: var(--space-12);
+  margin-bottom: var(--space-16);
 }
 .sectionHead h2 {
   font-size: var(--fs-h4);
@@ -59,8 +59,8 @@
 .row {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 14px 2px;
+  gap: var(--space-16);
+  padding: var(--space-16) var(--space-2);
   border-bottom: 1px solid var(--hairline);
 }
 .row:last-child {
@@ -71,12 +71,12 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-6);
 }
 .rowTop {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-10);
   flex-wrap: wrap;
 }
 .provName {
@@ -88,13 +88,13 @@
   font-size: var(--fs-2xs);
   color: var(--text-3);
   display: flex;
-  gap: 12px;
+  gap: var(--space-12);
   flex-wrap: wrap;
 }
 .rowActions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
   flex: none;
   flex-wrap: wrap;
   justify-content: flex-end;
@@ -105,7 +105,7 @@
   color: var(--text-2);
   font-size: var(--fs-xs);
   font-weight: 600;
-  padding: 5px 9px;
+  padding: var(--space-4) var(--space-8);
   border-radius: var(--r-sm);
   cursor: pointer;
 }
@@ -128,8 +128,8 @@
 .testForm {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding-top: 14px;
+  gap: var(--space-12);
+  padding-top: var(--space-16);
   border-top: 1px solid var(--hairline);
 }
 .testActions {
@@ -152,11 +152,11 @@
   text-transform: uppercase;
   color: var(--text-3);
   font-weight: 500;
-  padding: 6px 10px;
+  padding: var(--space-6) var(--space-10);
   border-bottom: 1px solid var(--hairline);
 }
 .table td {
-  padding: 10px;
+  padding: var(--space-10);
   border-bottom: 1px solid var(--hairline);
   vertical-align: middle;
 }
@@ -165,7 +165,7 @@
 }
 .counts {
   display: flex;
-  gap: 6px;
+  gap: var(--space-6);
   flex-wrap: wrap;
 }
 .when {
@@ -187,8 +187,8 @@
 .feedRow {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 2px;
+  gap: var(--space-12);
+  padding: var(--space-12) var(--space-2);
   border-bottom: 1px solid var(--hairline);
 }
 .feedRow:last-child {
@@ -199,12 +199,12 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: var(--space-4);
 }
 .feedTop {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-10);
   flex-wrap: wrap;
 }
 .feedSummary {
@@ -223,7 +223,7 @@
 .formGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 14px;
+  gap: var(--space-16);
 }
 @media (max-width: 520px) {
   .formGrid {
@@ -235,7 +235,7 @@
 .group {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-6);
   width: 100%;
 }
 .groupLabel {
@@ -252,13 +252,13 @@
 .mapEditor {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-8);
 }
 .mapRow {
   display: grid;
   grid-template-columns: 1fr auto 1fr auto;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
 }
 .mapArrow {
   color: var(--text-3);
@@ -286,7 +286,7 @@
 .filterToggle {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-10);
 }
 .filterToggle label {
   font-size: var(--fs-sm);
@@ -294,7 +294,7 @@
   cursor: pointer;
 }
 .filterFields {
-  margin-top: 12px;
+  margin-top: var(--space-12);
 }
 
 /* ---- Skeletons ---- */
@@ -307,15 +307,15 @@
 .skelRow {
   display: flex;
   align-items: center;
-  gap: 11px;
-  padding: 11px 2px;
+  gap: var(--space-12);
+  padding: var(--space-12) var(--space-2);
   border-bottom: 1px solid var(--hairline);
 }
 .skelLines {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: var(--space-8);
 }
 @keyframes shimmer {
   0% {

@@ -13,7 +13,7 @@
 .topActions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-10);
 }
 
 .body {
@@ -56,7 +56,7 @@
   left: 8px;
   top: 8px;
   z-index: 100;
-  padding: 8px 14px;
+  padding: var(--space-8) var(--space-16);
   border-radius: var(--r-sm);
   background: var(--brand);
   color: var(--ground);
@@ -107,7 +107,7 @@
   inset: 0 auto 0 0;
   width: min(84vw, 288px);
   overflow-y: auto;
-  padding: 14px 12px;
+  padding: var(--space-16) var(--space-12);
   background: var(--surface-2);
   border-right: 1px solid var(--hairline);
   box-shadow: var(--shadow-pop);
@@ -168,7 +168,7 @@
 .banner {
   display: flex;
   align-items: center;
-  gap: 11px;
+  gap: var(--space-12);
   padding: 9px clamp(16px, 4vw, 40px);
   background: var(--gold-soft);
   border-bottom: 1px solid var(--gold-line);
@@ -202,8 +202,8 @@
 .userBtn {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 4px 8px 4px 4px;
+  gap: var(--space-8);
+  padding: var(--space-4) var(--space-8) var(--space-4) var(--space-4);
   border-radius: var(--r-full);
   border: 1px solid var(--border);
   background: var(--surface-2);
@@ -240,8 +240,8 @@
 .menuHeader {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 8px 10px 10px;
+  gap: var(--space-4);
+  padding: var(--space-8) var(--space-10) var(--space-10);
 }
 .menuName {
   font-weight: 700;
@@ -255,12 +255,12 @@
   white-space: nowrap;
 }
 .menuBadge {
-  margin-top: 4px;
+  margin-top: var(--space-4);
 }
 .switchRow {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: var(--space-8);
   width: 100%;
 }
 .switchWho {
@@ -300,16 +300,16 @@
   border: 1px solid var(--border);
   border-radius: var(--r-md);
   box-shadow: var(--shadow-pop);
-  padding: 5px;
+  padding: var(--space-4);
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-2);
 }
 .wsItem {
   display: flex;
   align-items: center;
-  gap: 9px;
-  padding: 7px 8px;
+  gap: var(--space-8);
+  padding: var(--space-8) var(--space-8);
   border-radius: var(--r-sm);
   border: 0;
   background: transparent;
@@ -354,7 +354,7 @@
 /* ---- Sidebar nav hints ---- */
 .navHint {
   display: block;
-  padding: 6px 8px;
+  padding: var(--space-6) var(--space-8);
   font-size: var(--fs-xs);
   color: var(--text-3);
 }

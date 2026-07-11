@@ -9,14 +9,14 @@
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 24px;
+  gap: var(--space-16);
+  margin-bottom: var(--space-24);
 }
 .headTitle h1 {
   font-size: var(--fs-h1);
 }
 .count {
-  margin-top: 6px;
+  margin-top: var(--space-6);
   color: var(--text-3);
   font-size: var(--fs-sm);
   font-family: var(--font-mono);
@@ -26,17 +26,17 @@
   padding: var(--space-20);
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-4);
 }
 .card + .card {
-  margin-top: 18px;
+  margin-top: var(--space-20);
 }
 .sectionHead {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 14px;
+  gap: var(--space-12);
+  margin-bottom: var(--space-16);
 }
 .sectionHead h2 {
   font-size: var(--fs-h4);
@@ -48,14 +48,14 @@
   font-family: var(--font-mono);
 }
 .state {
-  margin-bottom: 18px;
+  margin-bottom: var(--space-20);
 }
 
 /* ---- Plan + usage summary ---- */
 .summaryGrid {
   display: grid;
   grid-template-columns: 1.1fr 1fr;
-  gap: 22px;
+  gap: var(--space-24);
 }
 @media (max-width: 720px) {
   .summaryGrid {
@@ -65,7 +65,7 @@
 .planLine {
   display: flex;
   align-items: baseline;
-  gap: 10px;
+  gap: var(--space-10);
   flex-wrap: wrap;
 }
 .planNow {
@@ -79,15 +79,15 @@
   font-weight: 700;
 }
 .renews {
-  margin-top: 6px;
+  margin-top: var(--space-6);
   font-family: var(--font-mono);
   font-size: var(--fs-2xs);
   color: var(--text-3);
 }
 .seatRow {
   display: grid;
-  gap: 6px;
-  margin-top: 14px;
+  gap: var(--space-6);
+  margin-top: var(--space-16);
 }
 .seatTop {
   display: flex;
@@ -115,7 +115,7 @@
 .planGrid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
+  gap: var(--space-12);
 }
 @media (max-width: 860px) {
   .planGrid {
@@ -134,7 +134,7 @@
   padding: var(--space-16);
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-10);
 }
 .planCard.current {
   border-color: var(--brand-line);
@@ -144,7 +144,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-8);
 }
 .planName {
   font-family: var(--font-display);
@@ -174,7 +174,7 @@
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 6px;
+  gap: var(--space-6);
   font-size: var(--fs-xs);
   color: var(--text-2);
   flex: 1;
@@ -182,13 +182,13 @@
 .planFeatures li {
   display: flex;
   align-items: flex-start;
-  gap: 7px;
+  gap: var(--space-8);
 }
 .planFeatures svg {
   width: 13px;
   height: 13px;
   flex: none;
-  margin-top: 2px;
+  margin-top: var(--space-2);
   color: var(--brand);
 }
 
@@ -196,7 +196,7 @@
 .packGrid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
+  gap: var(--space-12);
 }
 @media (max-width: 560px) {
   .packGrid {
@@ -210,7 +210,7 @@
   padding: var(--space-16);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-8);
   align-items: flex-start;
 }
 .packCredits {
@@ -244,11 +244,11 @@
   text-transform: uppercase;
   color: var(--text-3);
   font-weight: 500;
-  padding: 6px 10px;
+  padding: var(--space-6) var(--space-10);
   border-bottom: 1px solid var(--hairline);
 }
 .table td {
-  padding: 10px;
+  padding: var(--space-10);
   border-bottom: 1px solid var(--hairline);
   vertical-align: middle;
 }
@@ -288,7 +288,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 14px;
+  gap: var(--space-16);
   flex-wrap: wrap;
 }
 .dangerText {
