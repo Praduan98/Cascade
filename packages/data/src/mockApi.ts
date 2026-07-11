@@ -190,12 +190,6 @@ export interface MockApiOptions {
   seedData?: StoreData
   /** Enrichment engine tuning (tests run it synchronously). */
   enrichment?: { sync?: boolean }
-  /**
-   * Whether a *fresh* store starts with the seeded owner already signed in
-   * (default true — keeps tests and isolated instances convenient). The app
-   * passes false so it opens on the sign-in screen instead of auto-resuming.
-   */
-  startSignedIn?: boolean
 }
 
 /** A subscriber to enrichment events, filtered by run or table. */
@@ -249,9 +243,6 @@ export class MockApi implements CascadeApi {
       this.store = loaded
     } else {
       this.store = new Store(opts.seedData ?? buildSeed())
-      // The app opts out of the auto-signed-in seed so it opens on /sign-in;
-      // tests keep the default so their workspace-scoped calls have an actor.
-      if (opts.startSignedIn === false) this.store.data.session = null
       this.store.save(this.key)
     }
     this.initEngine()
