@@ -14,6 +14,18 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * 401 — the request carried no valid session (missing/expired token). Distinct
+ * from 403 (authenticated but not allowed). `HttpApi` maps 401 responses here
+ * and clears the stored token; the UI routes back to sign-in.
+ */
+export class UnauthorizedError extends ApiError {
+  constructor(message = 'Your session has expired — please sign in again') {
+    super(message, 'unauthorized', 401)
+    this.name = 'UnauthorizedError'
+  }
+}
+
 /** 403 — the actor's role does not permit this action (e.g. a viewer writing). */
 export class ForbiddenError extends ApiError {
   constructor(message = 'You do not have permission to do that') {
