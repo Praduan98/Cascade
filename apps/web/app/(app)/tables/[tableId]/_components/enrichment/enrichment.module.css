@@ -2,14 +2,14 @@
 .builder {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: var(--space-16);
   min-width: min(640px, 82vw);
 }
 .builderHead {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-12);
 }
 .ceiling {
   font-family: var(--font-mono);
@@ -20,14 +20,14 @@
   border: 1px solid var(--border);
   border-radius: var(--r-md);
   background: var(--surface);
-  padding: 14px;
+  padding: var(--space-16);
   display: grid;
-  gap: 12px;
+  gap: var(--space-12);
 }
 .stepTop {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-10);
 }
 .stepNum {
   font-family: var(--font-mono);
@@ -41,7 +41,7 @@
 }
 .stepCtrls {
   display: flex;
-  gap: 4px;
+  gap: var(--space-4);
   flex: none;
 }
 .iconBtn {
@@ -74,11 +74,11 @@
 .mapGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  gap: var(--space-10);
 }
 .mapCol {
   display: grid;
-  gap: 6px;
+  gap: var(--space-6);
 }
 .mapLabel {
   font-family: var(--font-mono);
@@ -90,7 +90,7 @@
 .mapRow {
   display: grid;
   grid-template-columns: 96px 1fr;
-  gap: 8px;
+  gap: var(--space-8);
   align-items: center;
 }
 .mapRow .field {
@@ -106,15 +106,15 @@
 .acceptRow {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  gap: var(--space-10);
   align-items: end;
 }
 .switchRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  padding: 4px 0;
+  gap: var(--space-10);
+  padding: var(--space-4) 0;
 }
 .switchRow .lbl {
   font-size: var(--fs-sm);
@@ -134,15 +134,15 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-3);
-  margin-top: 4px;
+  margin-top: var(--space-4);
 }
 
 /* ---- Run progress strip ---- */
 .progress {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 9px 14px;
+  gap: var(--space-12);
+  padding: var(--space-8) var(--space-16);
   background: var(--surface-2);
   border-bottom: 1px solid var(--hairline);
   flex-wrap: wrap;
@@ -168,7 +168,7 @@
 }
 .progressCounts {
   display: flex;
-  gap: 6px;
+  gap: var(--space-6);
   flex-wrap: wrap;
 }
 .dismiss {
@@ -178,7 +178,7 @@
   cursor: pointer;
   font-size: 16px;
   line-height: 1;
-  padding: 2px 6px;
+  padding: var(--space-2) var(--space-6);
 }
 .dismiss:hover {
   color: var(--text);
@@ -187,13 +187,13 @@
 /* ---- Run dialog scope ---- */
 .scope {
   display: grid;
-  gap: 8px;
+  gap: var(--space-8);
 }
 .scopeOpt {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
+  gap: var(--space-10);
+  padding: var(--space-10) var(--space-12);
   border: 1px solid var(--border);
   border-radius: var(--r-md);
   cursor: pointer;
@@ -212,6 +212,6 @@
 }
 .toggles {
   display: grid;
-  gap: 4px;
-  margin-top: 6px;
+  gap: var(--space-4);
+  margin-top: var(--space-6);
 }

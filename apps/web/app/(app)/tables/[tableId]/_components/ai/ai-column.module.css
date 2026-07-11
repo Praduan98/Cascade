@@ -5,14 +5,14 @@
 .builder {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-16);
   min-width: min(600px, 82vw);
 }
 .builderHead {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-12);
 }
 .anchorName {
   font-family: var(--font-display);
@@ -32,18 +32,18 @@
   font-family: var(--font-mono);
   font-size: var(--fs-2xs);
   color: var(--text-3);
-  margin-top: 6px;
+  margin-top: var(--space-6);
 }
 .modelOption {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: var(--space-8);
 }
 
 /* Prompt editor */
 .prompt {
   display: grid;
-  gap: 8px;
+  gap: var(--space-8);
 }
 .promptHead {
   display: flex;
@@ -59,18 +59,18 @@
   place-items: center;
   min-width: 20px;
   height: 18px;
-  padding: 0 4px;
+  padding: 0 var(--space-4);
   border-radius: var(--r-xs);
   background: var(--surface-3);
   color: var(--text-2);
   font-family: var(--font-mono);
   font-size: var(--fs-2xs);
-  margin-right: 8px;
+  margin-right: var(--space-8);
 }
 .refRow {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: var(--space-6);
   align-items: center;
   min-height: 22px;
 }
@@ -82,7 +82,7 @@
 .refUnknown {
   font-family: var(--font-mono);
   font-size: var(--fs-2xs);
-  padding: 2px 7px;
+  padding: var(--space-2) var(--space-8);
   border-radius: var(--r-full);
   color: var(--st-failed);
   background: var(--st-failed-soft);
@@ -94,8 +94,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  padding: 4px 0;
+  gap: var(--space-10);
+  padding: var(--space-4) 0;
 }
 .switchRow .lbl {
   font-size: var(--fs-sm);
@@ -105,22 +105,22 @@
   font-size: var(--fs-2xs);
   letter-spacing: 0.04em;
   color: var(--text-3);
-  margin-top: 4px;
+  margin-top: var(--space-4);
 }
 .reqError {
   display: block;
   font-size: var(--fs-xs);
   color: var(--st-failed);
-  margin-top: 6px;
+  margin-top: var(--space-6);
 }
 .schema {
   display: grid;
-  gap: 8px;
+  gap: var(--space-8);
 }
 .schemaRow {
   display: grid;
   grid-template-columns: 1fr 128px 1fr 32px;
-  gap: 8px;
+  gap: var(--space-8);
   align-items: center;
 }
 .iconBtn {
@@ -156,6 +156,6 @@
 .row2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: var(--space-12);
   align-items: end;
 }

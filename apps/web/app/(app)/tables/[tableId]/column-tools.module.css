@@ -6,13 +6,13 @@
 .typeGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 7px;
+  gap: var(--space-8);
 }
 .typeBtn {
   display: flex;
   align-items: center;
-  gap: 9px;
-  padding: 9px 11px;
+  gap: var(--space-8);
+  padding: var(--space-8) var(--space-12);
   border: 1px solid var(--border);
   border-radius: var(--r-md);
   background: var(--surface-2);
@@ -66,24 +66,24 @@
 .config {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-12);
 }
 .row2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: var(--space-12);
 }
 
 /* ---- Select options editor ---- */
 .options {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-8);
 }
 .optionRow {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
 }
 .swatch {
   flex: none;
@@ -101,8 +101,8 @@
 .swatchGrid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 7px;
-  padding: 2px;
+  gap: var(--space-8);
+  padding: var(--space-2);
 }
 .swatchDot {
   width: 26px;
@@ -146,7 +146,7 @@
 }
 .optAdd {
   align-self: flex-start;
-  margin-top: 2px;
+  margin-top: var(--space-2);
 }
 .optHint {
   font-size: var(--fs-xs);
@@ -157,17 +157,17 @@
 .colList {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-6);
   max-height: min(52vh, 460px);
   overflow-y: auto;
   margin: -2px -2px 0;
-  padding: 2px;
+  padding: var(--space-2);
 }
 .colRow {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
+  gap: var(--space-10);
+  padding: var(--space-8) var(--space-10);
   border: 1px solid var(--border);
   border-radius: var(--r-md);
   background: var(--surface-2);
@@ -210,7 +210,7 @@
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: var(--space-8);
 }
 .colName {
   font-size: var(--fs-sm);
@@ -229,13 +229,13 @@
 .colCtrls {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-6);
   flex: none;
 }
 .freezeLabel {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-6);
   font-size: var(--fs-2xs);
   color: var(--text-3);
   text-transform: uppercase;
@@ -244,7 +244,7 @@
 
 /* ---- Coercion warning ---- */
 .warnBox {
-  margin-top: 2px;
+  margin-top: var(--space-2);
 }
 
 /* ---- Bulk delete rows ---- */
@@ -252,13 +252,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 4px;
+  gap: var(--space-12);
+  margin-bottom: var(--space-4);
 }
 .selectAll {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
   font-size: var(--fs-sm);
   color: var(--text-2);
   cursor: pointer;
@@ -272,18 +272,18 @@
 .rowList {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-4);
   max-height: min(46vh, 400px);
   overflow-y: auto;
   border: 1px solid var(--border);
   border-radius: var(--r-md);
-  padding: 5px;
+  padding: var(--space-4);
 }
 .rowItem {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
+  gap: var(--space-10);
+  padding: var(--space-8) var(--space-10);
   border-radius: var(--r-sm);
   cursor: pointer;
   transition: background var(--dur-1) var(--ease);
@@ -354,8 +354,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-top: 10px;
+  gap: var(--space-12);
+  margin-top: var(--space-10);
 }
 .pageInfo {
   font-family: var(--font-mono);

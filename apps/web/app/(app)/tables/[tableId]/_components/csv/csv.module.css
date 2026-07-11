@@ -12,14 +12,14 @@
 .steps {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
   flex-wrap: wrap;
-  margin-bottom: 14px;
+  margin-bottom: var(--space-16);
 }
 .stepDot {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: var(--space-8);
   font-size: var(--fs-2xs);
   font-family: var(--font-mono);
   letter-spacing: 0.06em;
@@ -61,7 +61,7 @@
   max-height: min(58vh, 520px);
   overflow-y: auto;
   margin: 0 -4px;
-  padding: 0 4px;
+  padding: 0 var(--space-4);
 }
 
 /* ---- Dropzone ---- */
@@ -69,11 +69,11 @@
   border: 1.5px dashed var(--border-strong);
   border-radius: var(--r-lg);
   background: var(--surface-2);
-  padding: 34px 24px;
+  padding: var(--space-32) var(--space-24);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-10);
   text-align: center;
   cursor: pointer;
   transition: border-color var(--dur-2) var(--ease), background var(--dur-2) var(--ease);
@@ -116,12 +116,12 @@
 .fileBar {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 9px 12px;
+  gap: var(--space-10);
+  padding: var(--space-8) var(--space-12);
   border: 1px solid var(--border);
   border-radius: var(--r-md);
   background: var(--surface-2);
-  margin-bottom: 12px;
+  margin-bottom: var(--space-12);
 }
 .fileName {
   font-size: var(--fs-sm);
@@ -143,8 +143,8 @@
 .toggleRow {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 0 14px;
+  gap: var(--space-10);
+  padding: var(--space-8) 0 var(--space-16);
 }
 .toggleLabel {
   font-size: var(--fs-sm);
@@ -158,7 +158,7 @@
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--text-3);
-  margin: 6px 0 8px;
+  margin: var(--space-6) 0 var(--space-8);
 }
 
 /* ---- Preview table ---- */
@@ -166,7 +166,7 @@
   overflow-x: auto;
   border: 1px solid var(--border);
   border-radius: var(--r-md);
-  margin-bottom: 16px;
+  margin-bottom: var(--space-16);
 }
 .previewTable {
   border-collapse: collapse;
@@ -176,7 +176,7 @@
 }
 .previewTable th,
 .previewTable td {
-  padding: 6px 10px;
+  padding: var(--space-6) var(--space-10);
   border-bottom: 1px solid var(--hairline);
   border-right: 1px solid var(--hairline);
   text-align: left;
@@ -212,14 +212,14 @@
 .mapList {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-8);
 }
 .mapRow {
   display: grid;
   grid-template-columns: minmax(120px, 1fr) auto minmax(0, 1.6fr);
   align-items: center;
-  gap: 10px;
-  padding: 9px 11px;
+  gap: var(--space-10);
+  padding: var(--space-8) var(--space-12);
   border: 1px solid var(--border);
   border-radius: var(--r-md);
   background: var(--surface-2);
@@ -257,7 +257,7 @@
 .mapTarget {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
   min-width: 0;
 }
 .mapTarget > * {
@@ -276,7 +276,7 @@
   flex: none;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-6);
   font-size: var(--fs-2xs);
   font-family: var(--font-mono);
   color: var(--text-3);
@@ -287,7 +287,7 @@
   place-items: center;
   min-width: 22px;
   height: 20px;
-  padding: 0 5px;
+  padding: 0 var(--space-4);
   border-radius: var(--r-sm);
   background: var(--surface-3);
   border: 1px solid var(--border);
@@ -299,14 +299,14 @@
 /* ---- Review ---- */
 .statRow {
   display: flex;
-  gap: 10px;
+  gap: var(--space-10);
   flex-wrap: wrap;
-  margin-bottom: 14px;
+  margin-bottom: var(--space-16);
 }
 .stat {
   flex: 1;
   min-width: 120px;
-  padding: 12px 14px;
+  padding: var(--space-12) var(--space-16);
   border: 1px solid var(--border);
   border-radius: var(--r-md);
   background: var(--surface-2);
@@ -329,26 +329,26 @@
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--text-3);
-  margin-top: 3px;
+  margin-top: var(--space-4);
 }
 
 .errList {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-4);
   max-height: min(38vh, 320px);
   overflow-y: auto;
   border: 1px solid var(--border);
   border-radius: var(--r-md);
-  padding: 6px;
-  margin-top: 4px;
+  padding: var(--space-6);
+  margin-top: var(--space-4);
 }
 .errItem {
   display: grid;
   grid-template-columns: 54px minmax(80px, 0.8fr) minmax(0, 1.4fr);
-  gap: 10px;
+  gap: var(--space-10);
   align-items: baseline;
-  padding: 6px 8px;
+  padding: var(--space-6) var(--space-8);
   border-radius: var(--r-sm);
   font-size: var(--fs-xs);
 }
@@ -379,18 +379,18 @@
   font-size: var(--fs-2xs);
   color: var(--text-3);
   text-align: center;
-  padding: 6px 0 2px;
+  padding: var(--space-6) 0 var(--space-2);
 }
 
 /* ---- Progress ---- */
 .progressWrap {
-  padding: 20px 4px 8px;
+  padding: var(--space-20) var(--space-4) var(--space-8);
 }
 .progressHead {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  margin-bottom: 10px;
+  margin-bottom: var(--space-10);
 }
 .progressPhase {
   font-size: var(--fs-sm);
@@ -427,7 +427,7 @@
   }
 }
 .progressHint {
-  margin-top: 12px;
+  margin-top: var(--space-12);
   font-size: var(--fs-xs);
   color: var(--text-3);
   text-align: center;
@@ -438,8 +438,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 14px;
-  padding: 16px 4px 8px;
+  gap: var(--space-16);
+  padding: var(--space-16) var(--space-4) var(--space-8);
   text-align: center;
 }
 .summaryIcon {
@@ -463,7 +463,7 @@
 }
 .summaryStats {
   display: flex;
-  gap: 22px;
+  gap: var(--space-24);
   justify-content: center;
 }
 .summaryStat b {

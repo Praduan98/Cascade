@@ -8,8 +8,8 @@
 
 .help {
   display: grid;
-  gap: 6px;
-  padding: 12px;
+  gap: var(--space-6);
+  padding: var(--space-12);
   background: var(--surface-2);
   border: 1px solid var(--hairline);
   border-radius: var(--r-md);
@@ -31,7 +31,7 @@
 
 .examples {
   display: grid;
-  gap: 4px;
+  gap: var(--space-4);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -43,7 +43,7 @@
   color: var(--cobalt);
   background: none;
   border: none;
-  padding: 2px 0;
+  padding: var(--space-2) 0;
   cursor: pointer;
   text-align: left;
 }

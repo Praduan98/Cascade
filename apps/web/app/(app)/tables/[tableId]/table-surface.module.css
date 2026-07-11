@@ -10,7 +10,7 @@
   flex-direction: column;
   background: var(--ground);
   padding: clamp(14px, 2.2vw, 24px) clamp(16px, 3vw, 32px) clamp(16px, 2.4vw, 26px);
-  gap: 14px;
+  gap: var(--space-16);
   overflow: hidden;
 }
 
@@ -19,7 +19,7 @@
   height: 100%;
   display: grid;
   place-items: center;
-  padding: 40px;
+  padding: var(--space-40);
 }
 .spinner {
   width: 26px;
@@ -39,7 +39,7 @@
   max-width: 480px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: var(--space-16);
   align-items: flex-start;
 }
 
@@ -49,20 +49,20 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px 20px;
+  gap: var(--space-16) var(--space-20);
   flex-wrap: wrap;
 }
 
 .lead {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-4);
   min-width: 0;
 }
 .back {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: var(--space-4);
   font-family: var(--font-mono);
   font-size: var(--fs-2xs);
   letter-spacing: 0.16em;
@@ -81,7 +81,7 @@
 .titleRow {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-12);
   min-width: 0;
 }
 .name {
@@ -108,21 +108,21 @@
 .actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
   flex-wrap: wrap;
   justify-content: flex-end;
 }
 .group {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-6);
 }
 .divider {
   width: 1px;
   align-self: stretch;
   min-height: 22px;
   background: var(--border);
-  margin: 0 2px;
+  margin: 0 var(--space-2);
 }
 .viewLabel {
   font-family: var(--font-mono);
@@ -130,7 +130,7 @@
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--text-3);
-  padding: 5px 10px;
+  padding: var(--space-4) var(--space-10);
   border: 1px solid var(--border);
   border-radius: var(--r-full);
   background: var(--surface-2);
@@ -139,7 +139,7 @@
 .btnIcon {
   width: 15px;
   height: 15px;
-  margin-right: 6px;
+  margin-right: var(--space-6);
   vertical-align: -2px;
 }
 /* Keep a disabled button hoverable so its tooltip still fires. */
@@ -152,7 +152,7 @@
   max-width: 260px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-6);
 }
 .hintTitle {
   font-weight: 700;
