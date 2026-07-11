@@ -22,7 +22,7 @@
   font-family: var(--font-display);
   font-weight: 800;
   letter-spacing: -0.03em;
-  font-size: 1.12rem;
+  font-size: var(--fs-h4);
   color: var(--text);
 }
 .brand .glyph {
@@ -131,7 +131,7 @@
   background-size: 80%;
   background-position: center;
   background-repeat: no-repeat;
-  box-shadow: inset 0 0 0 1px var(--border);
+  border: 1px solid var(--border);
 }
 .sh-ws .wsn {
   font-weight: 700;

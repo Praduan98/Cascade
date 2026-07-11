@@ -124,24 +124,10 @@
   gap: var(--space-8);
   align-items: center;
 }
-.iconBtn {
-  display: grid;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-  border: 1px solid var(--border);
-  border-radius: var(--r-sm);
-  background: var(--surface-2);
-  color: var(--text-3);
-  cursor: pointer;
-}
-.iconBtn:hover:not(:disabled) {
+/* Destructive variant of the shared global .iconBtn — softened border like .btn-danger. */
+.danger:hover:not(:disabled) {
   color: var(--st-failed);
-  border-color: var(--st-failed);
-}
-.iconBtn svg {
-  width: 14px;
-  height: 14px;
+  border-color: color-mix(in srgb, var(--st-failed) 40%, transparent);
 }
 .schemaAdd {
   width: 100%;

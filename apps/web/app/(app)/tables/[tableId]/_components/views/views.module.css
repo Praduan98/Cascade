@@ -23,7 +23,7 @@
   background: var(--brand);
   color: var(--brand-ink, var(--ground));
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: var(--fs-2xs);
   font-weight: 700;
   line-height: 1;
   vertical-align: 1px;
@@ -112,7 +112,7 @@
 .defaultBadge {
   flex: none;
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: var(--fs-2xs);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-3);
@@ -229,31 +229,10 @@
   color: var(--text-3);
   flex: none;
 }
-.removeBtn {
-  flex: none;
-  width: 30px;
-  height: 30px;
+/* The condition/sort remove control now uses the shared global .iconBtn class,
+   with .align to sit centred against the multi-line condition row. */
+.align {
   align-self: center;
-  display: grid;
-  place-items: center;
-  border-radius: var(--r-sm);
-  border: 1px solid var(--border);
-  background: var(--surface-2);
-  color: var(--text-3);
-  cursor: pointer;
-  transition: color var(--dur-2) var(--ease), border-color var(--dur-2) var(--ease);
-}
-.removeBtn:hover:not(:disabled) {
-  color: var(--st-failed, #ef4444);
-  border-color: var(--border-strong);
-}
-.removeBtn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-.removeBtn svg {
-  width: 14px;
-  height: 14px;
 }
 
 /* ---- Select option operand chips ---- */
@@ -356,35 +335,12 @@
 .fieldRow.off {
   opacity: 0.6;
 }
-.eyeBtn {
-  flex: none;
-  width: 30px;
-  height: 30px;
-  display: grid;
-  place-items: center;
-  border-radius: var(--r-sm);
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text-3);
-  cursor: pointer;
-  transition: color var(--dur-2) var(--ease), border-color var(--dur-2) var(--ease);
-}
-.eyeBtn:hover:not(:disabled) {
-  border-color: var(--border-strong);
-  color: var(--text-2);
-}
-.eyeBtn.visible {
+/* Field visibility toggle — built on the shared global .iconBtn; .eyeOn carries
+   the brand "shown" state (layered over the .iconBtn base for enough specificity). */
+:global(.iconBtn).eyeOn {
   color: var(--brand);
   border-color: var(--brand-line);
   background: var(--brand-soft);
-}
-.eyeBtn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-.eyeBtn svg {
-  width: 15px;
-  height: 15px;
 }
 .fieldMeta {
   flex: 1;

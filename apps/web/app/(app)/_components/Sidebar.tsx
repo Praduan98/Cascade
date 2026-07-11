@@ -5,9 +5,12 @@ import { useQuery } from '@tanstack/react-query'
 import { getApi } from '@cascade/data'
 import { canManageAutomations, canManageIntegrations, canManageProviders, canManageSubscription, canViewAudit, canWrite } from '@cascade/core'
 import {
+  CheckIcon,
   NavGroup,
   NavItem,
+  PlusIcon,
   SideNav,
+  UsersIcon,
   WorkspaceSwitcher,
 } from '@cascade/ui'
 import { useSession } from '../../session'
@@ -36,18 +39,6 @@ const HomeIcon = () => (
   <Icon>
     <path d="M3 10.5 12 3l9 7.5" />
     <path d="M5 9.5V21h14V9.5" />
-  </Icon>
-)
-const PlusIcon = () => (
-  <Icon>
-    <path d="M12 5v14M5 12h14" />
-  </Icon>
-)
-const MembersIcon = () => (
-  <Icon>
-    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-    <circle cx="9" cy="7" r="4" />
-    <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
   </Icon>
 )
 const AuditIcon = () => (
@@ -95,15 +86,9 @@ const IntegrationIcon = () => (
 const SettingsIcon = () => (
   <Icon>
     <circle cx="12" cy="12" r="3" />
-    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-2.82 1.17V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 8 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15H4.5a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 6 8.6l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 12 4.6V4.5a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 2.82 1.17l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 12z" />
+    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
   </Icon>
 )
-const CheckIcon = () => (
-  <svg className={styles.wsCheck} width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="M20 6 9 17l-5-5" />
-  </svg>
-)
-
 function WorkspaceMenu() {
   const { workspace, workspaces, switchWorkspace } = useSession()
   const [open, setOpen] = useState(false)
@@ -155,7 +140,7 @@ function WorkspaceMenu() {
                   style={logo ? { backgroundImage: `url(${logo})` } : undefined}
                 />
                 <span className={styles.wsName}>{ws.name}</span>
-                {active && <CheckIcon />}
+                {active && <CheckIcon size={15} className={styles.wsCheck} />}
               </button>
             )
           })}
@@ -227,7 +212,7 @@ export function Sidebar() {
         )}
 
         <NavGroup>Workspace</NavGroup>
-        <NavItem href="/members" active={pathname === '/members'} icon={<MembersIcon />}>
+        <NavItem href="/members" active={pathname === '/members'} icon={<UsersIcon />}>
           Members
         </NavItem>
         {auditable && (

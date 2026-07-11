@@ -20,7 +20,7 @@
 .bal {
   font-family: var(--font-display);
   font-weight: 800;
-  font-size: 2rem;
+  font-size: var(--fs-h2);
   letter-spacing: -0.03em;
   line-height: 1;
 }
@@ -76,7 +76,7 @@
 .meterLegend .k {
   width: 9px;
   height: 9px;
-  border-radius: 2px;
+  border-radius: var(--r-xs);
   flex: none;
 }
 

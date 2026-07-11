@@ -15,7 +15,7 @@
   display: grid;
   place-items: center;
   flex: none;
-  font-size: 12px;
+  font-size: var(--fs-xs);
   font-weight: 700;
   margin-top: 1px;
 }

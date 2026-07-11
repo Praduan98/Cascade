@@ -169,10 +169,12 @@ export default function OnboardingPage() {
             </Link>
           </div>
 
-          {balanceQuery.data && (
+          {balanceQuery.isError ? null : balanceQuery.data ? (
             <p className={styles.balanceLine}>
               You have {nf.format(balanceQuery.data.balance)} credits ready to spend.
             </p>
+          ) : (
+            <div className={[styles.skelBlock, styles.balanceSkel].join(' ')} aria-hidden="true" />
           )}
 
           <div className={styles.actions}>
@@ -205,7 +207,7 @@ export default function OnboardingPage() {
           ) : templatesQuery.isLoading ? (
             <div className={styles.grid}>
               {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className={styles.skelBlock} style={{ height: 132, borderRadius: 12 }} />
+                <div key={i} className={[styles.skelBlock, styles.skelBig].join(' ')} style={{ height: 132 }} />
               ))}
             </div>
           ) : (
@@ -261,8 +263,8 @@ export default function OnboardingPage() {
                 Building your table…
               </h1>
               <p className={styles.lede}>Setting up columns and sample rows.</p>
-              <div className={styles.skelBlock} style={{ height: 76, borderRadius: 12 }} />
-              <div className={styles.skelBlock} style={{ height: 14, width: '70%', marginTop: 4 }} />
+              <div className={[styles.skelBlock, styles.skelBig].join(' ')} style={{ height: 76 }} />
+              <div className={[styles.skelBlock, styles.skelLineGap].join(' ')} style={{ height: 14, width: '70%' }} />
               <div className={styles.skelBlock} style={{ height: 14, width: '55%' }} />
             </>
           ) : (

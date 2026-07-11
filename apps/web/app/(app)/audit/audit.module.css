@@ -46,11 +46,15 @@
 }
 
 /* ---- Log table ---- */
+/* Matches the shared .card treatment (surface + --r-lg + shadow-2); composing
+   the lighter .panel (surface-2) would collide with the surface-2 row-hover
+   below and erase the hover affordance, so we mirror .card and add its shadow. */
 .tableWrap {
   overflow-x: auto;
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
   background: var(--surface);
+  box-shadow: var(--shadow-2);
 }
 .table {
   width: 100%;

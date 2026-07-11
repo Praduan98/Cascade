@@ -7,7 +7,7 @@ import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { getApi } from '@cascade/data'
 import type { SequencerProvider } from '@cascade/core'
-import { Button, Dialog, DialogClose, Field, Input, Select, useToast } from '@cascade/ui'
+import { Alert, Button, Dialog, DialogClose, Field, Input, Select, useToast } from '@cascade/ui'
 import { errorMessage } from '../../../lib/ui'
 import styles from '../integrations.module.css'
 
@@ -48,7 +48,6 @@ export function ConnectSequencerDialog(props: {
       reset()
       onOpenChange(false)
     },
-    onError: (e) => toast(errorMessage(e, 'Could not connect the sequencer'), { variant: 'error' }),
   })
 
   const canSubmit = !!token.trim() && !connect.isPending
@@ -73,6 +72,12 @@ export function ConnectSequencerDialog(props: {
         </>
       }
     >
+      {connect.isError && (
+        <Alert variant="error" title="Couldn’t connect the sequencer" className={styles.state}>
+          {errorMessage(connect.error)}
+        </Alert>
+      )}
+
       <div className={styles.formGrid}>
         <Field label="Provider" htmlFor="seq-provider">
           <Select

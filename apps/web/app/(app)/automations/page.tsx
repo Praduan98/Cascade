@@ -15,7 +15,7 @@ import type {
   TableMeta,
 } from '@cascade/core'
 import { canManageAutomations } from '@cascade/core'
-import { Alert, Button, Card, ConfirmDialog, EmptyState, Pill, Seg, Switch, Tag, useToast } from '@cascade/ui'
+import { Alert, Button, Card, ConfirmDialog, EmptyState, LockIcon, Pill, Seg, Switch, Tag, useToast } from '@cascade/ui'
 import type { PillStatus } from '@cascade/ui'
 import { useSession } from '../../session'
 import { errorMessage, formatDate } from '../../lib/ui'
@@ -84,15 +84,6 @@ function ListSkeleton({ rows = 3 }: { rows?: number }) {
         </div>
       ))}
     </div>
-  )
-}
-
-function LockGlyph() {
-  return (
-    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <rect x="4" y="11" width="16" height="10" rx="2" />
-      <path d="M8 11V7a4 4 0 0 1 8 0v4" />
-    </svg>
   )
 }
 
@@ -167,7 +158,7 @@ export default function AutomationsPage() {
       <div className={styles.page}>
         <PageHeader subtitle={`Schedules, row-event triggers, and webhooks for ${workspace.name}`} />
         <EmptyState
-          icon={<LockGlyph />}
+          icon={<LockIcon size={26} />}
           title="Automations are restricted"
           description="Only owners and admins can create schedules, row-event triggers, and webhooks."
           action={
@@ -330,19 +321,20 @@ function AutomationsSection({
                 disabled={setEnabled.isPending}
                 aria-label={`${a.isEnabled ? 'Disable' : 'Enable'} ${a.name}`}
               />
-              <button
+              <Button
                 type="button"
-                className={styles.linkBtn}
+                variant="ghost"
+                size="sm"
                 onClick={() => runNow.mutate(a.id)}
                 disabled={runNow.isPending}
               >
                 Run now
-              </button>
+              </Button>
               <ConfirmDialog
                 trigger={
-                  <button type="button" className={`${styles.linkBtn} ${styles.danger}`} disabled={remove.isPending}>
+                  <Button type="button" variant="danger" size="sm" disabled={remove.isPending}>
                     Remove
-                  </button>
+                  </Button>
                 }
                 title={`Remove “${a.name}”?`}
                 description="This automation and its schedule will stop running. This can’t be undone."
@@ -504,9 +496,9 @@ function WebhooksSection({
               />
               <ConfirmDialog
                 trigger={
-                  <button type="button" className={`${styles.linkBtn} ${styles.danger}`} disabled={removeInbound.isPending}>
+                  <Button type="button" variant="danger" size="sm" disabled={removeInbound.isPending}>
                     Remove
-                  </button>
+                  </Button>
                 }
                 title={`Remove “${w.name}”?`}
                 description="The endpoint will stop accepting requests and its signing secret is revoked. This can’t be undone."
@@ -569,9 +561,9 @@ function WebhooksSection({
               />
               <ConfirmDialog
                 trigger={
-                  <button type="button" className={`${styles.linkBtn} ${styles.danger}`} disabled={removeOutbound.isPending}>
+                  <Button type="button" variant="danger" size="sm" disabled={removeOutbound.isPending}>
                     Remove
-                  </button>
+                  </Button>
                 }
                 title={`Remove “${w.name}”?`}
                 description="Cascade will stop POSTing to this URL when rows change. This can’t be undone."

@@ -300,6 +300,25 @@ a { color: var(--brand); text-decoration: none; }
   background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-md);
 }
 
+/* ---------- Icon button ---------- */
+/* One shared square icon-control, replacing ~6 per-file re-implementations that
+   drifted across 26/28/30px and three background treatments. Add `.iconBtn-sm`
+   for the compact (26px) variant; the glyph sizes itself via `svg`. */
+.iconBtn {
+  display: inline-flex; align-items: center; justify-content: center; flex: none;
+  width: 30px; height: 30px; padding: 0;
+  border-radius: var(--r-sm); border: 1px solid var(--border);
+  background: var(--surface-2); color: var(--text-2); cursor: pointer;
+  transition: background var(--dur-2) var(--ease), color var(--dur-2) var(--ease),
+    border-color var(--dur-2) var(--ease);
+}
+.iconBtn:hover { background: var(--surface-3); color: var(--text); border-color: var(--border-strong); }
+.iconBtn:focus-visible { outline: none; box-shadow: var(--ring); }
+.iconBtn:disabled { opacity: .5; cursor: default; }
+.iconBtn svg { width: 15px; height: 15px; }
+.iconBtn-sm { width: 26px; height: 26px; }
+.iconBtn-sm svg { width: 14px; height: 14px; }
+
 /* ---------- Pills / badges / chips ---------- */
 .pill {
   display: inline-flex; align-items: center; gap: .45em;

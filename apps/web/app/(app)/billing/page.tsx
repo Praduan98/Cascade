@@ -10,7 +10,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CREDIT_PACKS, getApi } from '@cascade/data'
 import { canManageSubscription, PLAN_RANK } from '@cascade/core'
 import type { Plan } from '@cascade/core'
-import { Alert, Button, Card, CostLine, CreditMeter, Dialog, DialogClose, EmptyState, Pill, useToast } from '@cascade/ui'
+import { Alert, Button, Card, CheckIcon, CostLine, CreditMeter, Dialog, DialogClose, EmptyState, LockIcon, Pill, useToast } from '@cascade/ui'
 import { useSession } from '../../session'
 import { errorMessage, formatDate } from '../../lib/ui'
 import styles from './billing.module.css'
@@ -18,22 +18,6 @@ import styles from './billing.module.css'
 const nf = new Intl.NumberFormat('en-US')
 const cf = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
 const usd = (n: number) => cf.format(n)
-
-function Check() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M20 6 9 17l-5-5" />
-    </svg>
-  )
-}
-function LockGlyph() {
-  return (
-    <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-      <rect x="4" y="11" width="16" height="9" rx="2" />
-      <path d="M8 11V8a4 4 0 0 1 8 0v3" />
-    </svg>
-  )
-}
 
 const INVOICE_STATUS: Record<string, 'success' | 'empty' | 'failed' | 'cached'> = {
   paid: 'success',
@@ -119,7 +103,7 @@ export default function BillingPage() {
     return (
       <div className={styles.page}>
         <EmptyState
-          icon={<LockGlyph />}
+          icon={<LockIcon size={26} />}
           title="Billing is restricted"
           description="Only the workspace owner can manage the plan, credits, and invoices."
           action={<Link href="/tables" className="btn btn-secondary">Back to tables</Link>}
@@ -177,7 +161,7 @@ export default function BillingPage() {
                   <span>Seats</span>
                   <span>{summary.seats.used} / {summary.seats.limit}</span>
                 </div>
-                <span className={styles.seatBar}><i className={seatsFull ? 'full' : ''} style={{ width: `${Math.round(seatPct * 100)}%` }} /></span>
+                <span className={styles.seatBar}><i className={seatsFull ? styles.full : ''} style={{ width: `${Math.round(seatPct * 100)}%` }} /></span>
                 {seatsFull && <span className={styles.sectionHint}>Seat limit reached — upgrade to invite more.</span>}
               </div>
             </div>
@@ -191,7 +175,7 @@ export default function BillingPage() {
             />
           </div>
         ) : (
-          <div className={styles.skelBlock} style={{ height: 96, borderRadius: 12 }} />
+          <div className={`${styles.skelBlock} ${styles.skelMd}`} style={{ height: 96 }} />
         )}
       </Card>
 
@@ -201,31 +185,35 @@ export default function BillingPage() {
           <h2>Change plan</h2>
           <span className={styles.sectionHint}>upgrade or downgrade anytime</span>
         </div>
-        <div className={styles.planGrid}>
-          {plans.map((plan) => {
-            const current = summary?.plan?.id === plan.id
-            const rankNow = summary?.plan ? PLAN_RANK[summary.plan.tier] : 0
-            const dir = PLAN_RANK[plan.tier] > rankNow ? 'Upgrade' : 'Switch'
-            return (
-              <div key={plan.id} className={[styles.planCard, current ? styles.current : ''].filter(Boolean).join(' ')}>
-                <div className={styles.planHd}>
-                  <span className={styles.planName}>{plan.name}</span>
-                  {current && <Pill status="running">Current</Pill>}
+        {plansQuery.isLoading ? (
+          <div className={`${styles.skelBlock} ${styles.skelMd}`} style={{ height: 132 }} />
+        ) : (
+          <div className={styles.planGrid}>
+            {plans.map((plan) => {
+              const current = summary?.plan?.id === plan.id
+              const rankNow = summary?.plan ? PLAN_RANK[summary.plan.tier] : 0
+              const dir = PLAN_RANK[plan.tier] > rankNow ? 'Upgrade' : 'Switch'
+              return (
+                <div key={plan.id} className={[styles.planCard, current ? styles.current : ''].filter(Boolean).join(' ')}>
+                  <div className={styles.planHd}>
+                    <span className={styles.planName}>{plan.name}</span>
+                    {current && <Pill status="running">Current</Pill>}
+                  </div>
+                  <div className={styles.planPrice}>{usd(plan.priceUsdMonthly)}<small> /mo</small></div>
+                  <p className={styles.planBlurb}>{plan.blurb}</p>
+                  <ul className={styles.planFeatures}>
+                    {plan.features.map((f) => (
+                      <li key={f}><CheckIcon /> {f}</li>
+                    ))}
+                  </ul>
+                  <Button variant={current ? 'ghost' : 'secondary'} size="sm" disabled={current} onClick={() => setPlanTarget(plan)}>
+                    {current ? 'Current plan' : `${dir} to ${plan.name}`}
+                  </Button>
                 </div>
-                <div className={styles.planPrice}>{usd(plan.priceUsdMonthly)}<small> /mo</small></div>
-                <p className={styles.planBlurb}>{plan.blurb}</p>
-                <ul className={styles.planFeatures}>
-                  {plan.features.map((f) => (
-                    <li key={f}><Check /> {f}</li>
-                  ))}
-                </ul>
-                <Button variant={current ? 'ghost' : 'secondary'} size="sm" disabled={current} onClick={() => setPlanTarget(plan)}>
-                  {current ? 'Current plan' : `${dir} to ${plan.name}`}
-                </Button>
-              </div>
-            )
-          })}
-        </div>
+              )
+            })}
+          </div>
+        )}
       </Card>
 
       {/* ---- Credit packs ---- */}
@@ -253,7 +241,7 @@ export default function BillingPage() {
           {invoices.length > 0 && <span className={styles.sectionHint}>{invoices.length} invoices</span>}
         </div>
         {invoicesQuery.isLoading ? (
-          <div className={styles.skelBlock} style={{ height: 80, borderRadius: 8 }} />
+          <div className={styles.skelBlock} style={{ height: 80 }} />
         ) : invoices.length === 0 ? (
           <EmptyState title="No invoices yet" description="Invoices for your subscription and top-ups appear here." />
         ) : (
@@ -270,7 +258,7 @@ export default function BillingPage() {
                     <td><Pill status={INVOICE_STATUS[inv.status] ?? 'empty'}>{inv.status}</Pill></td>
                     <td className={styles.money}>{usd(inv.amountUsd)}</td>
                     <td style={{ textAlign: 'right' }}>
-                      <button type="button" className="btn btn-ghost btn-sm" onClick={() => toast('Invoice PDF is a mock in this build', { variant: 'default' })}>Download</button>
+                      <Button variant="ghost" size="sm" onClick={() => toast('Invoice PDF is a mock in this build', { variant: 'default' })}>Download</Button>
                     </td>
                   </tr>
                 ))}
@@ -285,7 +273,7 @@ export default function BillingPage() {
         <Card className={styles.card}>
           <div className={styles.dangerRow}>
             <div>
-              <div className={styles.sectionHead} style={{ marginBottom: 4 }}><h2>Cancel subscription</h2></div>
+              <div className={`${styles.sectionHead} ${styles.sectionHeadTight}`}><h2>Cancel subscription</h2></div>
               <p className={styles.dangerText}>
                 {summary.cancelAtPeriodEnd
                   ? 'Your subscription is set to cancel at the period end.'
@@ -319,7 +307,7 @@ export default function BillingPage() {
         {planTarget && (
           <>
             <CostLine label="New monthly price" amount={`${usd(planTarget.priceUsdMonthly)} / month`} />
-            <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)', fontFamily: 'var(--font-mono)', marginTop: 8 }}>
+            <p className={styles.planMeta}>
               {nf.format(planTarget.includedCredits)} credits included · {planTarget.seatLimit} seats
               {summary?.plan && PLAN_RANK[planTarget.tier] > PLAN_RANK[summary.plan.tier] ? ' · upgrade credits added now' : ''}
             </p>

@@ -9,7 +9,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { getApi } from '@cascade/data'
 import type { SequencerPushFilter } from '@cascade/core'
-import { Button, Dialog, DialogClose, Field, Input, Select, Switch, useToast } from '@cascade/ui'
+import { Alert, Button, Dialog, DialogClose, Field, Input, Select, Switch, useToast } from '@cascade/ui'
 import { errorMessage } from '../../../lib/ui'
 import styles from '../integrations.module.css'
 
@@ -116,7 +116,6 @@ export function PushToSequencerDialog(props: {
       reset()
       onOpenChange(false)
     },
-    onError: (e) => toast(errorMessage(e, 'The push failed'), { variant: 'error' }),
   })
 
   const canSubmit = !!tableId && !!campaignId && !!mapping.email && !push.isPending
@@ -141,6 +140,22 @@ export function PushToSequencerDialog(props: {
         </>
       }
     >
+      {push.isError && (
+        <Alert variant="error" title="The push failed" className={styles.state}>
+          {errorMessage(push.error)}
+        </Alert>
+      )}
+      {tablesQuery.isError && (
+        <Alert variant="error" title="Couldn’t load tables" className={styles.state}>
+          {errorMessage(tablesQuery.error)}
+        </Alert>
+      )}
+      {campaignsQuery.isError && (
+        <Alert variant="error" title="Couldn’t load campaigns" className={styles.state}>
+          {errorMessage(campaignsQuery.error)}
+        </Alert>
+      )}
+
       <div className={styles.formGrid}>
         <Field label="Table" htmlFor="seq-table">
           <Select

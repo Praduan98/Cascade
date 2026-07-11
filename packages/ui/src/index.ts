@@ -16,6 +16,20 @@ export { Card, Panel } from './Surface'
 export { Kbd } from './Kbd'
 export { Collapse } from './Collapse'
 
+// ---- Icons (one canonical outline glyph per concept, strokeWidth 2) ----
+export {
+  CheckIcon,
+  PlusIcon,
+  TrashIcon,
+  MenuIcon,
+  ArrowRightIcon,
+  XIcon,
+  LockIcon,
+  UsersIcon,
+  DotsIcon,
+} from './icons'
+export type { IconProps } from './icons'
+
 // ---- Forms ----
 export { Field } from './Field'
 export { Input, Textarea } from './Input'

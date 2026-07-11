@@ -23,7 +23,7 @@ const SEQ_LABEL: Record<SequencerProvider, string> = {
 
 function SendGlyph() {
   return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M22 2 11 13" />
       <path d="M22 2 15 22l-4-9-9-4z" />
     </svg>
@@ -120,9 +120,9 @@ export function SequencerSection(props: { workspaceId: string }) {
                 </Button>
                 <ConfirmDialog
                   trigger={
-                    <button type="button" className={[styles.linkBtn, styles.danger].join(' ')} disabled={disconnect.isPending}>
+                    <Button variant="danger" size="sm" disabled={disconnect.isPending}>
                       Disconnect
-                    </button>
+                    </Button>
                   }
                   title={`Disconnect ${SEQ_LABEL[c.provider]}?`}
                   description="You’ll no longer be able to push lists to this account, and the stored API token is removed."
@@ -141,7 +141,11 @@ export function SequencerSection(props: { workspaceId: string }) {
           <h2>Push history</h2>
           {runs.length > 0 && <span className={styles.sectionHint}>{runs.length} pushes</span>}
         </div>
-        {runsQuery.isLoading ? (
+        {runsQuery.isError ? (
+          <Alert variant="error" title="Couldn’t load push history">
+            {errorMessage(runsQuery.error)}
+          </Alert>
+        ) : runsQuery.isLoading ? (
           <div className={styles.skelBlock} style={{ height: 80, borderRadius: 8 }} />
         ) : runs.length === 0 ? (
           <EmptyState title="No pushes yet" description="Push a list to a campaign and its runs appear here." />

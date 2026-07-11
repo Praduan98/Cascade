@@ -23,7 +23,7 @@
   border-bottom: 1px solid var(--hairline);
 }
 .section h2 {
-  font-size: 0.72rem;
+  font-size: var(--fs-xs);
   font-family: var(--font-mono);
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -55,12 +55,12 @@
   padding: var(--space-8) var(--space-10);
 }
 .name {
-  font-size: 0.82rem;
+  font-size: var(--fs-sm);
   font-weight: 600;
 }
 .hex {
   font-family: var(--font-mono);
-  font-size: 0.655rem;
+  font-size: var(--fs-2xs);
   color: var(--text-3);
   text-transform: uppercase;
   margin-top: 1px;
@@ -80,14 +80,14 @@
 .specBody {
   font-family: var(--font-body);
   color: var(--text-2);
-  font-size: 1.02rem;
+  font-size: var(--fs-h4);
   line-height: 1.6;
   max-width: 60ch;
 }
 .specMono {
   font-family: var(--font-mono);
   color: var(--text);
-  font-size: 0.95rem;
+  font-size: var(--fs-body);
 }
 
 /* ---- demo layout helpers ---- */
@@ -118,12 +118,12 @@
   background: var(--surface-2);
 }
 .tileCap .t {
-  font-size: 0.82rem;
+  font-size: var(--fs-sm);
   font-weight: 600;
 }
 .tileCap .n {
   font-family: var(--font-mono);
-  font-size: 0.655rem;
+  font-size: var(--fs-2xs);
   color: var(--text-3);
 }
 .tileBody {
@@ -138,7 +138,7 @@
   align-items: stretch;
 }
 .note {
-  font-size: 0.82rem;
+  font-size: var(--fs-sm);
   color: var(--text-2);
   line-height: 1.5;
   max-width: 62ch;

@@ -37,7 +37,7 @@ function seed(columns: Column[], view: View | undefined): ColumnState[] {
 
 function IconFields() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ width: 15, height: 15, marginRight: 6, verticalAlign: -2 }}>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ width: 15, height: 15 }}>
       <rect x="3" y="4" width="18" height="16" rx="2" />
       <path d="M9 4v16M15 4v16" />
     </svg>
@@ -152,7 +152,7 @@ export function FieldsPopover({ columns, view, writable, onCommit }: Props) {
                 <div key={s.columnId} className={[styles.fieldRow, s.visible ? '' : styles.off].filter(Boolean).join(' ')}>
                   <button
                     type="button"
-                    className={[styles.eyeBtn, s.visible ? styles.visible : ''].filter(Boolean).join(' ')}
+                    className={['iconBtn', s.visible ? styles.eyeOn : ''].filter(Boolean).join(' ')}
                     aria-label={s.visible ? `Hide ${col.name}` : `Show ${col.name}`}
                     aria-pressed={s.visible}
                     disabled={!writable || lockedOn}

@@ -16,6 +16,7 @@
   font-family: var(--font-display);
   letter-spacing: -0.01em;
 }
+/* Step card standardized on the shared .panel treatment (surface-2 + --r-md). */
 .step {
   position: relative;
   display: grid;
@@ -23,7 +24,7 @@
   gap: var(--space-16);
   align-items: center;
   padding: var(--space-16);
-  background: var(--surface);
+  background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: var(--r-md);
   transition: border-color var(--dur-2) var(--ease), background var(--dur-2) var(--ease);
@@ -42,7 +43,7 @@
 .handle span {
   width: 12px;
   height: 2px;
-  border-radius: 2px;
+  border-radius: var(--r-xs);
   background: currentColor;
   display: block;
 }
@@ -120,7 +121,7 @@
 }
 .ctrl.remove:hover:not(:disabled) {
   color: var(--st-failed);
-  border-color: var(--st-failed);
+  border-color: color-mix(in srgb, var(--st-failed) 40%, transparent);
 }
 .ctrl svg {
   width: 13px;

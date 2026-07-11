@@ -10,7 +10,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { getApi } from '@cascade/data'
 import type { Template, TableMeta, TemplateCategory } from '@cascade/core'
 import { canWrite } from '@cascade/core'
-import { Alert, Button, Card, EmptyState, Seg, Tag, useToast } from '@cascade/ui'
+import { Alert, ArrowRightIcon, Button, Card, EmptyState, Seg, Tag, useToast } from '@cascade/ui'
 import { useSession } from '../../session'
 import { errorMessage } from '../../lib/ui'
 import { InstantiateDialog } from './_components/InstantiateDialog'
@@ -63,13 +63,6 @@ function configuredKinds(t: Template): { label: string; tone: 'brand' | 'cobalt'
   return kinds
 }
 
-function ArrowRight() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M5 12h14M13 6l6 6-6 6" />
-    </svg>
-  )
-}
 function GalleryGlyph() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -135,7 +128,7 @@ function TemplateCard({ template, writable, onUse }: { template: Template; writa
 
       {writable ? (
         <span className={styles.cta}>
-          Use template <ArrowRight />
+          Use template <ArrowRightIcon />
         </span>
       ) : (
         <span className={[styles.cta, styles.ctaMuted].join(' ')}>View only</span>

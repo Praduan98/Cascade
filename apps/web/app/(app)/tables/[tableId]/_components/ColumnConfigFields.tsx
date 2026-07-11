@@ -15,7 +15,7 @@ import type {
   SelectOption,
   SingleSelectConfig,
 } from '@cascade/core'
-import { Field, Input, Select, Popover, PopoverTrigger, PopoverContent, PopoverClose } from '@cascade/ui'
+import { Field, Input, Select, Popover, PopoverTrigger, PopoverContent, PopoverClose, TrashIcon } from '@cascade/ui'
 import styles from '../column-tools.module.css'
 
 // Curated option palette drawn from the Deep Current accents. Gold is reserved
@@ -43,14 +43,6 @@ const DATE_FORMATS: { value: string; label: string }[] = [
 ]
 
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD', 'INR', 'CHF']
-
-function TrashIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" />
-    </svg>
-  )
-}
 
 export function newOption(index: number): SelectOption {
   return { id: newId(), label: '', color: OPTION_COLORS[index % OPTION_COLORS.length] as string }
@@ -223,7 +215,7 @@ function OptionsEditor({
           />
           <button
             type="button"
-            className={styles.iconBtn}
+            className="iconBtn"
             onClick={() => remove(opt.id)}
             disabled={disabled}
             aria-label="Remove option"

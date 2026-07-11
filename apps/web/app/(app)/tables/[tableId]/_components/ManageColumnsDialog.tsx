@@ -8,7 +8,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { getApi } from '@cascade/data'
 import { getColumnType } from '@cascade/core'
 import type { Column } from '@cascade/core'
-import { Button, Dialog, DialogClose, Switch, Tooltip, useToast } from '@cascade/ui'
+import { Button, Dialog, DialogClose, Switch, Tooltip, TrashIcon, useToast } from '@cascade/ui'
 import { errorMessage } from '../../../../lib/ui'
 import styles from '../column-tools.module.css'
 
@@ -42,13 +42,6 @@ function PencilIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" width="15" height="15">
       <path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
-    </svg>
-  )
-}
-function TrashIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" width="15" height="15">
-      <path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" />
     </svg>
   )
 }
@@ -153,7 +146,7 @@ export function ManageColumnsDialog({
                 </Tooltip>
                 <button
                   type="button"
-                  className={styles.iconBtn}
+                  className="iconBtn"
                   aria-label={`Edit ${col.name}`}
                   disabled={!writable}
                   onClick={() => onRequestEdit(col)}
@@ -164,7 +157,7 @@ export function ManageColumnsDialog({
                   <span style={{ display: 'inline-flex' }}>
                     <button
                       type="button"
-                      className={styles.iconBtn}
+                      className="iconBtn"
                       aria-label={`Delete ${col.name}`}
                       disabled={!writable || columns.length <= 1}
                       onClick={() => onRequestDelete(col)}

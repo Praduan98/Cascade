@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { getApi } from '@cascade/data'
 import type { AcceptanceCondition, Column, EnrichmentOperation, EnrichmentStep, Provider } from '@cascade/core'
-import { Button, Dialog, DialogClose, Field, Input, Select, Switch, Tag, useToast } from '@cascade/ui'
+import { Button, Dialog, DialogClose, Field, Input, Select, Switch, Tag, TrashIcon, useToast } from '@cascade/ui'
 import { errorMessage } from '../../../../../lib/ui'
 import { ACCEPTANCE_LABEL, OP_META, providerOperations } from './opMeta'
 import styles from './enrichment.module.css'
@@ -34,13 +34,10 @@ let keySeq = 0
 const nextKey = () => `st_${keySeq++}`
 
 function MoveUp() {
-  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M6 15l6-6 6 6" /></svg>
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 15l6-6 6 6" /></svg>
 }
 function MoveDown() {
-  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></svg>
-}
-function Trash() {
-  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" /></svg>
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
 }
 
 export function WaterfallBuilder({ open, onOpenChange, tableId, columns, workspaceId, column, onSaved }: Props) {
@@ -243,14 +240,14 @@ export function WaterfallBuilder({ open, onOpenChange, tableId, columns, workspa
                   </div>
                 </div>
                 <div className={styles.stepCtrls}>
-                  <button type="button" className={styles.iconBtn} disabled={i === 0} onClick={() => move(i, i - 1)} aria-label="Move up">
+                  <button type="button" className="iconBtn iconBtn-sm" disabled={i === 0} onClick={() => move(i, i - 1)} aria-label="Move up">
                     <MoveUp />
                   </button>
-                  <button type="button" className={styles.iconBtn} disabled={i === steps.length - 1} onClick={() => move(i, i + 1)} aria-label="Move down">
+                  <button type="button" className="iconBtn iconBtn-sm" disabled={i === steps.length - 1} onClick={() => move(i, i + 1)} aria-label="Move down">
                     <MoveDown />
                   </button>
-                  <button type="button" className={`${styles.iconBtn} ${styles.danger}`} onClick={() => removeStep(step.key)} aria-label="Remove step">
-                    <Trash />
+                  <button type="button" className={`iconBtn iconBtn-sm ${styles.danger}`} onClick={() => removeStep(step.key)} aria-label="Remove step">
+                    <TrashIcon />
                   </button>
                 </div>
               </div>

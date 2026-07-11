@@ -4,16 +4,8 @@
 // Selection is lifted to the page — this component is presentational.
 
 import type { Template } from '@cascade/core'
-import { Tag } from '@cascade/ui'
+import { CheckIcon, Tag } from '@cascade/ui'
 import styles from '../onboarding.module.css'
-
-function Check() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M20 6 9 17l-5-5" />
-    </svg>
-  )
-}
 
 /** Readable ink (near-black or white) for a glyph on a data-driven accent, by
  *  WCAG relative luminance — legible on light *and* dark accents, either theme. */
@@ -61,7 +53,7 @@ export function TemplatePicker({ templates, selectedId, onSelect }: TemplatePick
             >
               {selected && (
                 <span className={styles.check}>
-                  <Check />
+                  <CheckIcon />
                 </span>
               )}
               <div className={styles.tmplTop}>

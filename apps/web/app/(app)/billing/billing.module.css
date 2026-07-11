@@ -42,6 +42,9 @@
   font-size: var(--fs-h4);
   font-family: var(--font-display);
 }
+.sectionHeadTight {
+  margin-bottom: var(--space-4);
+}
 .sectionHint {
   color: var(--text-3);
   font-size: var(--fs-xs);
@@ -71,7 +74,7 @@
 .planNow {
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 1.5rem;
+  font-size: var(--fs-h2);
 }
 .planPriceNow {
   font-family: var(--font-mono);
@@ -149,12 +152,12 @@
 .planName {
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 1.05rem;
+  font-size: var(--fs-h4);
 }
 .planPrice {
   font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 1.7rem;
+  font-weight: 700;
+  font-size: var(--fs-h2);
   color: var(--gold);
   line-height: 1.1;
 }
@@ -191,6 +194,12 @@
   margin-top: var(--space-2);
   color: var(--brand);
 }
+.planMeta {
+  margin-top: var(--space-8);
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+  font-family: var(--font-mono);
+}
 
 /* ---- Credit packs ---- */
 .packGrid {
@@ -216,7 +225,7 @@
 .packCredits {
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 1.25rem;
+  font-size: var(--fs-h3);
 }
 .packPrice {
   font-family: var(--font-mono);
@@ -302,6 +311,9 @@
   background: linear-gradient(90deg, var(--surface-2), var(--surface-3), var(--surface-2));
   background-size: 200% 100%;
   animation: shimmer 1.3s ease-in-out infinite;
+}
+.skelMd {
+  border-radius: var(--r-md);
 }
 @keyframes shimmer {
   0% {

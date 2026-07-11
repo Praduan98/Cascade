@@ -97,31 +97,6 @@
   gap: var(--space-8);
   flex: none;
 }
-.linkBtn {
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--text-2);
-  font-size: var(--fs-xs);
-  font-weight: 600;
-  padding: 5px 9px; /* off-scale: matched to adjacent Button size="sm" */
-  border-radius: var(--r-sm);
-  cursor: pointer;
-}
-.linkBtn:hover {
-  background: var(--surface-3);
-  color: var(--text);
-  border-color: var(--border);
-}
-.linkBtn:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-.linkBtn.danger:hover {
-  color: var(--st-failed);
-  border-color: color-mix(in srgb, var(--st-failed) 40%, transparent);
-  background: var(--st-failed-soft);
-}
-
 /* ---- Sub-section head inside a card (webhooks: inbound / outbound) ---- */
 .subHead {
   display: flex;
@@ -217,23 +192,6 @@
 .arrow {
   color: var(--text-3);
   flex: none;
-}
-.iconBtn {
-  border: 1px solid var(--border);
-  background: transparent;
-  color: var(--text-3);
-  width: 30px;
-  height: 30px;
-  border-radius: var(--r-sm);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  flex: none;
-}
-.iconBtn:hover {
-  color: var(--st-failed);
-  border-color: color-mix(in srgb, var(--st-failed) 40%, transparent);
 }
 .addRow {
   margin-top: var(--space-4);

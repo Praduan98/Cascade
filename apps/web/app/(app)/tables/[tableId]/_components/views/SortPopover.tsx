@@ -19,7 +19,7 @@ interface Props {
 
 function IconSort() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ width: 15, height: 15, marginRight: 6, verticalAlign: -2 }}>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ width: 15, height: 15 }}>
       <path d="M7 4v16M7 20l-3-3M7 4l3 3M17 20V4M17 4l3 3M17 20l-3-3" />
     </svg>
   )
@@ -163,7 +163,7 @@ export function SortPopover({ columns, view, writable, onCommit }: Props) {
                         ]}
                       />
                     </div>
-                    <button type="button" className={styles.removeBtn} aria-label="Remove sort" disabled={!writable} onClick={() => remove(i)}>
+                    <button type="button" className="iconBtn" aria-label="Remove sort" disabled={!writable} onClick={() => remove(i)}>
                       <IconX />
                     </button>
                   </div>

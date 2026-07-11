@@ -12,6 +12,7 @@ import {
   Card,
   Dialog,
   DialogClose,
+  DotsIcon,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -24,6 +25,7 @@ import {
   Member,
   RoleBadge,
   Select,
+  UsersIcon,
   useToast,
 } from '@cascade/ui'
 import { useSession } from '../../session'
@@ -74,25 +76,6 @@ function textOn(hex: string): string {
   const dark = contrastRatio(relLuminance('#0a1114'), bg)
   const white = contrastRatio(1, bg)
   return dark >= white ? '#0a1114' : '#ffffff'
-}
-
-function DotsIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <circle cx="12" cy="5" r="1.6" />
-      <circle cx="12" cy="12" r="1.6" />
-      <circle cx="12" cy="19" r="1.6" />
-    </svg>
-  )
-}
-function MembersGlyph() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-      <circle cx="9" cy="7" r="4" />
-      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-    </svg>
-  )
 }
 
 export default function MembersPage() {
@@ -398,22 +381,22 @@ export default function MembersPage() {
                     action={
                       <div className={styles.pendingActions}>
                         <RoleBadge role={inv.role} />
-                        <button
-                          type="button"
-                          className={styles.linkBtn}
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           disabled={busy}
                           onClick={() => resendMutation.mutate(inv)}
                         >
                           Resend
-                        </button>
-                        <button
-                          type="button"
-                          className={`${styles.linkBtn} ${styles.danger}`}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           disabled={busy}
                           onClick={() => revokeMutation.mutate(inv.id)}
                         >
                           Revoke
-                        </button>
+                        </Button>
                       </div>
                     }
                   />
@@ -542,7 +525,7 @@ export default function MembersPage() {
       />
 
       {members.length === 0 && !membersQuery.isLoading && !membersQuery.isError && (
-        <EmptyState className={styles.state} icon={<MembersGlyph />} title="No members yet" />
+        <EmptyState className={styles.state} icon={<UsersIcon />} title="No members yet" />
       )}
     </div>
   )

@@ -16,7 +16,7 @@ import type {
   IntegrationEventStatus,
 } from '@cascade/core'
 import { canManageIntegrations } from '@cascade/core'
-import { Alert, Button, Card, ConfirmDialog, EmptyState, Field, Input, Pill, Seg, Tag, useToast } from '@cascade/ui'
+import { Alert, Button, Card, ConfirmDialog, EmptyState, Field, Input, LockIcon, Pill, Seg, Tag, useToast } from '@cascade/ui'
 import { useSession } from '../../session'
 import { errorMessage, formatDate } from '../../lib/ui'
 import { ConnectCrmDialog } from './_components/ConnectCrmDialog'
@@ -48,18 +48,9 @@ const EVENT_STATUS: Record<IntegrationEventStatus, 'success' | 'cached' | 'faile
   skipped: 'empty',
 }
 
-function LockGlyph() {
-  return (
-    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <rect x="4" y="11" width="16" height="10" rx="2" />
-      <path d="M8 11V7a4 4 0 0 1 8 0v4" />
-    </svg>
-  )
-}
-
 function PlugGlyph() {
   return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M9 2v6M15 2v6" />
       <path d="M6 8h12v3a6 6 0 0 1-12 0z" />
       <path d="M12 17v5" />
@@ -100,7 +91,7 @@ export default function IntegrationsPage() {
       <div className={styles.page}>
         <PageHeader subtitle={`CRM sync, Slack alerts & activity for ${workspace.name}`} />
         <EmptyState
-          icon={<LockGlyph />}
+          icon={<LockIcon size={24} />}
           title="Integrations are restricted"
           description="Only owners and admins can connect CRMs, Slack, and view integration activity."
           action={
@@ -266,14 +257,14 @@ function CrmSection({ workspaceId }: { workspaceId: string }) {
                 >
                   Pull
                 </Button>
-                <button type="button" className={styles.linkBtn} onClick={() => setMappingTarget(c)}>
+                <Button variant="ghost" size="sm" onClick={() => setMappingTarget(c)}>
                   Edit mapping
-                </button>
+                </Button>
                 <ConfirmDialog
                   trigger={
-                    <button type="button" className={[styles.linkBtn, styles.danger].join(' ')} disabled={disconnect.isPending}>
+                    <Button variant="danger" size="sm" disabled={disconnect.isPending}>
                       Disconnect
-                    </button>
+                    </Button>
                   }
                   title={`Disconnect ${CRM_LABEL[c.provider]}?`}
                   description="Syncing stops and the stored API token is removed. You’ll need to reconnect and re-enter the token to sync again."
@@ -441,9 +432,9 @@ function SlackSection({ workspaceId }: { workspaceId: string }) {
               <div className={styles.rowActions}>
                 <ConfirmDialog
                   trigger={
-                    <button type="button" className={[styles.linkBtn, styles.danger].join(' ')} disabled={disconnect.isPending}>
+                    <Button variant="danger" size="sm" disabled={disconnect.isPending}>
                       Disconnect
-                    </button>
+                    </Button>
                   }
                   title={`Disconnect ${slack.teamName}?`}
                   description="Alerts and automation notifications will stop posting to Slack, and the stored bot token is removed."

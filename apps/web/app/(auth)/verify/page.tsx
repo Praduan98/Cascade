@@ -1,6 +1,6 @@
 'use client'
 import Link from 'next/link'
-import { Alert, Card } from '@cascade/ui'
+import { Alert, Card, CheckIcon } from '@cascade/ui'
 import styles from '../auth.module.css'
 
 // Mock email-verification landing. A real backend would exchange a `?token=`
@@ -10,9 +10,7 @@ export default function VerifyPage() {
     <>
       <Card className={styles.card}>
         <div className={styles.iconCircle}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M20 6 9 17l-5-5" />
-          </svg>
+          <CheckIcon />
         </div>
         <div className={styles.head}>
           <h1>Email verified</h1>

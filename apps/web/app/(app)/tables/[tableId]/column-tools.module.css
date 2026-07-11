@@ -119,31 +119,6 @@
 .swatchDot.sel {
   border-color: var(--text);
 }
-.iconBtn {
-  flex: none;
-  width: 30px;
-  height: 30px;
-  display: grid;
-  place-items: center;
-  border-radius: var(--r-sm);
-  border: 1px solid var(--border);
-  background: var(--surface-2);
-  color: var(--text-3);
-  cursor: pointer;
-  transition: color var(--dur-2) var(--ease), border-color var(--dur-2) var(--ease);
-}
-.iconBtn:hover:not(:disabled) {
-  color: var(--st-failed, #ef4444);
-  border-color: var(--border-strong);
-}
-.iconBtn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-.iconBtn svg {
-  width: 15px;
-  height: 15px;
-}
 .optAdd {
   align-self: flex-start;
   margin-top: var(--space-2);

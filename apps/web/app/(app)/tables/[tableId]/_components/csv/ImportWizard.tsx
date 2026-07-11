@@ -13,7 +13,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { COLUMN_TYPES, getColumnType } from '@cascade/core'
 import type { Column, ColumnType } from '@cascade/core'
-import { Alert, Button, DialogClose, Dialog, Field, Input, Select, Switch, useToast } from '@cascade/ui'
+import { Alert, ArrowRightIcon, Button, CheckIcon, DialogClose, Dialog, Field, Input, Select, Switch, useToast } from '@cascade/ui'
 import { errorMessage } from '../../../../../lib/ui'
 import {
   dataRowsOf,
@@ -104,20 +104,6 @@ function UploadGlyph() {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M12 16V4M7 9l5-5 5 5" />
       <path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" />
-    </svg>
-  )
-}
-function ArrowGlyph() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M5 12h14M13 6l6 6-6 6" />
-    </svg>
-  )
-}
-function CheckGlyph() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M20 6L9 17l-5-5" />
     </svg>
   )
 }
@@ -486,7 +472,7 @@ export function ImportWizard({ open, onOpenChange, tableId, columns, onImported 
                   </div>
 
                   <span className={styles.mapArrow} aria-hidden="true">
-                    <ArrowGlyph />
+                    <ArrowRightIcon size={16} />
                   </span>
 
                   <div className={styles.mapTarget}>
@@ -655,7 +641,7 @@ export function ImportWizard({ open, onOpenChange, tableId, columns, onImported 
       {step === 'done' && outcome && (
         <div className={styles.summary}>
           <span className={styles.summaryIcon}>
-            <CheckGlyph />
+            <CheckIcon size={26} />
           </span>
           <div className={styles.summaryTitle}>
             {outcome.cancelled ? 'Import stopped' : 'Import complete'}

@@ -115,7 +115,7 @@
   height: 100%;
 }
 .dropTitle {
-  font-size: var(--fs-md);
+  font-size: var(--fs-h4);
   font-weight: 700;
   color: var(--text);
 }
@@ -336,10 +336,10 @@
   color: var(--text);
 }
 .statNum.good {
-  color: var(--st-success, #34d399);
+  color: var(--st-success);
 }
 .statNum.bad {
-  color: var(--st-failed, #ef4444);
+  color: var(--st-failed);
 }
 .statLabel {
   font-size: var(--fs-2xs);
@@ -388,7 +388,7 @@
   color: var(--text-2);
 }
 .errReason b {
-  color: var(--st-failed, #ef4444);
+  color: var(--st-failed);
   font-family: var(--font-mono);
   font-weight: 600;
 }

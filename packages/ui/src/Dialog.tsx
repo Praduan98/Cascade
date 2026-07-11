@@ -57,7 +57,7 @@ export function Dialog({
         <RD.Content className={[styles.content, SIZE_CLASS[size], className].filter(Boolean).join(' ')}>
           {!hideClose && (
             <RD.Close className={styles.close} aria-label="Close">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
                 <path d="M18 6 6 18M6 6l12 12" />
               </svg>
             </RD.Close>

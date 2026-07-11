@@ -21,6 +21,8 @@ import {
   DropdownMenuTrigger,
   Field,
   Input,
+  PlusIcon,
+  TrashIcon,
   useToast,
 } from '@cascade/ui'
 import { errorMessage } from '../../../../../lib/ui'
@@ -57,24 +59,10 @@ function Check() {
     </svg>
   )
 }
-function IconPlus() {
-  return (
-    <svg className={styles.menuActionIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M12 5v14M5 12h14" />
-    </svg>
-  )
-}
 function IconPencil() {
   return (
     <svg className={styles.menuActionIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
-    </svg>
-  )
-}
-function IconTrash() {
-  return (
-    <svg className={styles.menuActionIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" />
     </svg>
   )
 }
@@ -173,7 +161,7 @@ export function ViewSwitcher({ tableId, views, activeViewId, activeView, writabl
             <>
               <DropdownMenuSeparator />
               <DropdownMenuItem className={styles.viewItem} onSelect={openCreate}>
-                <IconPlus />
+                <PlusIcon className={styles.menuActionIcon} />
                 <span className={styles.viewItemName}>Create view from current…</span>
               </DropdownMenuItem>
               <DropdownMenuItem className={styles.viewItem} disabled={!activeView} onSelect={openRename}>
@@ -186,7 +174,7 @@ export function ViewSwitcher({ tableId, views, activeViewId, activeView, writabl
                 disabled={!canDeleteActive}
                 onSelect={openDelete}
               >
-                <IconTrash />
+                <TrashIcon className={styles.menuActionIcon} />
                 <span className={styles.viewItemName}>{activeView?.isDefault ? 'Default view can’t be deleted' : 'Delete view…'}</span>
               </DropdownMenuItem>
             </>

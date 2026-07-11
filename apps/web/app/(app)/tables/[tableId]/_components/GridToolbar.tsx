@@ -59,14 +59,14 @@ interface Props {
 
 function IconBack() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M15 18l-6-6 6-6" />
     </svg>
   )
 }
 function IconPlus() {
   return (
-    <svg className={styles.btnIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg className={styles.btnIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M12 5v14M5 12h14" />
     </svg>
   )
@@ -115,7 +115,7 @@ function IconSparkle() {
       {/* Four-point sparkle: 8 vertices (outer tip + inner notch per arm),
           symmetric about the viewBox centre (12,12). The previous path dropped
           the top-left notch, leaving that arm a lopsided solid wedge. */}
-      <path d="M12 3 14.2 9.8 21 12 14.2 14.2 12 21 9.8 14.2 3 12 9.8 9.8Z" />
+      <path d="M12 3 L14.2 9.8 L21 12 L14.2 14.2 L12 21 L9.8 14.2 L3 12 L9.8 9.8 Z" />
     </svg>
   )
 }

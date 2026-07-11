@@ -4,7 +4,7 @@
 // one, or a newly-created column on save).
 
 import type { Column, ColumnType } from '@cascade/core'
-import { Input, Select } from '@cascade/ui'
+import { Input, Select, TrashIcon } from '@cascade/ui'
 import { SCHEMA_FIELD_TYPES } from './aiMeta'
 import styles from './ai-column.module.css'
 
@@ -26,14 +26,6 @@ export function newField(): DraftField {
 /** Drop fields with a blank name and trim the rest. */
 export function cleanFields(fields: DraftField[]): DraftField[] {
   return fields.filter((f) => f.name.trim() !== '').map((f) => ({ ...f, name: f.name.trim() }))
-}
-
-function TrashIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" />
-    </svg>
-  )
 }
 
 interface Props {
@@ -74,7 +66,7 @@ export function SchemaFieldsEditor({ fields, columns, onChange }: Props) {
               </option>
             ))}
           </Select>
-          <button type="button" className={styles.iconBtn} onClick={() => remove(f.key)} aria-label="Remove field">
+          <button type="button" className={['iconBtn', styles.danger].join(' ')} onClick={() => remove(f.key)} aria-label="Remove field">
             <TrashIcon />
           </button>
         </div>

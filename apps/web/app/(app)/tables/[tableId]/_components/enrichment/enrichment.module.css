@@ -17,10 +17,11 @@
   font-size: var(--fs-xs);
   color: var(--gold);
 }
+/* Nested step card standardized on the shared .panel treatment (surface-2 + --r-md). */
 .stepCard {
   border: 1px solid var(--border);
   border-radius: var(--r-md);
-  background: var(--surface);
+  background: var(--surface-2);
   padding: var(--space-16);
   display: grid;
   gap: var(--space-12);
@@ -45,32 +46,10 @@
   gap: var(--space-4);
   flex: none;
 }
-.iconBtn {
-  display: grid;
-  place-items: center;
-  width: 26px;
-  height: 26px;
-  border: 1px solid var(--border);
-  border-radius: var(--r-sm);
-  background: var(--surface-2);
-  color: var(--text-3);
-  cursor: pointer;
-}
-.iconBtn:hover:not(:disabled) {
-  color: var(--text);
-  border-color: var(--border-strong);
-}
-.iconBtn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-.iconBtn.danger:hover:not(:disabled) {
+/* Destructive variant of the shared global .iconBtn — softened border like .btn-danger. */
+.danger:hover:not(:disabled) {
   color: var(--st-failed);
-  border-color: var(--st-failed);
-}
-.iconBtn svg {
-  width: 14px;
-  height: 14px;
+  border-color: color-mix(in srgb, var(--st-failed) 40%, transparent);
 }
 .mapGrid {
   display: grid;
@@ -177,7 +156,7 @@
   background: transparent;
   color: var(--text-3);
   cursor: pointer;
-  font-size: 16px;
+  font-size: var(--fs-body);
   line-height: 1;
   padding: var(--space-2) var(--space-6);
 }

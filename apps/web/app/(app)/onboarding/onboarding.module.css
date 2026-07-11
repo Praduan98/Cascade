@@ -75,7 +75,7 @@
   margin-top: var(--space-16);
   min-width: 18px;
   background: var(--hairline);
-  border-radius: 2px;
+  border-radius: var(--r-xs);
   transition: background var(--dur-2) var(--ease);
 }
 .connector.filled {
@@ -133,7 +133,7 @@
 }
 .lede {
   color: var(--text-2);
-  font-size: var(--fs-md);
+  font-size: var(--fs-body);
   line-height: 1.55;
 }
 .balanceLine {
@@ -155,7 +155,7 @@
 .explainHead {
   font-family: var(--font-display);
   font-size: var(--fs-sm);
-  font-weight: 650;
+  font-weight: 600;
 }
 .exList {
   list-style: none;
@@ -235,7 +235,8 @@
 .tmpl.selected {
   border-color: var(--brand);
   background: var(--brand-soft);
-  box-shadow: 0 0 0 1px var(--brand) inset;
+  outline: 1px solid var(--brand);
+  outline-offset: -1px;
 }
 .tmplTop {
   display: flex;
@@ -250,14 +251,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: var(--brand-ink);
   font-family: var(--font-mono);
   font-weight: 700;
   font-size: var(--fs-sm);
 }
 .tmplName {
   font-family: var(--font-display);
-  font-weight: 650;
+  font-weight: 600;
   font-size: var(--fs-sm);
   line-height: 1.25;
 }
@@ -334,7 +335,7 @@
   min-width: 0;
 }
 .blankName {
-  font-weight: 650;
+  font-weight: 600;
   font-size: var(--fs-sm);
 }
 .blankSummary {
@@ -361,7 +362,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: var(--brand-ink);
   font-family: var(--font-mono);
   font-weight: 700;
 }
@@ -465,4 +466,18 @@
   100% {
     background-position: -200% 0;
   }
+}
+/* Loading placeholder for the "You have N credits" balance line. */
+.balanceSkel {
+  width: 220px;
+  max-width: 100%;
+  height: 14px;
+}
+/* Larger skeleton blocks (template cards, building-table preview). */
+.skelBig {
+  border-radius: var(--r-lg);
+}
+/* Stacked skeleton text lines sit just below the block above them. */
+.skelLineGap {
+  margin-top: var(--space-4);
 }

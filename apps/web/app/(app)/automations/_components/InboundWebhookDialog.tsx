@@ -4,7 +4,7 @@ import { useMutation } from '@tanstack/react-query'
 import { getApi } from '@cascade/data'
 import type { InboundWebhookCreated } from '@cascade/data'
 import type { Column, TableMeta } from '@cascade/core'
-import { Alert, Button, Dialog, DialogClose, Field, Input, Select, useToast } from '@cascade/ui'
+import { Alert, ArrowRightIcon, Button, Dialog, DialogClose, Field, Input, Select, TrashIcon, useToast } from '@cascade/ui'
 import { errorMessage } from '../../../lib/ui'
 import styles from '../automations.module.css'
 
@@ -184,7 +184,7 @@ export function InboundWebhookDialog({
                     value={r.field}
                     onChange={(e) => setRow(i, { field: e.target.value })}
                   />
-                  <ArrowGlyph />
+                  <ArrowRightIcon className={styles.arrow} />
                   <Select
                     aria-label={`Destination column ${i + 1}`}
                     value={r.columnId}
@@ -199,12 +199,12 @@ export function InboundWebhookDialog({
                   </Select>
                   <button
                     type="button"
-                    className={styles.iconBtn}
+                    className="iconBtn"
                     aria-label={`Remove mapping row ${i + 1}`}
                     onClick={() => removeRow(i)}
                     disabled={rows.length === 1}
                   >
-                    <TrashGlyph />
+                    <TrashIcon size={15} />
                   </button>
                 </div>
               ))}
@@ -221,42 +221,5 @@ export function InboundWebhookDialog({
         </>
       )}
     </Dialog>
-  )
-}
-
-function ArrowGlyph() {
-  return (
-    <svg
-      className={styles.arrow}
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M5 12h14M13 6l6 6-6 6" />
-    </svg>
-  )
-}
-
-function TrashGlyph() {
-  return (
-    <svg
-      width="15"
-      height="15"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6" />
-    </svg>
   )
 }

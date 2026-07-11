@@ -47,6 +47,7 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
+  box-shadow: var(--shadow-2);
   padding: var(--space-16);
   display: flex;
   flex-direction: column;
@@ -58,17 +59,11 @@
   border-color: var(--border-strong);
   box-shadow: var(--shadow-3);
 }
+/* Inherit the app-wide focus ring while keeping the card's large corners
+   (the global :focus-visible would otherwise round them to --r-sm). */
 .card:focus-visible {
-  outline: 2px solid var(--brand);
-  outline-offset: 2px;
-}
-.card:disabled {
-  cursor: default;
-  opacity: 0.72;
-}
-.card:disabled:hover {
-  border-color: var(--border);
-  box-shadow: none;
+  box-shadow: var(--ring);
+  border-radius: var(--r-lg);
 }
 
 /* Read-only ("View only") card: rendered as a plain <div> that does nothing —
@@ -78,7 +73,7 @@
 }
 .cardStatic:hover {
   border-color: var(--border);
-  box-shadow: none;
+  box-shadow: var(--shadow-2);
 }
 .cardStatic:hover .cta svg {
   transform: none;
@@ -99,7 +94,7 @@
   font-weight: 700;
   font-size: var(--fs-sm);
   /* Ink is computed per-accent by luminance (see onAccentInk); this is a fallback. */
-  color: #fff;
+  color: var(--brand-ink);
   flex: none;
 }
 .cardTitle {

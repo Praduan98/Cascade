@@ -3,15 +3,8 @@
 // steps before it render as "done" (check glyph), the rest as pending.
 
 import { Fragment } from 'react'
+import { CheckIcon } from '@cascade/ui'
 import styles from '../onboarding.module.css'
-
-function Check() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M20 6 9 17l-5-5" />
-    </svg>
-  )
-}
 
 export interface StepperProps {
   /** Short label per step, in order. */
@@ -36,7 +29,7 @@ export function Stepper({ steps, current }: StepperProps) {
               role="listitem"
               aria-current={active ? 'step' : undefined}
             >
-              <span className={styles.dot}>{done ? <Check /> : n}</span>
+              <span className={styles.dot}>{done ? <CheckIcon /> : n}</span>
               <span className={styles.stepLabel}>{label}</span>
               {done && <span className={styles.srOnly}> completed</span>}
             </div>

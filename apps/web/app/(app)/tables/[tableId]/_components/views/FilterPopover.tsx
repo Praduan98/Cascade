@@ -36,7 +36,7 @@ interface Props {
 
 function IconFilter() {
   return (
-    <svg className={styles.switcherIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ marginRight: 6, verticalAlign: -2 }}>
+    <svg className={styles.switcherIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M3 5h18l-7 8v6l-4 2v-8Z" />
     </svg>
   )
@@ -231,7 +231,7 @@ export function FilterPopover({ columns, view, writable, onCommit }: Props) {
 
                     <button
                       type="button"
-                      className={styles.removeBtn}
+                      className={['iconBtn', styles.align].join(' ')}
                       aria-label="Remove condition"
                       disabled={!writable}
                       onClick={() => removeCondition(i)}
