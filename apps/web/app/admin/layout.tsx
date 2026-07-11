@@ -5,10 +5,10 @@
 // role, and the /admin/login route renders bare (outside the gate).
 
 import { useEffect, type ReactNode } from 'react'
+import { AdminGateSkeleton } from './_components/AdminGateSkeleton'
 import { usePathname, useRouter } from 'next/navigation'
 import { PlatformSessionProvider, usePlatformSession } from './PlatformSession'
 import { AdminShell } from './_components/AdminShell'
-import styles from './admin.module.css'
 
 function AdminGate({ children }: { children: ReactNode }) {
   const pathname = usePathname()
@@ -24,11 +24,7 @@ function AdminGate({ children }: { children: ReactNode }) {
   if (isLogin) return <>{children}</>
 
   if (status !== 'authenticated') {
-    return (
-      <div className={styles.loading}>
-        <div className={styles.spinner} role="status" aria-label="Loading" />
-      </div>
-    )
+    return <AdminGateSkeleton />
   }
   return <AdminShell>{children}</AdminShell>
 }

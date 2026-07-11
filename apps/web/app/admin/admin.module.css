@@ -611,3 +611,73 @@
     background-position: -200% 0;
   }
 }
+
+/* ---- Route entrance (mirrors the tenant app's soft-nav transition) ---- */
+.routeIn {
+  animation: routeIn var(--dur-2) var(--ease);
+}
+@keyframes routeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* ---- Route-loading skeleton (fills the main slot inside AdminShell) ---- */
+.routeSkel {
+  padding: clamp(18px, 3vw, 32px);
+}
+.routeSkelCards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 14px;
+  margin-top: 22px;
+}
+
+/* ---- Auth-gate shell skeleton (while the platform session resolves) ---- */
+.gate {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--ground);
+}
+.gateTopbar {
+  flex: none;
+  height: 58px;
+  border-bottom: 1px solid var(--hairline);
+  background: color-mix(in srgb, var(--ground) 82%, transparent);
+}
+.gateBody {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+.gateRail {
+  flex: none;
+  width: 240px;
+  border-right: 1px solid var(--hairline);
+  background: var(--surface-2);
+  padding: 20px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+@media (max-width: 720px) {
+  .gateRail {
+    display: none;
+  }
+}
+.gateMain {
+  flex: 1;
+  min-width: 0;
+  padding: clamp(18px, 3vw, 32px);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.gateRow {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}

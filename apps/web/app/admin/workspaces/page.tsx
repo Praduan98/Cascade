@@ -9,6 +9,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { getApi, PLANS } from '@cascade/data'
 import type { PlatformWorkspaceSummary } from '@cascade/data'
 import { canIssueBillingExceptions, canOperateWorkspaces } from '@cascade/core'
+import type { Invoice, Member } from '@cascade/core'
 import { Avatar, Button, ConfirmDialog, Dialog, DialogClose, EmptyState, Input, Pill, Select, useToast } from '@cascade/ui'
 import { usePlatformSession } from '../PlatformSession'
 import { errorMessage, initials } from '../../lib/ui'
@@ -61,8 +62,21 @@ export default function PlatformWorkspacesPage() {
 
   const suspend = useMutation({
     mutationFn: (v: { id: string; suspended: boolean }) => getApi().platform.workspaces.setSuspended(v.id, v.suspended, v.suspended ? 'suspended from platform' : 'reactivated from platform'),
-    onSuccess: (_r, v) => { toast(v.suspended ? 'Workspace suspended' : 'Workspace reactivated', { variant: v.suspended ? 'warn' : 'success' }); invalidate() },
-    onError: (e) => toast(errorMessage(e, 'Could not update workspace'), { variant: 'error' }),
+    // Optimistic: flip the workspace's suspended state in the list immediately.
+    onMutate: async (v) => {
+      await qc.cancelQueries({ queryKey: ['platform', 'workspaces'] })
+      const prev = qc.getQueryData<PlatformWorkspaceSummary[]>(['platform', 'workspaces'])
+      qc.setQueryData<PlatformWorkspaceSummary[]>(['platform', 'workspaces'], (list) =>
+        list && list.map((w) => (w.workspace.id === v.id ? { ...w, suspended: v.suspended } : w)),
+      )
+      return { prev }
+    },
+    onError: (e, _v, ctx) => {
+      if (ctx?.prev) qc.setQueryData(['platform', 'workspaces'], ctx.prev)
+      toast(errorMessage(e, 'Could not update workspace'), { variant: 'error' })
+    },
+    onSuccess: (_r, v) => toast(v.suspended ? 'Workspace suspended' : 'Workspace reactivated', { variant: v.suspended ? 'warn' : 'success' }),
+    onSettled: invalidate,
   })
   const comp = useMutation({
     mutationFn: (v: { id: string; credits: number; reason: string }) => getApi().platform.workspaces.compCredits(v.id, v.credits, v.reason),
@@ -71,18 +85,60 @@ export default function PlatformWorkspacesPage() {
   })
   const override = useMutation({
     mutationFn: (v: { id: string; planId: string }) => getApi().platform.workspaces.overridePlan(v.id, v.planId, 'platform override'),
-    onSuccess: () => { toast('Plan overridden', { variant: 'success' }); invalidate() },
-    onError: (e) => toast(errorMessage(e, 'Could not override plan'), { variant: 'error' }),
+    // Optimistic: swap the plan cell immediately; MRR/status reconcile onSettled.
+    onMutate: async (v) => {
+      await qc.cancelQueries({ queryKey: ['platform', 'workspaces'] })
+      const prev = qc.getQueryData<PlatformWorkspaceSummary[]>(['platform', 'workspaces'])
+      const plan = PLANS.find((p) => p.id === v.planId) ?? null
+      qc.setQueryData<PlatformWorkspaceSummary[]>(['platform', 'workspaces'], (list) =>
+        list && list.map((w) => (w.workspace.id === v.id ? { ...w, plan: plan ?? w.plan } : w)),
+      )
+      return { prev }
+    },
+    onError: (e, _v, ctx) => {
+      if (ctx?.prev) qc.setQueryData(['platform', 'workspaces'], ctx.prev)
+      toast(errorMessage(e, 'Could not override plan'), { variant: 'error' })
+    },
+    onSuccess: () => toast('Plan overridden', { variant: 'success' }),
+    onSettled: invalidate,
   })
   const deactivate = useMutation({
     mutationFn: (v: { id: string; userId: string }) => getApi().platform.workspaces.deactivateUser(v.id, v.userId, 'deactivated from platform'),
-    onSuccess: () => { toast('User deactivated', { variant: 'warn' }); invalidate() },
-    onError: (e) => toast(errorMessage(e, 'Could not deactivate user'), { variant: 'error' }),
+    // Optimistic: mark the member suspended in the open workspace's member list.
+    onMutate: async (v) => {
+      const key = ['platform', 'members', v.id]
+      await qc.cancelQueries({ queryKey: key })
+      const prev = qc.getQueryData<Member[]>(key)
+      qc.setQueryData<Member[]>(key, (list) =>
+        list && list.map((m) => (m.userId === v.userId ? { ...m, status: 'suspended' as const } : m)),
+      )
+      return { prev, key }
+    },
+    onError: (e, _v, ctx) => {
+      if (ctx?.prev) qc.setQueryData(ctx.key, ctx.prev)
+      toast(errorMessage(e, 'Could not deactivate user'), { variant: 'error' })
+    },
+    onSuccess: () => toast('User deactivated', { variant: 'warn' }),
+    onSettled: invalidate,
   })
   const refund = useMutation({
     mutationFn: (invoiceId: string) => getApi().platform.invoices.refund(invoiceId, 'refunded from platform'),
-    onSuccess: () => { toast('Refund issued', { variant: 'success' }); invalidate() },
-    onError: (e) => toast(errorMessage(e, 'Could not issue refund'), { variant: 'error' }),
+    // Optimistic: flip the invoice to refunded in the open workspace's invoice list.
+    onMutate: async (invoiceId) => {
+      const key = ['platform', 'invoices', openId]
+      await qc.cancelQueries({ queryKey: key })
+      const prev = qc.getQueryData<Invoice[]>(key)
+      qc.setQueryData<Invoice[]>(key, (list) =>
+        list && list.map((inv) => (inv.id === invoiceId ? { ...inv, status: 'refunded' as const } : inv)),
+      )
+      return { prev, key }
+    },
+    onError: (e, _v, ctx) => {
+      if (ctx?.prev) qc.setQueryData(ctx.key, ctx.prev)
+      toast(errorMessage(e, 'Could not issue refund'), { variant: 'error' })
+    },
+    onSuccess: () => toast('Refund issued', { variant: 'success' }),
+    onSettled: invalidate,
   })
 
   return (
