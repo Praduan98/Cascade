@@ -1,5 +1,6 @@
 'use client'
 import type { MouseEventHandler, ReactNode } from 'react'
+import { useLinkComponent } from './LinkContext'
 import styles from './shell.module.css'
 
 export function SideNav({ children }: { children: ReactNode }) {
@@ -21,6 +22,9 @@ interface NavItemProps {
 
 // Ported from architecture.src.html — `.sh-nav a` / `.on`.
 export function NavItem({ children, icon, active = false, disabled = false, href, onClick }: NavItemProps) {
+  // The host app injects Next's <Link> so internal navigation is a soft client
+  // transition (no full-page reload / cache wipe). Falls back to a plain <a>.
+  const Link = useLinkComponent()
   const cls = [active ? styles.on : '', disabled ? styles.disabled : ''].filter(Boolean).join(' ')
 
   // With no href this is an action, not a link — render a real <button> so it is
@@ -40,17 +44,26 @@ export function NavItem({ children, icon, active = false, disabled = false, href
     )
   }
 
+  // A disabled link doesn't navigate — render a plain, inert <a> (a routed
+  // <Link> needs a valid href and would still be focusable/clickable).
+  if (disabled) {
+    return (
+      <a className={cls || undefined} aria-current={active ? 'page' : undefined} aria-disabled tabIndex={-1}>
+        {icon}
+        {children}
+      </a>
+    )
+  }
+
   return (
-    <a
+    <Link
       className={cls || undefined}
-      href={disabled ? undefined : href}
-      onClick={disabled ? undefined : onClick}
+      href={href}
+      onClick={onClick}
       aria-current={active ? 'page' : undefined}
-      aria-disabled={disabled || undefined}
-      tabIndex={disabled ? -1 : undefined}
     >
       {icon}
       {children}
-    </a>
+    </Link>
   )
 }

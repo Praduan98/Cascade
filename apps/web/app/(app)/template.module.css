@@ -1,0 +1,17 @@
+/* Route entrance wrapper. Fills <main> as a flex-column (a transparent mirror of
+   .sh-main) so percentage-height pages (the grid) and scrolling pages are
+   unaffected, then plays a transform+opacity settle on each navigation. */
+.routeIn {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  animation: routeIn var(--dur-2) var(--ease);
+}
+@keyframes routeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}

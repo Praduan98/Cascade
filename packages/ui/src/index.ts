@@ -68,6 +68,8 @@ export { ProvenanceCard } from './enrich/ProvenanceCard'
 export type { ProvenanceCardProps, ProvenanceField } from './enrich/ProvenanceCard'
 
 // ---- App shell ----
+export { LinkProvider, useLinkComponent } from './shell/LinkContext'
+export type { LinkLike } from './shell/LinkContext'
 export { Topbar } from './shell/Topbar'
 export { TopNavLink } from './shell/TopNavLink'
 export { AppShell } from './shell/AppShell'
