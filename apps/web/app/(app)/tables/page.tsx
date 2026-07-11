@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { getApi } from '@cascade/data'
 import type { TableMeta } from '@cascade/core'
 import { canWrite } from '@cascade/core'
+import { iconForTable } from '../_components/tableIcon'
 import {
   Alert,
   Button,
@@ -186,7 +187,7 @@ export default function TablesPage() {
             <Card key={t.id} className={styles.card}>
               <div className={styles.cardTop}>
                 <span className={styles.tableGlyph}>
-                  <TableGlyph />
+                  {iconForTable(t.name)}
                 </span>
                 <Link href={`/tables/${t.id}`} className={styles.name}>
                   {t.name}
