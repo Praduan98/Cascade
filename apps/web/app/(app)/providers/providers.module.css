@@ -71,7 +71,7 @@
   color: var(--text-2);
   font-size: var(--fs-xs);
   font-weight: 600;
-  padding: var(--space-4) var(--space-8);
+  padding: 5px 9px; /* off-scale: matched to adjacent Button size="sm" */
   border-radius: var(--r-sm);
   cursor: pointer;
 }

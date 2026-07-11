@@ -47,7 +47,8 @@
   color: var(--text);
 }
 .head {
-  padding: var(--space-16) var(--space-40) var(--space-6) var(--space-20);
+  /* right pad clears the absolute .close (right:12 + width:28 = 40px); literal 44 keeps a 4px gap */
+  padding: var(--space-16) 44px var(--space-6) var(--space-20);
   flex: none;
 }
 .title {
