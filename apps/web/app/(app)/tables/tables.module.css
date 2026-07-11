@@ -29,7 +29,7 @@
 }
 
 .card {
-  padding: 16px;
+  padding: var(--space-16);
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -112,7 +112,7 @@
 
 /* ---- Loading skeletons ---- */
 .skeletonCard {
-  padding: 16px;
+  padding: var(--space-16);
   display: flex;
   flex-direction: column;
   gap: 16px;

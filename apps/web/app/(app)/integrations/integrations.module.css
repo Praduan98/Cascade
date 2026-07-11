@@ -30,7 +30,7 @@
 
 /* ---- Cards / sections ---- */
 .card {
-  padding: 20px 22px;
+  padding: var(--space-20);
   display: flex;
   flex-direction: column;
   gap: 4px;
