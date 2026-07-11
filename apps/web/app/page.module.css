@@ -48,7 +48,7 @@
 .brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-10);
   font-family: var(--font-display);
   font-weight: 800;
   letter-spacing: -0.03em;
@@ -76,7 +76,7 @@
   display: inline-block;
 }
 .headline {
-  margin-top: 18px;
+  margin-top: var(--space-20);
   font-size: var(--fs-hero);
   font-weight: 800;
   letter-spacing: -0.045em;
@@ -89,20 +89,20 @@
   color: transparent;
 }
 .lede {
-  margin-top: 20px;
+  margin-top: var(--space-20);
   color: var(--text-2);
   font-size: 1.08rem;
   line-height: 1.62;
 }
 .actions {
-  margin-top: 30px;
+  margin-top: var(--space-32);
   display: flex;
-  gap: 12px;
+  gap: var(--space-12);
   flex-wrap: wrap;
 }
 .trust {
-  margin-top: 34px;
-  padding-top: 22px;
+  margin-top: var(--space-32);
+  padding-top: var(--space-24);
   border-top: 1px solid var(--hairline);
 }
 .trustLabel {
@@ -113,9 +113,9 @@
   color: var(--text-3);
 }
 .trustRow {
-  margin-top: 12px;
+  margin-top: var(--space-12);
   display: flex;
-  gap: 8px;
+  gap: var(--space-8);
 }
 .prov {
   display: inline-flex;
@@ -135,7 +135,7 @@
 .visual {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 14px;
+  gap: var(--space-16);
   min-width: 0;
 }
 .gridCard {
@@ -144,14 +144,14 @@
   border: 1px solid var(--border);
   border-radius: var(--r-xl);
   box-shadow: var(--shadow-3);
-  padding: 8px;
+  padding: var(--space-8);
   overflow: hidden;
 }
 .gridHead {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 10px 12px;
+  padding: var(--space-8) var(--space-10) var(--space-12);
 }
 .gridName {
   font-family: var(--font-display);
@@ -167,8 +167,8 @@
   display: grid;
   grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.3fr) auto;
   align-items: center;
-  gap: 10px;
-  padding: 10px;
+  gap: var(--space-10);
+  padding: var(--space-10);
   border-top: 1px solid var(--hairline);
   font-size: var(--fs-sm);
 }
@@ -197,7 +197,7 @@
   justify-self: end;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-6);
   font-size: var(--fs-2xs);
   font-weight: 600;
   color: var(--text-2);
@@ -229,13 +229,13 @@
   background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
-  padding: 14px;
+  padding: var(--space-16);
 }
 .meterCap {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-8);
   font-size: var(--fs-xs);
   color: var(--text-3);
 }
@@ -246,7 +246,7 @@
   font-size: var(--fs-sm);
 }
 .meterTrack {
-  margin-top: 12px;
+  margin-top: var(--space-12);
   height: 8px;
   border-radius: var(--r-full);
   background: var(--surface-3);
@@ -261,13 +261,13 @@
 .flowCard {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-8);
   justify-content: center;
 }
 .flowStep {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
   font-size: var(--fs-xs);
   font-weight: 600;
   color: var(--text-2);
@@ -275,7 +275,7 @@
 .flowArrow {
   font-size: var(--fs-2xs);
   color: var(--text-3);
-  padding-left: 34px;
+  padding-left: var(--space-32);
   position: relative;
 }
 .flowArrow::before {
@@ -319,7 +319,7 @@
 @media (max-width: 860px) {
   .hero {
     grid-template-columns: 1fr;
-    gap: 40px;
+    gap: var(--space-40);
   }
   .copy {
     max-width: 620px;

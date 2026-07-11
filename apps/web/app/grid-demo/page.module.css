@@ -4,20 +4,20 @@
   height: 100dvh;
   background: var(--ground);
   padding: 18px clamp(16px, 3vw, 32px) 24px;
-  gap: 14px;
+  gap: var(--space-16);
 }
 
 .bar {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 16px;
+  gap: var(--space-16);
   flex: none;
 }
 
 .title h1 {
   font-size: var(--fs-h3);
-  margin-top: 4px;
+  margin-top: var(--space-4);
 }
 
 .eyebrow {
@@ -31,7 +31,7 @@
 .meta {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-12);
 }
 
 .count {

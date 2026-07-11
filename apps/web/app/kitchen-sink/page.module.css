@@ -7,10 +7,10 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding-bottom: 20px;
+  gap: var(--space-16);
+  padding-bottom: var(--space-20);
   border-bottom: 1px solid var(--hairline);
-  margin-bottom: 8px;
+  margin-bottom: var(--space-8);
 }
 .title {
   font-family: var(--font-display);
@@ -19,7 +19,7 @@
   font-size: 1.5rem;
 }
 .section {
-  padding-block: 26px;
+  padding-block: var(--space-24);
   border-bottom: 1px solid var(--hairline);
 }
 .section h2 {
@@ -28,19 +28,19 @@
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--text-3);
-  margin-bottom: 16px;
+  margin-bottom: var(--space-16);
   font-weight: 500;
 }
 .row {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: var(--space-12);
   align-items: center;
 }
 .swatches {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
-  gap: 12px;
+  gap: var(--space-12);
 }
 .swatch {
   border: 1px solid var(--border);
@@ -52,7 +52,7 @@
   height: 54px;
 }
 .meta {
-  padding: 8px 10px;
+  padding: var(--space-8) var(--space-10);
 }
 .name {
   font-size: 0.82rem;
@@ -68,7 +68,7 @@
 .type {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-12);
 }
 .specDisplay {
   font-family: var(--font-display);
@@ -94,12 +94,12 @@
 .stack {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-12);
 }
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 16px;
+  gap: var(--space-16);
   align-items: start;
 }
 .tile {
@@ -112,8 +112,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  padding: 10px 14px;
+  gap: var(--space-10);
+  padding: var(--space-10) var(--space-16);
   border-bottom: 1px solid var(--hairline);
   background: var(--surface-2);
 }
@@ -127,10 +127,10 @@
   color: var(--text-3);
 }
 .tileBody {
-  padding: 18px;
+  padding: var(--space-20);
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: var(--space-12);
   align-items: center;
 }
 .tileBody.col {
@@ -142,13 +142,13 @@
   color: var(--text-2);
   line-height: 1.5;
   max-width: 62ch;
-  margin-bottom: 16px;
+  margin-bottom: var(--space-16);
 }
 .between {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-12);
 }
 .small {
   font-size: var(--fs-sm);
@@ -164,12 +164,12 @@
 .shellMainDemo {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-10);
 }
 .shellToolbar {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-10);
   flex-wrap: wrap;
 }
 .tname {
