@@ -14,6 +14,8 @@ export { PLANS, CREDIT_PACKS, planById, planByTier } from './plans'
 export { TEMPLATES, templateById } from './templates'
 export { MockApi } from './mockApi'
 export type { MockApiOptions } from './mockApi'
+export { HttpApi } from './httpApi'
+export type { HttpApiConfig } from './httpApi'
 
 import type { CascadeApi } from './api'
 import { MockApi } from './mockApi'
