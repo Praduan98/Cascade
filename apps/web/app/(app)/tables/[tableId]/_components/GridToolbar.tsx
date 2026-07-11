@@ -8,7 +8,19 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import type { Column, View } from '@cascade/core'
-import { Button, Pill, Tag, Tooltip, useToast } from '@cascade/ui'
+import {
+  Button,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  Pill,
+  Tag,
+  Tooltip,
+  useToast,
+} from '@cascade/ui'
 import { ViewControls } from './views/ViewControls'
 import { ImportButton } from './csv/ImportButton'
 import { downloadCsv, exportFilename, exportViewToCsv, visibleColumnsForView } from './csv/csvExport'
@@ -27,6 +39,8 @@ interface Props {
   writable: boolean
   hasEnrichment: boolean
   hasAi: boolean
+  hasAgent: boolean
+  hasHttp: boolean
   onAddColumn: () => void
   onManageColumns: () => void
   onDeleteRows: () => void
@@ -34,6 +48,11 @@ interface Props {
   onRun: () => void
   onAddAiColumn: () => void
   onRunAi: () => void
+  onAddAgentColumn: () => void
+  onRunAgent: () => void
+  onAddHttpColumn: () => void
+  onRunHttp: () => void
+  onAddFormulaColumn: () => void
   remountGrid: () => void
 }
 
@@ -109,6 +128,8 @@ export function GridToolbar({
   writable,
   hasEnrichment,
   hasAi,
+  hasAgent,
+  hasHttp,
   onAddColumn,
   onManageColumns,
   onDeleteRows,
@@ -116,6 +137,11 @@ export function GridToolbar({
   onRun,
   onAddAiColumn,
   onRunAi,
+  onAddAgentColumn,
+  onRunAgent,
+  onAddHttpColumn,
+  onRunHttp,
+  onAddFormulaColumn,
   remountGrid,
 }: Props) {
   const { toast } = useToast()
@@ -200,18 +226,42 @@ export function GridToolbar({
           </Button>
         )}
         {writable && (
-          <Button variant="secondary" size="sm" onClick={onAddAiColumn}>
-            <IconSparkle />
-            AI column
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="secondary" size="sm">
+                <IconSparkle />
+                Smart column ▾
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Add a smart column</DropdownMenuLabel>
+              <DropdownMenuItem onSelect={onAddAiColumn}>AI — generate from a prompt</DropdownMenuItem>
+              <DropdownMenuItem onSelect={onAddAgentColumn}>Agent — web research with citations</DropdownMenuItem>
+              <DropdownMenuItem onSelect={onAddHttpColumn}>HTTP — call an external API</DropdownMenuItem>
+              <DropdownMenuItem onSelect={onAddFormulaColumn}>Formula — compute from other columns</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
-        {hasEnrichment ? (
-          <Button variant="primary" size="sm" onClick={onRun} disabled={!writable}>
-            <IconRun />
-            Run
-          </Button>
-        ) : !hasAi ? (
-          <Tooltip content="Add an enrichment or AI column first">
+        {hasEnrichment || hasAi || hasAgent || hasHttp ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="primary" size="sm" disabled={!writable}>
+                <IconRun />
+                Run ▾
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Run columns</DropdownMenuLabel>
+              {hasEnrichment && <DropdownMenuItem onSelect={onRun}>Run enrichment</DropdownMenuItem>}
+              {hasAi && <DropdownMenuItem onSelect={onRunAi}>Run AI columns</DropdownMenuItem>}
+              {hasAgent && <DropdownMenuItem onSelect={onRunAgent}>Run agent columns</DropdownMenuItem>}
+              {hasHttp && <DropdownMenuItem onSelect={onRunHttp}>Run HTTP columns</DropdownMenuItem>}
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>Formula columns recompute automatically.</DropdownMenuLabel>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : (
+          <Tooltip content="Add an enrichment, AI, agent or HTTP column first">
             <span className={styles.runWrap}>
               <Button variant="primary" size="sm" disabled>
                 <IconRun />
@@ -219,12 +269,6 @@ export function GridToolbar({
               </Button>
             </span>
           </Tooltip>
-        ) : null}
-        {hasAi && (
-          <Button variant="primary" size="sm" onClick={onRunAi} disabled={!writable}>
-            <IconSparkle />
-            Run AI
-          </Button>
         )}
       </div>
     </div>

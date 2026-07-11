@@ -5,7 +5,7 @@
 
 import { GridCellKind } from '@glideapps/glide-data-grid'
 import type { Cell, CellValue, Column, MultiSelectConfig, SingleSelectConfig } from '@cascade/core'
-import { columnTypeRegistry, readAi, readEnrichment } from '@cascade/core'
+import { columnTypeRegistry, readAgent, readAi, readEnrichment, readFormula, readHttp } from '@cascade/core'
 import type { CascadeCell, CascadeCellData, CellStatus, Chip } from './types'
 
 const EMDASH = '—'
@@ -63,11 +63,13 @@ export function makeCell(column: Column, value: CellValue): CascadeCell {
     }
 
     default: {
-      // text / longText / phone / date / ai — plain left-aligned text. An `ai`
-      // column has no dedicated renderer (it stores text), so it renders through
-      // the long-text renderer; its intelligence lives in the AI cell path below.
+      // text / longText / phone / date / ai / agent / http / formula — plain
+      // left-aligned text. The operation column kinds (ai/agent/http/formula) have
+      // no dedicated renderer (they store text), so they render through the
+      // long-text renderer; their intelligence lives in the status cell paths below.
       const display = empty ? EMDASH : def.formatDisplay(value, column.config)
-      const renderKind = column.type === 'ai' ? 'longText' : column.type
+      const textKinds = new Set(['ai', 'agent', 'http', 'formula'])
+      const renderKind = textKinds.has(column.type) ? 'longText' : column.type
       return custom({ ...base, kind: renderKind, display, muted: empty }, true, copyData)
     }
   }
@@ -139,6 +141,79 @@ export function makeAiCell(column: Column, cell: Cell | undefined): CascadeCell 
     default:
       return build({ ...base, status: 'queued', display: 'queued', muted: true })
   }
+}
+
+/** Agent (anchor) column cell, driven by `cell.meta.agent`. Mirrors makeAiCell. */
+export function makeAgentCell(column: Column, cell: Cell | undefined): CascadeCell {
+  const meta = cell ? readAgent(cell.meta) : undefined
+  const value = cell?.value ?? null
+  if (!meta) return makeCell(column, value)
+
+  const def = columnTypeRegistry[column.type]
+  const copyData = def.toCsv(value, column.config)
+  const base = { columnId: column.id, value, config: column.config, kind: 'status' as const, agent: meta }
+  const build = (data: CascadeCellData): CascadeCell => ({ kind: GridCellKind.Custom, allowOverlay: false, copyData, data })
+
+  switch (meta.status) {
+    case 'success':
+    case 'cached': {
+      const empty = def.isEmpty(value)
+      return build({ ...base, status: meta.status, display: empty ? EMDASH : def.formatDisplay(value, column.config), muted: empty })
+    }
+    case 'running':
+      return build({ ...base, status: 'running', display: '', muted: true })
+    case 'empty':
+      return build({ ...base, status: 'empty', display: meta.reason ?? 'no result', muted: true })
+    case 'failed':
+      return build({ ...base, status: 'failed', display: meta.reason ?? 'failed', muted: true })
+    default:
+      return build({ ...base, status: 'queued', display: 'queued', muted: true })
+  }
+}
+
+/** HTTP (anchor) column cell, driven by `cell.meta.http`. Mirrors makeAiCell. */
+export function makeHttpCell(column: Column, cell: Cell | undefined): CascadeCell {
+  const meta = cell ? readHttp(cell.meta) : undefined
+  const value = cell?.value ?? null
+  if (!meta) return makeCell(column, value)
+
+  const def = columnTypeRegistry[column.type]
+  const copyData = def.toCsv(value, column.config)
+  const base = { columnId: column.id, value, config: column.config, kind: 'status' as const, http: meta }
+  const build = (data: CascadeCellData): CascadeCell => ({ kind: GridCellKind.Custom, allowOverlay: false, copyData, data })
+
+  switch (meta.status) {
+    case 'success':
+    case 'cached': {
+      const empty = def.isEmpty(value)
+      return build({ ...base, status: meta.status, display: empty ? EMDASH : def.formatDisplay(value, column.config), muted: empty })
+    }
+    case 'running':
+      return build({ ...base, status: 'running', display: '', muted: true })
+    case 'empty':
+      return build({ ...base, status: 'empty', display: meta.reason ?? 'no value', muted: true })
+    case 'failed':
+      return build({ ...base, status: 'failed', display: meta.reason ?? `HTTP ${meta.statusCode ?? 'error'}`, muted: true })
+    default:
+      return build({ ...base, status: 'queued', display: 'queued', muted: true })
+  }
+}
+
+/**
+ * Formula (anchor) column cell, driven by `cell.meta.formula`. A computed value
+ * renders as plain text (reusing makeCell); an error renders through the shared
+ * status renderer as a Failed cell carrying the message. Never directly editable.
+ */
+export function makeFormulaCell(column: Column, cell: Cell | undefined): CascadeCell {
+  const meta = cell ? readFormula(cell.meta) : undefined
+  const value = cell?.value ?? null
+  if (meta?.status === 'error') {
+    const base = { columnId: column.id, value, config: column.config, kind: 'status' as const }
+    return { kind: GridCellKind.Custom, allowOverlay: false, copyData: '', data: { ...base, status: 'failed', display: meta.error ?? 'formula error', muted: true, formulaError: meta.error } }
+  }
+  // A computed value renders exactly like a plain text cell, but non-editable.
+  const text = makeCell(column, value)
+  return { ...text, allowOverlay: false }
 }
 
 export interface StatusCellOptions {

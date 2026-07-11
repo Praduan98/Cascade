@@ -2,8 +2,8 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { getApi } from '@cascade/data'
-import { Alert, Button, Card, Field, Input, useToast } from '@cascade/ui'
+import { getApi, PLANS } from '@cascade/data'
+import { Alert, Button, Card, Field, Input, Select, useToast } from '@cascade/ui'
 import { useSession } from '../../session'
 import { errorMessage } from '../../lib/ui'
 import styles from '../auth.module.css'
@@ -16,6 +16,7 @@ export default function SignUpPage() {
   const [email, setEmail] = useState('')
   const [workspaceName, setWorkspaceName] = useState('')
   const [password, setPassword] = useState('')
+  const [planId, setPlanId] = useState('plan_free')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -34,6 +35,7 @@ export default function SignUpPage() {
         name: name.trim() || undefined,
         workspaceName: workspaceName.trim() || undefined,
         password: password || undefined,
+        planId,
       })
       await refresh()
       toast('Workspace created — welcome to Cascade', { variant: 'success' })
@@ -94,6 +96,15 @@ export default function SignUpPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
+          </Field>
+          <Field label="Plan" htmlFor="plan" hint="Start free — change anytime in Billing.">
+            <Select id="plan" value={planId} onChange={(e) => setPlanId(e.target.value)}>
+              {PLANS.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name} — {p.priceUsdMonthly === 0 ? 'Free' : `$${p.priceUsdMonthly}/mo`} · {p.includedCredits.toLocaleString('en-US')} credits
+                </option>
+              ))}
+            </Select>
           </Field>
           <Button type="submit" variant="primary" size="lg" className={styles.submit} disabled={busy}>
             {busy ? 'Creating…' : 'Create workspace'}

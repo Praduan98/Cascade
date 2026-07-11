@@ -74,6 +74,21 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+.sources {
+  display: grid;
+  gap: 5px;
+}
+.sourceRow {
+  font-size: var(--fs-2xs);
+  color: var(--cobalt);
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sourceRow:hover {
+  text-decoration: underline;
+}
 .fields {
   display: grid;
   gap: 6px;

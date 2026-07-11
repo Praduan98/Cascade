@@ -1,0 +1,44 @@
+/* HTTP column builder — request/header/mapping row layouts. Reuses the shared
+   ai-column.module.css for the builder shell; only the request-specific grids
+   live here. */
+
+.reqRow {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 12px;
+  align-items: start;
+}
+
+.rows {
+  display: grid;
+  gap: 8px;
+}
+
+.headerRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr 110px auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.mapRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.rowActions {
+  display: flex;
+  gap: 8px;
+}
+
+@media (max-width: 560px) {
+  .reqRow {
+    grid-template-columns: 1fr;
+  }
+  .headerRow,
+  .mapRow {
+    grid-template-columns: 1fr 1fr auto;
+  }
+}

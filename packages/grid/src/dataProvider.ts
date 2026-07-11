@@ -8,7 +8,7 @@
 
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react'
 import type { CascadeApi } from '@cascade/data'
-import type { AiCellMeta, CellValue, EnrichmentCellMeta, RowWithCells } from '@cascade/core'
+import type { AgentCellMeta, AiCellMeta, CellValue, EnrichmentCellMeta, HttpCellMeta, RowWithCells } from '@cascade/core'
 
 /** Page size for the windowed cache. */
 export const PAGE_SIZE = 100
@@ -28,6 +28,10 @@ export interface TableData {
   applyEnrichment: (recordId: string, columnId: string, meta: EnrichmentCellMeta, value?: CellValue) => void
   /** Patch a cell's AI status/value in place (live run transitions, Phase 3). */
   applyAi: (recordId: string, columnId: string, meta: AiCellMeta, value?: CellValue) => void
+  /** Patch a cell's agent status/value in place (Phase 3 rest). */
+  applyAgent: (recordId: string, columnId: string, meta: AgentCellMeta, value?: CellValue) => void
+  /** Patch a cell's HTTP status/value in place (Phase 3 rest). */
+  applyHttp: (recordId: string, columnId: string, meta: HttpCellMeta, value?: CellValue) => void
   /** Drop the cache and re-read the count (after add/delete row, view change). */
   reload: () => void
 }
@@ -203,6 +207,49 @@ export function useTableData(api: CascadeApi, tableId: string, viewId?: string):
     [],
   )
 
+  // Live per-cell overlay for the operation kinds that reuse the status machine
+  // (agent + HTTP, Phase 3 rest). Identical to applyAi but writes a sibling
+  // meta key so the grid picks up the correct provenance reader.
+  const applyOpMeta = useCallback(
+    (recordId: string, columnId: string, metaKey: 'agent' | 'http', meta: unknown, value?: CellValue) => {
+      const pages = pagesRef.current
+      for (const [page, rows] of pages) {
+        const idx = rows.findIndex((r) => r.row.id === recordId)
+        if (idx === -1) continue
+        const r = rows[idx]
+        if (!r) break
+        const prevCell = r.cells[columnId]
+        const nextRow: RowWithCells = {
+          row: { ...r.row },
+          cells: {
+            ...r.cells,
+            [columnId]: {
+              recordId,
+              columnId,
+              value: value !== undefined ? value : prevCell ? prevCell.value : null,
+              meta: { ...(prevCell?.meta ?? {}), [metaKey]: meta },
+            },
+          },
+        }
+        const copy = rows.slice()
+        copy[idx] = nextRow
+        pages.set(page, copy)
+        break
+      }
+      bump()
+    },
+    [],
+  )
+
+  const applyAgent = useCallback(
+    (recordId: string, columnId: string, meta: AgentCellMeta, value?: CellValue) => applyOpMeta(recordId, columnId, 'agent', meta, value),
+    [applyOpMeta],
+  )
+  const applyHttp = useCallback(
+    (recordId: string, columnId: string, meta: HttpCellMeta, value?: CellValue) => applyOpMeta(recordId, columnId, 'http', meta, value),
+    [applyOpMeta],
+  )
+
   const reload = useCallback(() => {
     const gen = (genRef.current += 1)
     pagesRef.current = new Map()
@@ -218,5 +265,5 @@ export function useTableData(api: CascadeApi, tableId: string, viewId?: string):
     )
   }, [api, tableId, viewId])
 
-  return { rowCount, ready, getRow, ensureRange, applyEdit, applyEnrichment, applyAi, reload }
+  return { rowCount, ready, getRow, ensureRange, applyEdit, applyEnrichment, applyAi, applyAgent, applyHttp, reload }
 }

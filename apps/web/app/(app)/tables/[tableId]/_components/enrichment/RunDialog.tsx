@@ -17,7 +17,14 @@ interface Props {
   selection: { recordIds: string[]; count: number }
   onStarted: (runId: string) => void
   /** Which engine to run against (default enrichment). */
-  kind?: 'enrichment' | 'ai'
+  kind?: 'enrichment' | 'ai' | 'agent' | 'http'
+}
+
+const TITLES: Record<NonNullable<Props['kind']>, { title: string; desc: string }> = {
+  enrichment: { title: 'Run enrichment', desc: 'Providers run in order and stop as soon as a value is accepted. Cached and empty-input rows are free.' },
+  ai: { title: 'Run AI columns', desc: 'AI columns run per row using the shared status machine. Cached and missing-input rows are free.' },
+  agent: { title: 'Run agent columns', desc: 'The web-research agent runs per row, browsing up to the page cap and citing sources. Cached and missing-input rows are free.' },
+  http: { title: 'Run HTTP columns', desc: 'Each row calls its API and maps a value out of the response. Cached and missing-input rows are free; non-2xx responses are Failed.' },
 }
 
 export function RunDialog({ open, onOpenChange, tableId, columns, selection, onStarted, kind = 'enrichment' }: Props) {
@@ -25,7 +32,7 @@ export function RunDialog({ open, onOpenChange, tableId, columns, selection, onS
   const hasSelection = selection.count > 0
   const [mode, setMode] = useState<RunScopeMode>(hasSelection ? 'selected' : 'whole')
   const [forceFresh, setForceFresh] = useState(false)
-  const svc = () => (kind === 'ai' ? getApi().ai : getApi().enrichment)
+  const svc = () => (kind === 'ai' ? getApi().ai : kind === 'agent' ? getApi().agent : kind === 'http' ? getApi().http : getApi().enrichment)
 
   const columnIds = useMemo(() => columns.map((c) => c.id), [columns])
   const scope: RunScope = useMemo(
@@ -56,12 +63,8 @@ export function RunDialog({ open, onOpenChange, tableId, columns, selection, onS
     <Dialog
       open={open}
       onOpenChange={onOpenChange}
-      title={kind === 'ai' ? 'Run AI columns' : 'Run enrichment'}
-      description={
-        kind === 'ai'
-          ? 'AI columns run per row using the shared status machine. Cached and missing-input rows are free.'
-          : 'Providers run in order and stop as soon as a value is accepted. Cached and empty-input rows are free.'
-      }
+      title={TITLES[kind].title}
+      description={TITLES[kind].desc}
       footer={
         <>
           <DialogClose asChild>

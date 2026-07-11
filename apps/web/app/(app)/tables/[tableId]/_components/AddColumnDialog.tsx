@@ -13,16 +13,25 @@ import { errorMessage } from '../../../../lib/ui'
 import { TypePicker } from './TypePicker'
 import { ColumnConfigFields, cleanOptions } from './ColumnConfigFields'
 
+/** Operation column types that hand off to a dedicated builder instead of a plain add. */
+const SMART_TYPES = new Set<ColumnType>(['ai', 'agent', 'http', 'formula'])
+const SMART_COPY: Record<string, { cta: string; note: string }> = {
+  ai: { cta: 'Configure AI…', note: 'AI columns use a prompt and a model. Name the column, then continue to the AI builder.' },
+  agent: { cta: 'Configure agent…', note: 'Agent columns research the web per row and cite their sources. Name the column, then continue to the agent builder.' },
+  http: { cta: 'Configure HTTP…', note: 'HTTP columns call an external API and map a value out of the response. Name the column, then continue to the HTTP builder.' },
+  formula: { cta: 'Configure formula…', note: 'Formula columns compute a value from other columns. Name the column, then continue to the formula builder.' },
+}
+
 interface Props {
   open: boolean
   onOpenChange: (open: boolean) => void
   tableId: string
   onAdded: () => void
-  /** Selecting the "AI" type hands off to the dedicated AI column builder. */
-  onRequestAiColumn?: (seedName: string) => void
+  /** Selecting a smart type (ai/agent/http/formula) hands off to its builder. */
+  onRequestSmartColumn?: (type: ColumnType, seedName: string) => void
 }
 
-export function AddColumnDialog({ open, onOpenChange, tableId, onAdded, onRequestAiColumn }: Props) {
+export function AddColumnDialog({ open, onOpenChange, tableId, onAdded, onRequestSmartColumn }: Props) {
   const qc = useQueryClient()
   const { toast } = useToast()
   const [name, setName] = useState('')
@@ -60,13 +69,13 @@ export function AddColumnDialog({ open, onOpenChange, tableId, onAdded, onReques
     onError: (err) => toast(errorMessage(err, 'Could not add column'), { variant: 'error' }),
   })
 
-  const isAi = type === 'ai'
-  const canSubmit = isAi ? !mutation.isPending : name.trim().length > 0 && !mutation.isPending
+  const isSmart = SMART_TYPES.has(type)
+  const canSubmit = isSmart ? !mutation.isPending : name.trim().length > 0 && !mutation.isPending
 
-  function handleAiHandoff() {
+  function handleSmartHandoff() {
     onOpenChange(false)
     // Wait a tick so the two Radix focus traps never collide.
-    setTimeout(() => onRequestAiColumn?.(name.trim()), 0)
+    setTimeout(() => onRequestSmartColumn?.(type, name.trim()), 0)
   }
 
   return (
@@ -80,9 +89,9 @@ export function AddColumnDialog({ open, onOpenChange, tableId, onAdded, onReques
           <DialogClose asChild>
             <Button variant="ghost">Cancel</Button>
           </DialogClose>
-          {isAi ? (
-            <Button variant="primary" onClick={handleAiHandoff}>
-              Configure AI…
+          {isSmart ? (
+            <Button variant="primary" onClick={handleSmartHandoff}>
+              {SMART_COPY[type]?.cta ?? 'Configure…'}
             </Button>
           ) : (
             <Button variant="primary" onClick={() => canSubmit && mutation.mutate()} disabled={!canSubmit}>
@@ -105,16 +114,14 @@ export function AddColumnDialog({ open, onOpenChange, tableId, onAdded, onReques
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
               e.preventDefault()
-              if (isAi) handleAiHandoff()
+              if (isSmart) handleSmartHandoff()
               else if (canSubmit) mutation.mutate()
             }
           }}
         />
       </Field>
-      {isAi ? (
-        <Alert variant="info">
-          AI columns use a prompt and a model. Name the column, then continue to the AI builder to configure it.
-        </Alert>
+      {isSmart ? (
+        <Alert variant="info">{SMART_COPY[type]?.note}</Alert>
       ) : (
         <ColumnConfigFields type={type} value={config} onChange={setConfig} />
       )}

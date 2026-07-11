@@ -368,6 +368,37 @@ const aiDef: ColumnTypeDef = {
   defaultConfig: () => ({ type: 'ai' }),
 }
 
+// A web-research agent column (US-3.3/3.4) — like AI, stores text (the answer)
+// and degrades to a plain text column when unconfigured. Its config + source
+// citations live in the AgentColumnConfig side-table.
+const agentDef: ColumnTypeDef = {
+  ...textDef,
+  type: 'agent',
+  label: 'Agent',
+  typeBadge: '◆',
+  defaultConfig: () => ({ type: 'agent' }),
+}
+
+// An HTTP column (US-3.5) — stores the mapped response value as text. Config
+// (method/url/headers/mapping) lives in the HttpColumnConfig side-table.
+const httpDef: ColumnTypeDef = {
+  ...textDef,
+  type: 'http',
+  label: 'HTTP API',
+  typeBadge: '⇄',
+  defaultConfig: () => ({ type: 'http' }),
+}
+
+// A formula column (US-3.6) — a computed value; the expression lives in the
+// FormulaColumnConfig side-table. Stores text (the evaluator coerces the result).
+const formulaDef: ColumnTypeDef = {
+  ...textDef,
+  type: 'formula',
+  label: 'Formula',
+  typeBadge: 'ƒ',
+  defaultConfig: () => ({ type: 'formula' }),
+}
+
 const numberDef: ColumnTypeDef = {
   type: 'number',
   label: 'Number',
@@ -678,6 +709,9 @@ export const columnTypeRegistry: Record<ColumnType, ColumnTypeDef> = {
   email: emailDef,
   phone: phoneDef,
   ai: aiDef,
+  agent: agentDef,
+  http: httpDef,
+  formula: formulaDef,
 }
 
 /** Iteration order for column-type pickers. */
@@ -694,6 +728,9 @@ export const COLUMN_TYPES: ColumnType[] = [
   'email',
   'phone',
   'ai',
+  'agent',
+  'http',
+  'formula',
 ]
 
 export function getColumnType(type: ColumnType): ColumnTypeDef {

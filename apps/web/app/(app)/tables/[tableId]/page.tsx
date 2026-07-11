@@ -32,6 +32,14 @@ import type { ProvenanceTarget } from './_components/enrichment/ProvenancePopove
 import { AiColumnBuilder } from './_components/ai/AiColumnBuilder'
 import { AiProvenancePopover } from './_components/ai/AiProvenancePopover'
 import type { AiProvenanceTarget } from './_components/ai/AiProvenancePopover'
+import { AgentColumnBuilder } from './_components/agent/AgentColumnBuilder'
+import { AgentProvenancePopover } from './_components/agent/AgentProvenancePopover'
+import type { AgentProvenanceTarget } from './_components/agent/AgentProvenancePopover'
+import { HttpColumnBuilder } from './_components/http/HttpColumnBuilder'
+import { HttpProvenancePopover } from './_components/http/HttpProvenancePopover'
+import type { HttpProvenanceTarget } from './_components/http/HttpProvenancePopover'
+import { FormulaColumnBuilder } from './_components/formula/FormulaColumnBuilder'
+import type { ColumnType } from '@cascade/core'
 import styles from './table-surface.module.css'
 
 function ColumnGlyph() {
@@ -78,6 +86,25 @@ export default function TableSurfacePage() {
   const [aiActiveRunId, setAiActiveRunId] = useState<string | null>(null)
   const [aiProvTarget, setAiProvTarget] = useState<AiProvenanceTarget | null>(null)
 
+  // Agent / HTTP / formula columns (Phase 3 rest) surface state.
+  const [agentBuilderOpen, setAgentBuilderOpen] = useState(false)
+  const [agentBuilderColumn, setAgentBuilderColumn] = useState<Column | null>(null)
+  const [agentSeedName, setAgentSeedName] = useState('')
+  const [agentRunOpen, setAgentRunOpen] = useState(false)
+  const [agentActiveRunId, setAgentActiveRunId] = useState<string | null>(null)
+  const [agentProvTarget, setAgentProvTarget] = useState<AgentProvenanceTarget | null>(null)
+
+  const [httpBuilderOpen, setHttpBuilderOpen] = useState(false)
+  const [httpBuilderColumn, setHttpBuilderColumn] = useState<Column | null>(null)
+  const [httpSeedName, setHttpSeedName] = useState('')
+  const [httpRunOpen, setHttpRunOpen] = useState(false)
+  const [httpActiveRunId, setHttpActiveRunId] = useState<string | null>(null)
+  const [httpProvTarget, setHttpProvTarget] = useState<HttpProvenanceTarget | null>(null)
+
+  const [formulaBuilderOpen, setFormulaBuilderOpen] = useState(false)
+  const [formulaBuilderColumn, setFormulaBuilderColumn] = useState<Column | null>(null)
+  const [formulaSeedName, setFormulaSeedName] = useState('')
+
   const metaQuery = useQuery({
     queryKey: ['table', tableId],
     queryFn: () => getApi().tables.get(tableId),
@@ -117,6 +144,29 @@ export default function TableSurfacePage() {
   })
   const aiColumnIds = useMemo(() => (aiConfigsQuery.data ?? []).map((c) => c.columnId), [aiConfigsQuery.data])
   const aiColumns = useMemo(() => columns.filter((c) => aiColumnIds.includes(c.id)), [columns, aiColumnIds])
+
+  const agentConfigsQuery = useQuery({
+    queryKey: ['agent', 'configs', tableId],
+    queryFn: () => getApi().agent.configs.list(tableId),
+    enabled: !!tableId,
+  })
+  const agentColumnIds = useMemo(() => (agentConfigsQuery.data ?? []).map((c) => c.columnId), [agentConfigsQuery.data])
+  const agentColumns = useMemo(() => columns.filter((c) => agentColumnIds.includes(c.id)), [columns, agentColumnIds])
+
+  const httpConfigsQuery = useQuery({
+    queryKey: ['http', 'configs', tableId],
+    queryFn: () => getApi().http.configs.list(tableId),
+    enabled: !!tableId,
+  })
+  const httpColumnIds = useMemo(() => (httpConfigsQuery.data ?? []).map((c) => c.columnId), [httpConfigsQuery.data])
+  const httpColumns = useMemo(() => columns.filter((c) => httpColumnIds.includes(c.id)), [columns, httpColumnIds])
+
+  const formulaConfigsQuery = useQuery({
+    queryKey: ['formula', 'configs', tableId],
+    queryFn: () => getApi().formula.list(tableId),
+    enabled: !!tableId,
+  })
+  const formulaColumnIds = useMemo(() => (formulaConfigsQuery.data ?? []).map((c) => c.columnId), [formulaConfigsQuery.data])
 
   // Resolve the active view once views load: prefer a valid ?view= from the URL,
   // then the table's default view, then the first.
@@ -218,14 +268,98 @@ export default function TableSurfacePage() {
       .catch((err) => toast(errorMessage(err, 'Could not retry'), { variant: 'error' }))
   }
 
-  function requestAiColumn(seedName: string) {
-    setAiBuilderColumn(null)
-    setAiSeedName(seedName)
-    setAiBuilderOpen(true)
+  // Live agent run wiring — a parallel of the AI subscription.
+  useEffect(() => {
+    if (!agentActiveRunId) return
+    const api = getApi()
+    const unsub = api.agent.subscribe({ tableId }, (e) => {
+      if (e.type === 'cell') gridHandleRef.current?.applyAgent(e.recordId, e.columnId, e.meta, e.value)
+      if (e.type === 'run' && (e.run.status === 'complete' || e.run.status === 'failed' || e.run.status === 'paused')) {
+        setRefreshToken((t) => t + 1)
+        void qc.invalidateQueries({ queryKey: ['credits', 'balance', workspace?.id] })
+      }
+    })
+    return () => unsub()
+  }, [agentActiveRunId, tableId, qc, workspace?.id])
+
+  function handleAgentRunStarted(runId: string) {
+    setAgentActiveRunId(runId)
+    setRefreshToken((t) => t + 1)
+  }
+
+  function handleRetryAgentCell(recordId: string, columnId: string) {
+    setAgentProvTarget(null)
+    getApi()
+      .agent.run(tableId, { mode: 'selected', recordIds: [recordId], columnIds: [columnId] }, { forceFresh: true })
+      .then(({ runId }) => handleAgentRunStarted(runId))
+      .catch((err) => toast(errorMessage(err, 'Could not retry'), { variant: 'error' }))
+  }
+
+  // Live HTTP run wiring.
+  useEffect(() => {
+    if (!httpActiveRunId) return
+    const api = getApi()
+    const unsub = api.http.subscribe({ tableId }, (e) => {
+      if (e.type === 'cell') gridHandleRef.current?.applyHttp(e.recordId, e.columnId, e.meta, e.value)
+      if (e.type === 'run' && (e.run.status === 'complete' || e.run.status === 'failed' || e.run.status === 'paused')) {
+        setRefreshToken((t) => t + 1)
+        void qc.invalidateQueries({ queryKey: ['credits', 'balance', workspace?.id] })
+      }
+    })
+    return () => unsub()
+  }, [httpActiveRunId, tableId, qc, workspace?.id])
+
+  function handleHttpRunStarted(runId: string) {
+    setHttpActiveRunId(runId)
+    setRefreshToken((t) => t + 1)
+  }
+
+  function handleRetryHttpCell(recordId: string, columnId: string) {
+    setHttpProvTarget(null)
+    getApi()
+      .http.run(tableId, { mode: 'selected', recordIds: [recordId], columnIds: [columnId] }, { forceFresh: true })
+      .then(({ runId }) => handleHttpRunStarted(runId))
+      .catch((err) => toast(errorMessage(err, 'Could not retry'), { variant: 'error' }))
+  }
+
+  function requestSmartColumn(type: ColumnType, seedName: string) {
+    if (type === 'ai') {
+      setAiBuilderColumn(null)
+      setAiSeedName(seedName)
+      setAiBuilderOpen(true)
+    } else if (type === 'agent') {
+      setAgentBuilderColumn(null)
+      setAgentSeedName(seedName)
+      setAgentBuilderOpen(true)
+    } else if (type === 'http') {
+      setHttpBuilderColumn(null)
+      setHttpSeedName(seedName)
+      setHttpBuilderOpen(true)
+    } else if (type === 'formula') {
+      setFormulaBuilderColumn(null)
+      setFormulaSeedName(seedName)
+      setFormulaBuilderOpen(true)
+    }
   }
 
   function onAiSaved() {
     void qc.invalidateQueries({ queryKey: ['ai', 'configs', tableId] })
+    void qc.invalidateQueries({ queryKey: ['columns', tableId] })
+    remountGrid()
+  }
+
+  function onAgentSaved() {
+    void qc.invalidateQueries({ queryKey: ['agent', 'configs', tableId] })
+    void qc.invalidateQueries({ queryKey: ['columns', tableId] })
+    remountGrid()
+  }
+  function onHttpSaved() {
+    void qc.invalidateQueries({ queryKey: ['http', 'configs', tableId] })
+    void qc.invalidateQueries({ queryKey: ['columns', tableId] })
+    remountGrid()
+  }
+  function onFormulaSaved() {
+    void qc.invalidateQueries({ queryKey: ['formula', 'configs', tableId] })
     void qc.invalidateQueries({ queryKey: ['columns', tableId] })
     remountGrid()
   }
@@ -320,6 +454,8 @@ export default function TableSurfacePage() {
         writable={writable}
         hasEnrichment={enrichmentColumns.length > 0}
         hasAi={aiColumns.length > 0}
+        hasAgent={agentColumns.length > 0}
+        hasHttp={httpColumns.length > 0}
         onAddColumn={() => setAddOpen(true)}
         onManageColumns={() => setManageOpen(true)}
         onDeleteRows={() => setBulkOpen(true)}
@@ -328,17 +464,20 @@ export default function TableSurfacePage() {
           setBuilderOpen(true)
         }}
         onRun={() => setRunOpen(true)}
-        onAddAiColumn={() => {
-          setAiBuilderColumn(null)
-          setAiSeedName('')
-          setAiBuilderOpen(true)
-        }}
+        onAddAiColumn={() => requestSmartColumn('ai', '')}
         onRunAi={() => setAiRunOpen(true)}
+        onAddAgentColumn={() => requestSmartColumn('agent', '')}
+        onRunAgent={() => setAgentRunOpen(true)}
+        onAddHttpColumn={() => requestSmartColumn('http', '')}
+        onRunHttp={() => setHttpRunOpen(true)}
+        onAddFormulaColumn={() => requestSmartColumn('formula', '')}
         remountGrid={remountGrid}
       />
 
       {activeRunId && <RunProgress runId={activeRunId} onDone={() => setActiveRunId(null)} />}
       {aiActiveRunId && <RunProgress runId={aiActiveRunId} kind="ai" onDone={() => setAiActiveRunId(null)} />}
+      {agentActiveRunId && <RunProgress runId={agentActiveRunId} kind="agent" onDone={() => setAgentActiveRunId(null)} />}
+      {httpActiveRunId && <RunProgress runId={httpActiveRunId} kind="http" onDone={() => setHttpActiveRunId(null)} />}
 
       <div className={styles.gridHost}>
         {columnsEmpty ? (
@@ -367,6 +506,9 @@ export default function TableSurfacePage() {
               readOnly={!writable}
               enrichmentColumnIds={enrichmentColumnIds}
               aiColumnIds={aiColumnIds}
+              agentColumnIds={agentColumnIds}
+              httpColumnIds={httpColumnIds}
+              formulaColumnIds={formulaColumnIds}
               refreshToken={refreshToken}
               onReady={(h) => {
                 gridHandleRef.current = h
@@ -374,6 +516,8 @@ export default function TableSurfacePage() {
               onSelectionChange={(info) => setSelection({ recordIds: info.recordIds, count: info.recordIds.length })}
               onEnrichmentCellClick={(refCell, bounds) => setProvTarget({ recordId: refCell.recordId, columnId: refCell.columnId, rect: bounds })}
               onAiCellClick={(refCell, bounds) => setAiProvTarget({ recordId: refCell.recordId, columnId: refCell.columnId, rect: bounds })}
+              onAgentCellClick={(refCell, bounds) => setAgentProvTarget({ recordId: refCell.recordId, columnId: refCell.columnId, rect: bounds })}
+              onHttpCellClick={(refCell, bounds) => setHttpProvTarget({ recordId: refCell.recordId, columnId: refCell.columnId, rect: bounds })}
             />
             {workspace && (
               <ProvenancePopover
@@ -391,6 +535,24 @@ export default function TableSurfacePage() {
                 canCost={canCost}
                 onClose={() => setAiProvTarget(null)}
                 onRetry={handleRetryAiCell}
+              />
+            )}
+            {workspace && (
+              <AgentProvenancePopover
+                target={agentProvTarget}
+                workspaceId={workspace.id}
+                canCost={canCost}
+                onClose={() => setAgentProvTarget(null)}
+                onRetry={handleRetryAgentCell}
+              />
+            )}
+            {workspace && (
+              <HttpProvenancePopover
+                target={httpProvTarget}
+                workspaceId={workspace.id}
+                canCost={canCost}
+                onClose={() => setHttpProvTarget(null)}
+                onRetry={handleRetryHttpCell}
               />
             )}
           </>
@@ -445,12 +607,73 @@ export default function TableSurfacePage() {
         />
       )}
 
+      {workspace && (
+        <AgentColumnBuilder
+          open={agentBuilderOpen}
+          onOpenChange={setAgentBuilderOpen}
+          tableId={tableId}
+          columns={columns}
+          workspaceId={workspace.id}
+          column={agentBuilderColumn}
+          seedName={agentSeedName}
+          onSaved={onAgentSaved}
+        />
+      )}
+      {agentColumns.length > 0 && (
+        <RunDialog
+          open={agentRunOpen}
+          onOpenChange={setAgentRunOpen}
+          tableId={tableId}
+          columns={agentColumns}
+          selection={selection}
+          onStarted={handleAgentRunStarted}
+          kind="agent"
+        />
+      )}
+
+      {workspace && (
+        <HttpColumnBuilder
+          open={httpBuilderOpen}
+          onOpenChange={setHttpBuilderOpen}
+          tableId={tableId}
+          columns={columns}
+          workspaceId={workspace.id}
+          column={httpBuilderColumn}
+          seedName={httpSeedName}
+          onSaved={onHttpSaved}
+        />
+      )}
+      {httpColumns.length > 0 && (
+        <RunDialog
+          open={httpRunOpen}
+          onOpenChange={setHttpRunOpen}
+          tableId={tableId}
+          columns={httpColumns}
+          selection={selection}
+          onStarted={handleHttpRunStarted}
+          kind="http"
+        />
+      )}
+
+      {workspace && (
+        <FormulaColumnBuilder
+          open={formulaBuilderOpen}
+          onOpenChange={setFormulaBuilderOpen}
+          tableId={tableId}
+          columns={columns}
+          workspaceId={workspace.id}
+          column={formulaBuilderColumn}
+          seedName={formulaSeedName}
+          onSaved={onFormulaSaved}
+        />
+      )}
+
       <AddColumnDialog
         open={addOpen}
         onOpenChange={setAddOpen}
         tableId={tableId}
         onAdded={onColumnsChanged}
-        onRequestAiColumn={requestAiColumn}
+        onRequestSmartColumn={requestSmartColumn}
       />
 
       <ManageColumnsDialog

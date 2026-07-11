@@ -4,28 +4,43 @@
 // `generateRows` synthesises up to ~100k believable rows for perf testing.
 
 import type {
+  AgentColumnConfig,
   AiCache,
   AiCellMeta,
   AiCellResult,
   AiColumnConfig,
+  Automation,
   Cell,
   CellValue,
   Column,
   ColumnConfig,
   CreditLedgerEntry,
+  CreditPurchase,
+  CrmConnection,
   EnrichmentCache,
   EnrichmentCellMeta,
   EnrichmentCellResult,
   EnrichmentCellStatus,
   EnrichmentColumnConfig,
   EnrichmentRun,
+  FormulaColumnConfig,
+  HttpColumnConfig,
+  InboundWebhook,
+  IntegrationEvent,
   Invite,
+  Invoice,
+  InvoiceLineItem,
   Member,
   MultiSelectConfig,
+  OutboundWebhook,
+  PlatformAuditEntry,
+  PlatformUser,
   Provider,
   ProviderCredential,
   RecordRow,
   SingleSelectConfig,
+  SlackConnection,
+  Subscription,
   TableMeta,
   User,
   Workspace,
@@ -34,6 +49,7 @@ import type {
 import { columnTypeRegistry, emptyFilter } from '@cascade/core'
 import type { StoreData } from './store'
 import { emptyStoreData } from './store'
+import { PLANS } from './plans'
 
 // ---------------------------------------------------------------------------
 // Deterministic PRNG (mulberry32) so seeds and perf rows are reproducible.
@@ -194,7 +210,18 @@ const companyColumns: Column[] = [
   makeColumn('col_co_notes', T.companies, 'Notes', { type: 'longText' }, 11, { width: 280 }),
   // Phase 3 demo AI column — a one-line pitch generated from the company fields.
   makeColumn('col_co_pitch', T.companies, 'AI: One-line pitch', { type: 'ai' }, 12, { width: 320 }),
+  // Phase 3 rest — a computed Segment (formula), a web-research Agent column, and
+  // an HTTP-enrichment column. Formula fills instantly; agent/http are runnable.
+  makeColumn('col_co_segment', T.companies, 'Segment', { type: 'formula' }, 13, { width: 130 }),
+  makeColumn('col_co_intel', T.companies, 'Agent: Company intel', { type: 'agent' }, 14, { width: 300 }),
+  makeColumn('col_co_hq', T.companies, 'HTTP: HQ city', { type: 'http' }, 15, { width: 160 }),
 ]
+
+/** The demo Segment formula (kept here so seed can pre-compute matching cells). */
+const SEGMENT_EXPR = 'IF({{Employees}} > 500, "Enterprise", IF({{Employees}} > 50, "Mid-market", "SMB"))'
+function segmentFor(employees: number): string {
+  return employees > 500 ? 'Enterprise' : employees > 50 ? 'Mid-market' : 'SMB'
+}
 
 function buildCompanies(): { records: RecordRow[]; cells: Cell[] } {
   const records: RecordRow[] = []
@@ -218,11 +245,12 @@ function buildCompanies(): { records: RecordRow[]; cells: Cell[] } {
     const area = pickOne(rng, AREA_CODES)
     const phone = `+1${area}555${String(1000 + i).padStart(4, '0')}`
     const note = NOTES[i % NOTES.length] ?? ''
+    const employees = rint(rng, 8, 8200)
 
     cells.push(
       cell(rid, 'col_co_company', name),
       cell(rid, 'col_co_domain', `https://${domain}`),
-      cell(rid, 'col_co_employees', rint(rng, 8, 8200)),
+      cell(rid, 'col_co_employees', employees),
       cell(rid, 'col_co_email', `${pickOne(rng, EMAIL_PREFIX)}@${domain}`),
       cell(rid, 'col_co_verified', verified),
       cell(rid, 'col_co_tags', tags),
@@ -231,6 +259,8 @@ function buildCompanies(): { records: RecordRow[]; cells: Cell[] } {
       cell(rid, 'col_co_phone', i % 9 === 0 ? null : phone),
       cell(rid, 'col_co_active', i % 7 !== 0),
       cell(rid, 'col_co_notes', note === '' ? null : note),
+      // Formula column pre-computed to match the SEGMENT_EXPR (US-3.6).
+      { recordId: rid, columnId: 'col_co_segment', value: segmentFor(employees), meta: { formula: { status: 'ok', computedAt: NOW } } },
     )
   })
   return { records, cells }
@@ -680,6 +710,254 @@ function applyAiSeed(): { pitchCells: Cell[]; results: AiCellResult[] } {
 }
 
 // ---------------------------------------------------------------------------
+// Phase 3 rest — agent + HTTP + formula column configs, plus a starter set of
+// automations, webhooks, and integrations so /automations + /integrations are
+// populated on first load. No credit-ledger impact (nothing is pre-run).
+// ---------------------------------------------------------------------------
+
+const segmentFormula: FormulaColumnConfig = {
+  id: 'fx_co_segment',
+  columnId: 'col_co_segment',
+  expression: SEGMENT_EXPR,
+}
+
+const intelAgent: AgentColumnConfig = {
+  id: 'agt_co_intel',
+  columnId: 'col_co_intel',
+  model: { provider: 'anthropic', model: 'claude-haiku-4-5' },
+  objective: 'Research {{Company}} ({{Domain}}) and summarise recent funding, size, and notable news in one line.',
+  outputSchema: [],
+  outputMapping: {},
+  maxSteps: 5,
+  maxPages: 4,
+  cacheTtlDays: 30,
+  autoRun: false,
+  forceFreshDefault: false,
+  credits: 2,
+  providerCostUsd: 0.008,
+}
+
+const hqHttp: HttpColumnConfig = {
+  id: 'http_co_hq',
+  columnId: 'col_co_hq',
+  method: 'GET',
+  urlTemplate: 'https://api.company-data.example/v1/lookup?domain={{Domain}}',
+  headers: [{ key: 'Authorization', value: '••••7f2a', secretRef: 'sec_demo' }],
+  bodyTemplate: '',
+  responsePath: 'data.city',
+  responseMapping: { industry: 'data.industry' },
+  outputMapping: {},
+  cacheTtlDays: 7,
+  autoRun: false,
+  forceFreshDefault: false,
+  credits: 1,
+  providerCostUsd: 0.0005,
+}
+
+const httpSecrets = [
+  { id: 'sec_demo', workspaceId: WS.primary, name: 'Company Data API key', maskedHint: '••••7f2a', createdAt: CREATED },
+]
+
+const automations: Automation[] = [
+  {
+    id: 'auto_daily_intel',
+    workspaceId: WS.primary,
+    tableId: T.companies,
+    name: 'Refresh company intel daily',
+    trigger: 'schedule',
+    action: 'run_column',
+    targetColumnId: 'col_co_intel',
+    forceFresh: false,
+    schedule: { cadence: 'daily', hour: 7 },
+    isEnabled: true,
+    createdBy: U.admin,
+    createdAt: CREATED,
+    nextRunAt: '2026-07-12T07:00:00.000Z',
+    lastRunAt: '2026-07-11T07:00:00.000Z',
+    lastStatus: 'success',
+  },
+  {
+    id: 'auto_enrich_new',
+    workspaceId: WS.primary,
+    tableId: T.companies,
+    name: 'Enrich email on new rows',
+    trigger: 'row_event',
+    action: 'run_column',
+    targetColumnId: 'col_co_email',
+    forceFresh: false,
+    rowEvent: { event: 'record.created' },
+    isEnabled: true,
+    createdBy: U.owner,
+    createdAt: CREATED,
+    nextRunAt: null,
+    lastRunAt: '2026-07-10T16:20:00.000Z',
+    lastStatus: 'success',
+  },
+]
+
+const inboundWebhooks: InboundWebhook[] = [
+  {
+    id: 'wh_in_leads',
+    workspaceId: WS.primary,
+    tableId: T.companies,
+    name: 'Website lead capture',
+    slug: 'website-lead-a1b2c3',
+    secretHint: '••••9x4k',
+    mapping: { company: 'col_co_company', domain: 'col_co_domain', email: 'col_co_email' },
+    isEnabled: true,
+    createdAt: CREATED,
+    lastReceivedAt: '2026-07-09T12:11:00.000Z',
+    receivedCount: 14,
+  },
+]
+
+const outboundWebhooks: OutboundWebhook[] = [
+  {
+    id: 'wh_out_signed',
+    workspaceId: WS.primary,
+    tableId: T.companies,
+    name: 'Notify ops on signed deal',
+    url: 'https://hooks.zapier.com/hooks/catch/demo/signed',
+    event: 'record.updated',
+    condition: { columnId: 'col_co_active', op: 'equals', value: 'true' },
+    fieldColumnIds: ['col_co_company', 'col_co_mrr'],
+    isEnabled: true,
+    createdAt: CREATED,
+    lastDeliveryAt: '2026-07-08T15:00:00.000Z',
+    lastStatus: 'delivered',
+    deliveredCount: 23,
+    failedCount: 1,
+  },
+]
+
+const crmConnections: CrmConnection[] = [
+  {
+    id: 'crm_hubspot',
+    workspaceId: WS.primary,
+    provider: 'hubspot',
+    accountLabel: 'InsightsTap (hub-3391)',
+    maskedToken: '••••b8e1',
+    tableId: T.companies,
+    fieldMapping: { name: 'col_co_company', domain: 'col_co_domain', numberofemployees: 'col_co_employees' },
+    dedupeColumnId: 'col_co_domain',
+    isConnected: true,
+    createdAt: CREATED,
+    lastSyncAt: '2026-07-10T08:00:00.000Z',
+  },
+]
+
+const slackConnections: SlackConnection[] = [
+  {
+    id: 'slack_primary',
+    workspaceId: WS.primary,
+    teamName: 'InsightsTap',
+    maskedToken: '••••x0aa',
+    defaultChannel: '#gtm-signals',
+    isConnected: true,
+    createdAt: CREATED,
+  },
+]
+
+const integrationEvents: IntegrationEvent[] = [
+  { id: 'ie_1', workspaceId: WS.primary, source: 'crm', status: 'success', summary: 'HubSpot push: 41 created, 11 updated, 3 skipped', detail: { direction: 'push', created: 41, updated: 11, skipped: 3 }, tableId: T.companies, refId: 'crm_hubspot', createdAt: '2026-07-10T08:00:05.000Z' },
+  { id: 'ie_2', workspaceId: WS.primary, source: 'schedule', status: 'success', summary: 'Refresh company intel daily: Queued 52 agent cells', detail: { automationId: 'auto_daily_intel' }, tableId: T.companies, refId: 'auto_daily_intel', createdAt: '2026-07-11T07:00:02.000Z' },
+  { id: 'ie_3', workspaceId: WS.primary, source: 'webhook_in', status: 'success', summary: 'Website lead capture: created a row from inbound payload', detail: { webhookId: 'wh_in_leads', fields: 3 }, tableId: T.companies, refId: 'wh_in_leads', createdAt: '2026-07-09T12:11:00.000Z' },
+  { id: 'ie_4', workspaceId: WS.primary, source: 'webhook_out', status: 'success', summary: 'Notify ops on signed deal → POST hooks.zapier.com (record.updated)', detail: { webhookId: 'wh_out_signed' }, tableId: T.companies, refId: 'wh_out_signed', createdAt: '2026-07-08T15:00:00.000Z' },
+  { id: 'ie_5', workspaceId: WS.primary, source: 'slack', status: 'success', summary: 'Slack → #gtm-signals: New enterprise deal signed 🎉', detail: { channel: '#gtm-signals' }, createdAt: '2026-07-08T15:00:03.000Z' },
+  { id: 'ie_6', workspaceId: WS.primary, source: 'webhook_out', status: 'failed', summary: 'Notify ops on signed deal → POST hooks.zapier.com — failed, will retry', detail: { webhookId: 'wh_out_signed', code: 503 }, tableId: T.companies, refId: 'wh_out_signed', createdAt: '2026-07-07T10:22:00.000Z' },
+]
+
+// ---------------------------------------------------------------------------
+// SaaS billing + platform superadmin seed (Phase 4)
+// ---------------------------------------------------------------------------
+
+const PLAN = { free: 'plan_free', starter: 'plan_starter', growth: 'plan_growth', scale: 'plan_scale' } as const
+const PU = { admin: 'pu_admin', support: 'pu_support' } as const
+const PERIOD_END = '2026-07-25T00:00:00.000Z'
+
+// Extra "customer" workspaces so the superadmin dashboard shows real MRR/margin.
+const EXTRA_USERS: User[] = [
+  { id: 'usr_north', email: 'lena@northwindlabs.com', name: 'Lena Fischer', emailVerified: true, createdAt: CREATED },
+  { id: 'usr_zephyr', email: 'omar@zephyr.ai', name: 'Omar Haddad', emailVerified: true, createdAt: CREATED },
+  { id: 'usr_acme', email: 'mira@acme.co', name: 'Mira Patel', emailVerified: true, createdAt: CREATED },
+  { id: 'usr_globex', email: 'theo@globex.io', name: 'Theo Ionescu', emailVerified: true, createdAt: CREATED },
+]
+const EXTRA_WORKSPACES: Workspace[] = [
+  { id: 'ws_north', name: 'Northwind Labs', ownerUserId: 'usr_north', createdAt: CREATED, status: 'active' },
+  { id: 'ws_zephyr', name: 'Zephyr AI', ownerUserId: 'usr_zephyr', createdAt: CREATED, status: 'active' },
+  { id: 'ws_acme', name: 'Acme Co', ownerUserId: 'usr_acme', createdAt: CREATED, status: 'active' },
+  { id: 'ws_globex', name: 'Globex', ownerUserId: 'usr_globex', createdAt: CREATED, status: 'suspended' },
+]
+const EXTRA_MEMBERS: Member[] = EXTRA_WORKSPACES.map((w, i) => ({
+  id: `mem_x${i}`,
+  workspaceId: w.id,
+  userId: w.ownerUserId,
+  email: EXTRA_USERS[i]!.email,
+  name: EXTRA_USERS[i]!.name,
+  role: 'owner',
+  status: 'active',
+  invitedBy: null,
+  createdAt: CREATED,
+}))
+const EXTRA_CREDITS: WorkspaceCredit[] = [
+  { workspaceId: 'ws_north', balance: 16800, budgetCap: 20000, perRunCap: 5000 },
+  { workspaceId: 'ws_zephyr', balance: 52000, budgetCap: 60000, perRunCap: 5000 },
+  { workspaceId: 'ws_acme', balance: 140, budgetCap: 200, perRunCap: 100 },
+  { workspaceId: 'ws_globex', balance: 3200, budgetCap: 5000, perRunCap: 2000 },
+]
+// Self-consistent ledger per extra workspace (grant → consumption → balance).
+// Consumption uses `enrich:<key>:<op>` reasons so COGS/margin compute for real.
+const EXTRA_LEDGER: CreditLedgerEntry[] = [
+  { id: 'led_north_g', workspaceId: 'ws_north', delta: 20000, reason: 'plan:grant:seed', balanceAfter: 20000, createdAt: '2026-06-25T09:00:00.000Z' },
+  { id: 'led_north_0', workspaceId: 'ws_north', delta: -2400, reason: 'enrich:pdl:person_enrich', balanceAfter: 17600, createdAt: '2026-07-05T10:00:00.000Z' },
+  { id: 'led_north_1', workspaceId: 'ws_north', delta: -800, reason: 'enrich:hunter:find_email', balanceAfter: 16800, createdAt: '2026-07-06T10:00:00.000Z' },
+  { id: 'led_zephyr_g', workspaceId: 'ws_zephyr', delta: 60000, reason: 'plan:grant:seed', balanceAfter: 60000, createdAt: '2026-06-25T09:00:00.000Z' },
+  { id: 'led_zephyr_0', workspaceId: 'ws_zephyr', delta: -6000, reason: 'enrich:pdl:person_enrich', balanceAfter: 54000, createdAt: '2026-07-05T10:00:00.000Z' },
+  { id: 'led_zephyr_1', workspaceId: 'ws_zephyr', delta: -2000, reason: 'enrich:zerobounce:verify_email', balanceAfter: 52000, createdAt: '2026-07-06T10:00:00.000Z' },
+  { id: 'led_acme_g', workspaceId: 'ws_acme', delta: 200, reason: 'plan:grant:seed', balanceAfter: 200, createdAt: '2026-06-25T09:00:00.000Z' },
+  { id: 'led_acme_c', workspaceId: 'ws_acme', delta: 100, reason: 'comp:onboarding goodwill', balanceAfter: 300, createdAt: '2026-07-02T14:00:00.000Z' },
+  { id: 'led_acme_0', workspaceId: 'ws_acme', delta: -160, reason: 'enrich:hunter:find_email', balanceAfter: 140, createdAt: '2026-07-05T10:00:00.000Z' },
+  { id: 'led_globex_g', workspaceId: 'ws_globex', delta: 5000, reason: 'plan:grant:seed', balanceAfter: 5000, createdAt: '2026-06-01T09:00:00.000Z' },
+  { id: 'led_globex_0', workspaceId: 'ws_globex', delta: -1800, reason: 'enrich:pdl:person_enrich', balanceAfter: 3200, createdAt: '2026-06-20T10:00:00.000Z' },
+]
+
+const SUBSCRIPTIONS: Subscription[] = [
+  { id: 'sub_insightstap', workspaceId: WS.primary, planId: PLAN.growth, stripeSubscriptionId: 'sub_mock_insightstap', status: 'active', currentPeriodEnd: PERIOD_END, cancelAtPeriodEnd: false, createdAt: CREATED },
+  { id: 'sub_sdtc', workspaceId: WS.secondary, planId: PLAN.starter, stripeSubscriptionId: 'sub_mock_sdtc', status: 'active', currentPeriodEnd: PERIOD_END, cancelAtPeriodEnd: false, createdAt: CREATED },
+  { id: 'sub_north', workspaceId: 'ws_north', planId: PLAN.growth, stripeSubscriptionId: 'sub_mock_north', status: 'active', currentPeriodEnd: PERIOD_END, cancelAtPeriodEnd: false, createdAt: CREATED },
+  { id: 'sub_zephyr', workspaceId: 'ws_zephyr', planId: PLAN.scale, stripeSubscriptionId: 'sub_mock_zephyr', status: 'active', currentPeriodEnd: PERIOD_END, cancelAtPeriodEnd: false, createdAt: CREATED },
+  { id: 'sub_acme', workspaceId: 'ws_acme', planId: PLAN.free, stripeSubscriptionId: 'sub_mock_acme', status: 'active', currentPeriodEnd: PERIOD_END, cancelAtPeriodEnd: false, createdAt: CREATED },
+  { id: 'sub_globex', workspaceId: 'ws_globex', planId: PLAN.starter, stripeSubscriptionId: 'sub_mock_globex', status: 'canceled', currentPeriodEnd: '2026-07-01T00:00:00.000Z', cancelAtPeriodEnd: true, createdAt: CREATED },
+]
+
+function invoice(id: string, ws: string, start: string, end: string, amountUsd: number, label: string): Invoice {
+  const lines: InvoiceLineItem[] = [{ label, amountUsd }]
+  return { id, workspaceId: ws, stripeInvoiceId: `in_mock_${id}`, periodStart: `${start}T00:00:00.000Z`, periodEnd: `${end}T00:00:00.000Z`, amountUsd, status: 'paid', lines, createdAt: `${end}T00:05:00.000Z` }
+}
+const INVOICES: Invoice[] = [
+  invoice('it_may', WS.primary, '2026-05-25', '2026-06-25', 299, 'Growth plan · monthly'),
+  invoice('it_jun', WS.primary, '2026-06-25', '2026-07-25', 299, 'Growth plan · monthly'),
+  invoice('sdtc_jun', WS.secondary, '2026-06-25', '2026-07-25', 99, 'Starter plan · monthly'),
+  invoice('north_jun', 'ws_north', '2026-06-25', '2026-07-25', 299, 'Growth plan · monthly'),
+  invoice('zephyr_jun', 'ws_zephyr', '2026-06-25', '2026-07-25', 799, 'Scale plan · monthly'),
+]
+
+const PURCHASES: CreditPurchase[] = [
+  { id: 'cp_it_1', workspaceId: WS.primary, credits: 10000, amountUsd: 90, stripePaymentId: 'pi_mock_it1', createdAt: '2026-06-10T00:00:00.000Z' },
+]
+
+const PLATFORM_USERS: PlatformUser[] = [
+  { id: PU.admin, email: 'ops@sdtcdigital.com', name: 'Nadia Osei', platformRole: 'admin', createdAt: CREATED },
+  { id: PU.support, email: 'support@sdtcdigital.com', name: 'Ravi Menon', platformRole: 'support', createdAt: CREATED },
+]
+
+const PLATFORM_AUDIT: PlatformAuditEntry[] = [
+  { id: 'pa_1', platformUserId: PU.admin, platformUserName: 'Nadia Osei', action: 'credit.comp', targetType: 'workspace', targetId: 'ws_acme', detail: { credits: 100, reason: 'onboarding goodwill' }, createdAt: '2026-07-02T14:00:00.000Z' },
+  { id: 'pa_2', platformUserId: PU.admin, platformUserName: 'Nadia Osei', action: 'workspace.suspend', targetType: 'workspace', targetId: 'ws_globex', detail: { reason: 'payment failure after 3 retries' }, createdAt: '2026-07-03T09:30:00.000Z' },
+  { id: 'pa_3', platformUserId: PU.support, platformUserName: 'Ravi Menon', action: 'plan.override', targetType: 'subscription', targetId: 'sub_north', detail: { to: 'Growth', reason: 'sales-assisted upgrade' }, createdAt: '2026-07-04T11:00:00.000Z' },
+]
+
+// ---------------------------------------------------------------------------
 // Assemble the full seed
 // ---------------------------------------------------------------------------
 
@@ -750,9 +1028,11 @@ export function buildSeed(): StoreData {
     isDefault: true,
   }))
 
-  data.users = users
-  data.workspaces = workspaces
-  data.members = members
+  // Deep-clone so each MockApi instance owns its copy (the extras are shared
+  // module-level templates; the platform panel mutates workspace.status etc.).
+  data.users = clone([...users, ...EXTRA_USERS])
+  data.workspaces = clone([...workspaces, ...EXTRA_WORKSPACES])
+  data.members = clone([...members, ...EXTRA_MEMBERS])
   data.invites = invites
   data.tables = tables
   data.columns = columns
@@ -767,10 +1047,10 @@ export function buildSeed(): StoreData {
   // pushes ledger rows, and edits configs in place).
   data.providers = clone(PROVIDERS)
   data.providerCredentials = clone(providerCredentials)
-  data.workspaceCredits = clone(workspaceCredits)
+  data.workspaceCredits = clone([...workspaceCredits, ...EXTRA_CREDITS])
   data.enrichmentConfigs = clone([emailConfig])
   data.enrichmentRuns = clone(enrichmentRuns)
-  data.creditLedger = clone([...creditLedger, ...aiLedger])
+  data.creditLedger = clone([...creditLedger, ...aiLedger, ...EXTRA_LEDGER])
   data.enrichmentCache = clone(enrichmentCache)
   data.enrichmentResults = results
 
@@ -779,6 +1059,30 @@ export function buildSeed(): StoreData {
   data.aiRuns = clone(aiRuns)
   data.aiResults = aiResults
   data.aiCache = clone(aiCache)
+
+  // Agent + HTTP + formula columns (Phase 3 rest). No pre-run cells → no ledger
+  // impact (the formula column is pre-computed in buildCompanies).
+  data.agentColumnConfigs = clone([intelAgent])
+  data.httpColumnConfigs = clone([hqHttp])
+  data.httpSecrets = clone(httpSecrets)
+  data.formulaColumnConfigs = clone([segmentFormula])
+
+  // Automation + integration layer (Phase 3 rest).
+  data.automations = clone(automations)
+  data.inboundWebhooks = clone(inboundWebhooks)
+  data.outboundWebhooks = clone(outboundWebhooks)
+  data.crmConnections = clone(crmConnections)
+  data.slackConnections = clone(slackConnections)
+  data.integrationEvents = clone(integrationEvents)
+
+  // SaaS billing + platform superadmin (Phase 4).
+  data.plans = clone(PLANS)
+  data.subscriptions = clone(SUBSCRIPTIONS)
+  data.invoices = clone(INVOICES)
+  data.creditPurchases = clone(PURCHASES)
+  data.platformUsers = clone(PLATFORM_USERS)
+  data.platformAudit = clone(PLATFORM_AUDIT)
+  data.platformSession = null
 
   return data
 }
@@ -869,4 +1173,4 @@ export function generateRows(
   return { records, cells }
 }
 
-export const SEED_IDS = { U, WS, T, P, ENR, AI } as const
+export const SEED_IDS = { U, WS, T, P, ENR, AI, PLAN, PU } as const

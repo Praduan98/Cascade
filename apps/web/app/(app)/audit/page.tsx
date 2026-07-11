@@ -38,6 +38,28 @@ const ACTION_LABEL: Record<AuditAction, string> = {
   'budget.update': 'changed the credit budget',
   'column.aiConfig': 'configured an AI column',
   'ai.run': 'ran AI columns',
+  'plan.change': 'changed the plan',
+  'credit.purchase': 'bought credits',
+  'subscription.cancel': 'cancelled the subscription',
+  'column.agentConfig': 'configured an agent column',
+  'agent.run': 'ran agent columns',
+  'column.httpConfig': 'configured an HTTP column',
+  'http.run': 'ran HTTP columns',
+  'column.formulaConfig': 'configured a formula column',
+  'automation.create': 'created an automation',
+  'automation.update': 'updated an automation',
+  'automation.remove': 'removed an automation',
+  'automation.run': 'ran an automation',
+  'webhook.inbound.create': 'added an inbound webhook',
+  'webhook.inbound.remove': 'removed an inbound webhook',
+  'webhook.inbound.receive': 'received an inbound webhook',
+  'webhook.outbound.create': 'added an outbound webhook',
+  'webhook.outbound.remove': 'removed an outbound webhook',
+  'webhook.outbound.deliver': 'delivered an outbound webhook',
+  'integration.connect': 'connected an integration',
+  'integration.disconnect': 'disconnected an integration',
+  'crm.sync': 'synced a CRM',
+  'slack.notify': 'sent a Slack notification',
 }
 
 // A category colour per action family, used for the leading dot.
@@ -60,6 +82,9 @@ function actionColor(action: AuditAction): string {
       return 'var(--cobalt)'
     case 'provider':
     case 'budget':
+    case 'plan':
+    case 'credit':
+    case 'subscription':
       return 'var(--gold)'
     default:
       return 'var(--text-3)'

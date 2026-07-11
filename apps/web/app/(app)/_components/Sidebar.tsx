@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { usePathname } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { getApi } from '@cascade/data'
-import { canManageProviders, canViewAudit, canWrite } from '@cascade/core'
+import { canManageAutomations, canManageIntegrations, canManageProviders, canManageSubscription, canViewAudit, canWrite } from '@cascade/core'
 import {
   NavGroup,
   NavItem,
@@ -63,6 +63,23 @@ const UsageIcon = () => (
 const ProvidersIcon = () => (
   <Icon>
     <path d="M4 7h10M4 12h16M4 17h7" />
+  </Icon>
+)
+const BillingIcon = () => (
+  <Icon>
+    <rect x="2" y="5" width="20" height="14" rx="2" />
+    <path d="M2 10h20" />
+  </Icon>
+)
+const AutomationIcon = () => (
+  <Icon>
+    <path d="M13 2 3 14h9l-1 8 10-12h-9z" />
+  </Icon>
+)
+const IntegrationIcon = () => (
+  <Icon>
+    <path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1" />
+    <path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1" />
   </Icon>
 )
 const SettingsIcon = () => (
@@ -137,6 +154,9 @@ export function Sidebar() {
   const writable = role ? canWrite(role) : false
   const auditable = role ? canViewAudit(role) : false
   const providersOk = role ? canManageProviders(role) : false
+  const billingOk = role ? canManageSubscription(role) : false
+  const automationsOk = role ? canManageAutomations(role) : false
+  const integrationsOk = role ? canManageIntegrations(role) : false
 
   const tablesQuery = useQuery({
     queryKey: ['tables', workspace?.id],
@@ -193,9 +213,24 @@ export function Sidebar() {
             Providers &amp; keys
           </NavItem>
         )}
+        {automationsOk && (
+          <NavItem href="/automations" active={pathname === '/automations'} icon={<AutomationIcon />}>
+            Automations
+          </NavItem>
+        )}
+        {integrationsOk && (
+          <NavItem href="/integrations" active={pathname === '/integrations'} icon={<IntegrationIcon />}>
+            Integrations
+          </NavItem>
+        )}
         <NavItem href="/usage" active={pathname === '/usage'} icon={<UsageIcon />}>
           Usage &amp; credits
         </NavItem>
+        {billingOk && (
+          <NavItem href="/billing" active={pathname === '/billing'} icon={<BillingIcon />}>
+            Billing &amp; plans
+          </NavItem>
+        )}
         <NavItem href="/settings" active={pathname === '/settings'} icon={<SettingsIcon />}>
           Settings
         </NavItem>

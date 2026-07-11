@@ -1,0 +1,534 @@
+/* The superadmin platform shell — a wholly separate application area (FR-4.2),
+   distinguished from the workspace app by the gold "platform" accent. */
+
+.root {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--ground);
+}
+.body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+.side {
+  width: 232px;
+  flex: none;
+  border-right: 1px solid var(--hairline);
+  background: var(--ground-2);
+  overflow-y: auto;
+  padding: 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.main {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+}
+@media (max-width: 720px) {
+  .side {
+    display: none;
+  }
+}
+
+/* Sidebar identity + sign-out */
+.sideBrand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 6px 12px;
+  border-bottom: 1px solid var(--hairline);
+  margin-bottom: 4px;
+}
+.sideGlyph {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-sm);
+  display: grid;
+  place-items: center;
+  background: var(--gold-soft);
+  border: 1px solid var(--gold-line);
+  color: var(--gold);
+  flex: none;
+}
+.sideGlyph svg {
+  width: 16px;
+  height: 16px;
+}
+.sideTitle {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+.sideTitle b {
+  font-weight: 700;
+  font-size: var(--fs-sm);
+}
+.sideTitle span {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+.sideFoot {
+  margin-top: auto;
+  border-top: 1px solid var(--hairline);
+  padding-top: 12px;
+  display: grid;
+  gap: 8px;
+}
+.who {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 2px 6px;
+}
+.whoName {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.whoName b {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+.whoName span {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ---- Login ---- */
+.loginWrap {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(120% 80% at 100% 0, var(--gold-soft), transparent 60%),
+    var(--ground);
+}
+.loginCard {
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.loginHead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.loginHead .sideGlyph {
+  width: 36px;
+  height: 36px;
+}
+.loginHead h1 {
+  font-size: var(--fs-h3);
+}
+.loginHead p {
+  margin-top: 2px;
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+}
+.loginForm {
+  display: grid;
+  gap: 14px;
+}
+.demoRow {
+  display: grid;
+  gap: 8px;
+}
+.demoLabel {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.demoBtn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+.demoBtn:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-3);
+}
+.demoBtn span {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.loading {
+  height: 100dvh;
+  display: grid;
+  place-items: center;
+  background: var(--ground);
+}
+.spinner {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 3px solid var(--border);
+  border-top-color: var(--gold);
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---- Pages ---- */
+.page {
+  width: 100%;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: clamp(20px, 3vw, 34px);
+}
+.pageHead {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+.pageHead h1 {
+  font-size: var(--fs-h1);
+}
+.pageHead .sub {
+  margin-top: 6px;
+  color: var(--text-3);
+  font-size: var(--fs-sm);
+  font-family: var(--font-mono);
+}
+
+/* KPI tiles */
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 18px;
+}
+@media (max-width: 860px) {
+  .kpiGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+.kpi {
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.kpiLabel {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.kpiValue {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.9rem;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.kpiValue.money {
+  color: var(--gold);
+}
+.kpiSub {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  color: var(--text-3);
+}
+
+.card {
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  padding: 20px 22px;
+}
+.card + .card {
+  margin-top: 18px;
+}
+.grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+@media (max-width: 800px) {
+  .grid2 {
+    grid-template-columns: 1fr;
+  }
+}
+.sectionHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.sectionHead h2 {
+  font-size: var(--fs-h4);
+  font-family: var(--font-display);
+}
+.sectionHint {
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  font-family: var(--font-mono);
+}
+
+/* ---- Charts (hand-rolled; status palette) ---- */
+.barRows {
+  display: grid;
+  gap: 10px;
+}
+.barRow {
+  display: grid;
+  grid-template-columns: 90px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--fs-sm);
+}
+.barRow .lab {
+  color: var(--text-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.barTrack {
+  height: 10px;
+  border-radius: var(--r-full);
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.barTrack i {
+  display: block;
+  height: 100%;
+  border-radius: var(--r-full);
+  transition: width var(--dur-3) var(--ease);
+}
+.barRow .val {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--gold);
+  white-space: nowrap;
+}
+.spark {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  height: 120px;
+  padding-top: 10px;
+}
+.sparkCol {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.sparkBar {
+  width: 100%;
+  max-width: 44px;
+  border-radius: var(--r-sm) var(--r-sm) 0 0;
+  background: linear-gradient(180deg, var(--brand), var(--brand-2));
+  transition: height var(--dur-3) var(--ease);
+}
+.sparkLabel {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  color: var(--text-3);
+  white-space: nowrap;
+}
+
+/* ---- Data table ---- */
+.table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: var(--fs-sm);
+}
+.table th {
+  text-align: left;
+  font-size: var(--fs-2xs);
+  font-family: var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  font-weight: 500;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--hairline);
+}
+.table td {
+  padding: 11px 10px;
+  border-bottom: 1px solid var(--hairline);
+  vertical-align: middle;
+}
+.table tr:last-child td {
+  border-bottom: 0;
+}
+.wsCell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.wsName {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.wsName b {
+  font-weight: 600;
+}
+.wsName span {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  color: var(--text-3);
+}
+.num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+.money {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--gold);
+  text-align: right;
+  white-space: nowrap;
+}
+.rowBtn {
+  padding: 4px 8px;
+}
+.scrollX {
+  overflow-x: auto;
+}
+
+/* ---- Workspace detail dialog ---- */
+.detail {
+  display: grid;
+  gap: 14px;
+  min-width: min(560px, 82vw);
+}
+.detailKpis {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.detailKpi {
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  padding: 10px 12px;
+}
+.detailKpi .kpiLabel {
+  margin-bottom: 2px;
+}
+.detailKpi .v {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.detailKpi .v.money {
+  color: var(--gold);
+}
+.actionRow {
+  display: grid;
+  gap: 8px;
+}
+.actionRow .lbl {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.inlineForm {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.inlineForm > :first-child {
+  flex: 1;
+}
+.miniList {
+  display: grid;
+  gap: 4px;
+  max-height: 168px;
+  overflow-y: auto;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-md);
+  padding: 6px;
+}
+.miniRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 5px 8px;
+  border-radius: var(--r-sm);
+}
+.miniRow:hover {
+  background: var(--surface-3);
+}
+.miniName {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.miniName b {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+.miniName span {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  color: var(--text-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.skelBlock {
+  border-radius: var(--r-sm);
+  background: linear-gradient(90deg, var(--surface-2), var(--surface-3), var(--surface-2));
+  background-size: 200% 100%;
+  animation: shimmer 1.3s ease-in-out infinite;
+}
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}

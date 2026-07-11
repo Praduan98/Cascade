@@ -18,7 +18,7 @@ export {
   phoneCellRenderer,
   statusCellRenderer,
 } from './renderers'
-export { makeCell, makeEnrichCell, makeAiCell, makeStatusCell } from './factory'
+export { makeCell, makeEnrichCell, makeAiCell, makeAgentCell, makeHttpCell, makeFormulaCell, makeStatusCell } from './factory'
 export type { StatusCellOptions } from './factory'
 export { editStringFor, rawFromCell } from './values'
 export { CascadeTextEditor, CascadeLongTextEditor } from './editors'

@@ -9,10 +9,17 @@ const ACTIVE: EnrichmentRunStatus[] = ['queued', 'running']
 
 // The inline run-progress strip between the toolbar and the grid. Polls the run
 // while it's active; cells animate their status in the grid independently.
-export function RunProgress({ runId, onDone, kind = 'enrichment' }: { runId: string; onDone: () => void; kind?: 'enrichment' | 'ai' }) {
+type RunKind = 'enrichment' | 'ai' | 'agent' | 'http'
+const VERBS: Record<RunKind, string> = { enrichment: 'Enriching', ai: 'Generating', agent: 'Researching', http: 'Calling' }
+
+export function RunProgress({ runId, onDone, kind = 'enrichment' }: { runId: string; onDone: () => void; kind?: RunKind }) {
   const runQuery = useQuery({
     queryKey: [kind, 'run', runId],
-    queryFn: () => (kind === 'ai' ? getApi().ai : getApi().enrichment).runs.get(runId),
+    queryFn: () => {
+      const api = getApi()
+      const svc = kind === 'ai' ? api.ai : kind === 'agent' ? api.agent : kind === 'http' ? api.http : api.enrichment
+      return svc.runs.get(runId)
+    },
     refetchInterval: (q) => (q.state.data && ACTIVE.includes(q.state.data.status) ? 500 : false),
   })
   const run = runQuery.data
@@ -21,7 +28,7 @@ export function RunProgress({ runId, onDone, kind = 'enrichment' }: { runId: str
   const { processed, total, success, empty, failed, cached } = run.counts
   const pct = total > 0 ? Math.round((processed / total) * 100) : 0
   const done = !ACTIVE.includes(run.status)
-  const verb = kind === 'ai' ? 'Generating' : 'Enriching'
+  const verb = VERBS[kind]
 
   return (
     <div className={styles.progress} role="status" aria-live="polite">

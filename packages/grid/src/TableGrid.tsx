@@ -34,11 +34,11 @@ import type {
 } from '@glideapps/glide-data-grid'
 import { ConflictError, getApi, isApiError } from '@cascade/data'
 import type { CascadeApi, CellEdit } from '@cascade/data'
-import type { AiCellMeta, CellValue, Column, EnrichmentCellMeta } from '@cascade/core'
-import { readAi, readEnrichment, toClipboard, validateValue } from '@cascade/core'
+import type { AgentCellMeta, AiCellMeta, CellValue, Column, EnrichmentCellMeta, HttpCellMeta } from '@cascade/core'
+import { readAgent, readAi, readEnrichment, readHttp, toClipboard, validateValue } from '@cascade/core'
 import { useGlideTheme } from './useGlideTheme'
 import { useTableData } from './dataProvider'
-import { cascadeCellRenderers, makeCell, makeAiCell, makeEnrichCell, makeStatusCell, rawFromCell } from './cells'
+import { cascadeCellRenderers, makeCell, makeAgentCell, makeAiCell, makeEnrichCell, makeFormulaCell, makeHttpCell, makeStatusCell, rawFromCell } from './cells'
 import type { CascadeCell } from './cells'
 import { useUndoRedo } from './history'
 import type { HistoryState } from './history'
@@ -77,6 +77,10 @@ export interface TableGridHandle {
   applyEnrichment: (recordId: string, columnId: string, meta: EnrichmentCellMeta, value?: CellValue) => void
   /** Patch a cell's live AI status/value without a full reload (Phase 3). */
   applyAi: (recordId: string, columnId: string, meta: AiCellMeta, value?: CellValue) => void
+  /** Patch a cell's live agent status/value without a full reload (Phase 3 rest). */
+  applyAgent: (recordId: string, columnId: string, meta: AgentCellMeta, value?: CellValue) => void
+  /** Patch a cell's live HTTP status/value without a full reload (Phase 3 rest). */
+  applyHttp: (recordId: string, columnId: string, meta: HttpCellMeta, value?: CellValue) => void
 }
 
 export interface TableGridProps {
@@ -91,12 +95,22 @@ export interface TableGridProps {
   enrichmentColumnIds?: string[]
   /** Columns that carry an AI config — rendered from `cell.meta.ai` (Phase 3). */
   aiColumnIds?: string[]
+  /** Columns that carry an agent config — rendered from `cell.meta.agent` (Phase 3 rest). */
+  agentColumnIds?: string[]
+  /** Columns that carry an HTTP config — rendered from `cell.meta.http` (Phase 3 rest). */
+  httpColumnIds?: string[]
+  /** Columns that carry a formula — rendered from `cell.meta.formula` (Phase 3 rest). */
+  formulaColumnIds?: string[]
   /** Notified when the row/range selection changes (drives "run selected rows"). */
   onSelectionChange?: (info: { recordIds: string[]; rowCount: number; hasRange: boolean }) => void
   /** Clicking a resolved enrichment cell opens the provenance popover. */
   onEnrichmentCellClick?: (ref: { recordId: string; columnId: string }, bounds: CellRect) => void
   /** Clicking a resolved AI cell opens the AI provenance popover (Phase 3). */
   onAiCellClick?: (ref: { recordId: string; columnId: string }, bounds: CellRect) => void
+  /** Clicking a resolved agent cell opens the agent provenance popover (Phase 3 rest). */
+  onAgentCellClick?: (ref: { recordId: string; columnId: string }, bounds: CellRect) => void
+  /** Clicking a resolved HTTP cell opens the HTTP provenance popover (Phase 3 rest). */
+  onHttpCellClick?: (ref: { recordId: string; columnId: string }, bounds: CellRect) => void
   /** Bump to drop the cache and re-read (after a run terminal, config change). */
   refreshToken?: number
   /**
@@ -121,12 +135,15 @@ function isEditingText(): boolean {
 }
 
 export const TableGrid = forwardRef<TableGridHandle, TableGridProps>(function TableGrid(
-  { tableId, viewId, api: apiProp, readOnly = false, enrichmentColumnIds, aiColumnIds, onSelectionChange, onEnrichmentCellClick, onAiCellClick, refreshToken, onReady, onHistoryChange, className },
+  { tableId, viewId, api: apiProp, readOnly = false, enrichmentColumnIds, aiColumnIds, agentColumnIds, httpColumnIds, formulaColumnIds, onSelectionChange, onEnrichmentCellClick, onAiCellClick, onAgentCellClick, onHttpCellClick, refreshToken, onReady, onHistoryChange, className },
   ref,
 ) {
   const api = useMemo(() => apiProp ?? getApi(), [apiProp])
   const enrichCols = useMemo(() => new Set(enrichmentColumnIds ?? []), [enrichmentColumnIds])
   const aiCols = useMemo(() => new Set(aiColumnIds ?? []), [aiColumnIds])
+  const agentCols = useMemo(() => new Set(agentColumnIds ?? []), [agentColumnIds])
+  const httpCols = useMemo(() => new Set(httpColumnIds ?? []), [httpColumnIds])
+  const formulaCols = useMemo(() => new Set(formulaColumnIds ?? []), [formulaColumnIds])
   const theme = useGlideTheme()
   const editorRef = useRef<DataEditorRef>(null)
   const [warning, setWarning] = useState<string | null>(null)
@@ -164,10 +181,15 @@ export const TableGrid = forwardRef<TableGridHandle, TableGridProps>(function Ta
   // --- Glide column descriptors -----------------------------------------
 
   const gridColumns = useMemo<GridColumn[]>(
-    // AI columns carry a ✦ marker in the header so their output is legible as
-    // model-generated (the cell body reuses the shared status system unchanged).
-    () => columns.map((c) => ({ id: c.id, title: aiCols.has(c.id) ? `✦ ${c.name}` : c.name, width: widths[c.id] ?? c.width })),
-    [columns, widths, aiCols],
+    // Operation columns carry a type marker in the header so the output reads as
+    // machine-generated (the cell body reuses the shared status system unchanged):
+    // ✦ AI · ◆ agent · ⇄ HTTP · ƒ formula.
+    () =>
+      columns.map((c) => {
+        const badge = aiCols.has(c.id) ? '✦ ' : agentCols.has(c.id) ? '◆ ' : httpCols.has(c.id) ? '⇄ ' : formulaCols.has(c.id) ? 'ƒ ' : ''
+        return { id: c.id, title: `${badge}${c.name}`, width: widths[c.id] ?? c.width }
+      }),
+    [columns, widths, aiCols, agentCols, httpCols, formulaCols],
   )
 
   // Leading contiguous frozen columns pin to the left.
@@ -192,10 +214,13 @@ export const TableGrid = forwardRef<TableGridHandle, TableGridProps>(function Ta
       const stored = rowData.cells[column.id]
       if (enrichCols.has(column.id)) return makeEnrichCell(column, stored)
       if (aiCols.has(column.id)) return makeAiCell(column, stored)
+      if (agentCols.has(column.id)) return makeAgentCell(column, stored)
+      if (httpCols.has(column.id)) return makeHttpCell(column, stored)
+      if (formulaCols.has(column.id)) return makeFormulaCell(column, stored)
       const value: CellValue = stored ? stored.value : column.type === 'multiSelect' ? [] : null
       return makeCell(column, value)
     },
-    [columns, data, enrichCols, aiCols],
+    [columns, data, enrichCols, aiCols, agentCols, httpCols, formulaCols],
   )
 
   // Cells for a selection rectangle (copy + fill). Served from the windowed
@@ -222,6 +247,9 @@ export const TableGrid = forwardRef<TableGridHandle, TableGridProps>(function Ta
         const stored = rowData.cells[column.id]
         if (enrichCols.has(column.id)) return makeEnrichCell(column, stored)
         if (aiCols.has(column.id)) return makeAiCell(column, stored)
+        if (agentCols.has(column.id)) return makeAgentCell(column, stored)
+        if (httpCols.has(column.id)) return makeHttpCell(column, stored)
+        if (formulaCols.has(column.id)) return makeFormulaCell(column, stored)
         const value: CellValue = stored ? stored.value : column.type === 'multiSelect' ? [] : null
         return makeCell(column, value)
       }
@@ -249,7 +277,7 @@ export const TableGrid = forwardRef<TableGridHandle, TableGridProps>(function Ta
         return out
       }
     },
-    [api, columns, data, tableId, viewId, enrichCols, aiCols],
+    [api, columns, data, tableId, viewId, enrichCols, aiCols, agentCols, httpCols, formulaCols],
   )
 
   // --- persistence -------------------------------------------------------
@@ -375,6 +403,28 @@ export const TableGrid = forwardRef<TableGridHandle, TableGridProps>(function Ta
         }
       }
 
+      // Agent cell → open the agent provenance popover (Phase 3 rest).
+      if (agentCols.has(column.id) && onAgentCellClick) {
+        const ag = stored ? readAgent(stored.meta) : undefined
+        if (ag) {
+          const b = event.bounds
+          onAgentCellClick({ recordId: rowData.row.id, columnId: column.id }, { x: b.x, y: b.y, width: b.width, height: b.height })
+          ;(event as { preventDefault?: () => void }).preventDefault?.()
+          return
+        }
+      }
+
+      // HTTP cell → open the HTTP provenance popover (Phase 3 rest).
+      if (httpCols.has(column.id) && onHttpCellClick) {
+        const h = stored ? readHttp(stored.meta) : undefined
+        if (h) {
+          const b = event.bounds
+          onHttpCellClick({ recordId: rowData.row.id, columnId: column.id }, { x: b.x, y: b.y, width: b.width, height: b.height })
+          ;(event as { preventDefault?: () => void }).preventDefault?.()
+          return
+        }
+      }
+
       if (column.type === 'boolean') {
         if (readOnly) {
           setWarning('Viewers have read-only access.')
@@ -399,7 +449,7 @@ export const TableGrid = forwardRef<TableGridHandle, TableGridProps>(function Ta
         }
       }
     },
-    [columns, data, readOnly, commitCellChange, enrichCols, onEnrichmentCellClick, aiCols, onAiCellClick],
+    [columns, data, readOnly, commitCellChange, enrichCols, onEnrichmentCellClick, aiCols, onAiCellClick, agentCols, onAgentCellClick, httpCols, onHttpCellClick],
   )
 
   // --- copy / paste ------------------------------------------------------
@@ -567,8 +617,10 @@ export const TableGrid = forwardRef<TableGridHandle, TableGridProps>(function Ta
       canRedo: history.canRedo,
       applyEnrichment: data.applyEnrichment,
       applyAi: data.applyAi,
+      applyAgent: data.applyAgent,
+      applyHttp: data.applyHttp,
     }),
-    [history.undo, history.redo, history.canUndo, history.canRedo, data.applyEnrichment, data.applyAi],
+    [history.undo, history.redo, history.canUndo, history.canRedo, data.applyEnrichment, data.applyAi, data.applyAgent, data.applyHttp],
   )
   useImperativeHandle(ref, () => handle, [handle])
   // next/dynamic can't forward refs, so also surface the handle to the parent via

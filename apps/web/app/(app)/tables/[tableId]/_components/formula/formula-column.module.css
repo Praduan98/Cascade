@@ -1,0 +1,53 @@
+/* Formula column builder — validation feedback + a compact functions/examples
+   cheatsheet. Reuses ai-column.module.css for the builder shell. */
+
+.ok {
+  font-size: var(--fs-xs);
+  color: var(--st-success);
+}
+
+.help {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-md);
+}
+
+.helpHead {
+  font-size: var(--fs-2xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-3);
+}
+
+.funcs {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  line-height: 1.6;
+  color: var(--text-2);
+}
+
+.examples {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.example {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  color: var(--cobalt);
+  background: none;
+  border: none;
+  padding: 2px 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.example:hover {
+  text-decoration: underline;
+}

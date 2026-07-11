@@ -1,0 +1,302 @@
+.page {
+  width: 100%;
+  max-width: 980px;
+  margin: 0 auto;
+  padding: clamp(20px, 3.2vw, 36px);
+}
+
+.header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.headTitle h1 {
+  font-size: var(--fs-h1);
+}
+.count {
+  margin-top: 6px;
+  color: var(--text-3);
+  font-size: var(--fs-sm);
+  font-family: var(--font-mono);
+}
+
+.card {
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.card + .card {
+  margin-top: 18px;
+}
+.sectionHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.sectionHead h2 {
+  font-size: var(--fs-h4);
+  font-family: var(--font-display);
+}
+.sectionHint {
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  font-family: var(--font-mono);
+}
+.state {
+  margin-bottom: 18px;
+}
+
+/* ---- Plan + usage summary ---- */
+.summaryGrid {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 22px;
+}
+@media (max-width: 720px) {
+  .summaryGrid {
+    grid-template-columns: 1fr;
+  }
+}
+.planLine {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.planNow {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.5rem;
+}
+.planPriceNow {
+  font-family: var(--font-mono);
+  color: var(--gold);
+  font-weight: 700;
+}
+.renews {
+  margin-top: 6px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  color: var(--text-3);
+}
+.seatRow {
+  display: grid;
+  gap: 6px;
+  margin-top: 14px;
+}
+.seatTop {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--fs-xs);
+  color: var(--text-2);
+}
+.seatBar {
+  height: 6px;
+  border-radius: var(--r-full);
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.seatBar i {
+  display: block;
+  height: 100%;
+  background: var(--brand);
+  transition: width var(--dur-3) var(--ease);
+}
+.seatBar i.full {
+  background: var(--st-empty);
+}
+
+/* ---- Plan cards ---- */
+.planGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+@media (max-width: 860px) {
+  .planGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 480px) {
+  .planGrid {
+    grid-template-columns: 1fr;
+  }
+}
+.planCard {
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.planCard.current {
+  border-color: var(--brand-line);
+  background: var(--brand-soft);
+}
+.planHd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.planName {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+.planPrice {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.7rem;
+  color: var(--gold);
+  line-height: 1.1;
+}
+.planPrice small {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  color: var(--text-3);
+  font-weight: 500;
+}
+.planBlurb {
+  font-size: var(--fs-xs);
+  color: var(--text-2);
+  min-height: 2.4em;
+}
+.planFeatures {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+  font-size: var(--fs-xs);
+  color: var(--text-2);
+  flex: 1;
+}
+.planFeatures li {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+}
+.planFeatures svg {
+  width: 13px;
+  height: 13px;
+  flex: none;
+  margin-top: 2px;
+  color: var(--brand);
+}
+
+/* ---- Credit packs ---- */
+.packGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+@media (max-width: 560px) {
+  .packGrid {
+    grid-template-columns: 1fr;
+  }
+}
+.packCard {
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+.packCredits {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.25rem;
+}
+.packPrice {
+  font-family: var(--font-mono);
+  color: var(--gold);
+  font-weight: 700;
+}
+.packRate {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  color: var(--text-3);
+}
+
+/* ---- Invoices table ---- */
+.table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: var(--fs-sm);
+}
+.table th {
+  text-align: left;
+  font-size: var(--fs-2xs);
+  font-family: var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  font-weight: 500;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--hairline);
+}
+.table td {
+  padding: 10px;
+  border-bottom: 1px solid var(--hairline);
+  vertical-align: middle;
+}
+.table tr:last-child td {
+  border-bottom: 0;
+}
+.when {
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  white-space: nowrap;
+}
+.money {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--gold);
+  text-align: right;
+  white-space: nowrap;
+}
+.scrollX {
+  overflow-x: auto;
+}
+
+/* ---- Danger / cancel row ---- */
+.dangerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.dangerText {
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+}
+
+/* ---- Skeletons ---- */
+.skelBlock {
+  border-radius: var(--r-sm);
+  background: linear-gradient(90deg, var(--surface-2), var(--surface-3), var(--surface-2));
+  background-size: 200% 100%;
+  animation: shimmer 1.3s ease-in-out infinite;
+}
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}

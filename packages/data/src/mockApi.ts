@@ -10,26 +10,44 @@
 //  • Simulated ~40-120ms latency so the UI's async/loading states are exercised.
 
 import type {
+  AgentColumnConfig,
   AiColumnConfig,
   AiModelInfo,
   AuditAction,
   AuditTargetType,
+  Automation,
+  AutomationRun,
+  AutomationRunStatus,
   Cell,
   CellValue,
   Column,
   ColumnConfig,
   ColumnType,
+  CrmConnection,
+  CrmProvider,
+  CrmSyncDirection,
+  CrmSyncRun,
+  EnrichmentCellStatus,
   EnrichmentColumnConfig,
   EnrichmentOperation,
   EnrichmentRun,
+  FormulaColumnConfig,
+  HttpColumnConfig,
+  InboundWebhook,
+  IntegrationEvent,
+  IntegrationEventSource,
+  IntegrationEventStatus,
   Invite,
   Member,
+  OutboundWebhook,
   Provider,
   ProviderCredential,
   RecordRow,
   Role,
+  RowEvent,
   RowWithCells,
   RunScope,
+  SlackConnection,
   TableMeta,
   User,
   View,
@@ -37,9 +55,14 @@ import type {
 } from '@cascade/core'
 import type { FilterGroup, SortSpec } from '@cascade/core'
 import {
+  canIssueBillingExceptions,
+  canManageAutomations,
   canManageBilling,
+  canManageIntegrations,
   canManageMembers,
   canManageProviders,
+  canManageSubscription,
+  canOperateWorkspaces,
   canViewAudit,
   canViewMargin,
   canWrite,
@@ -48,21 +71,33 @@ import {
   defaultConfigFor,
   emptyFilter,
   evaluateFilter,
+  evaluateFormula,
+  extractFormulaRefs,
   makeComparator,
   newId,
+  PLAN_RANK,
+  readAgent,
   readAi,
   readEnrichment,
+  readHttp,
+  seatsExceeded,
+  validateFormula,
   validateValue,
 } from '@cascade/core'
 
 import type {
   AddColumnInput,
   AddRecordInput,
+  AgentApi,
+  AgentEvent,
   AiApi,
   AiEvent,
   AuditApi,
   AuthApi,
+  AutomationApi,
   BalanceInfo,
+  BillingApi,
+  BillingSummary,
   BudgetSettings,
   CacheStats,
   CascadeApi,
@@ -71,37 +106,68 @@ import type {
   CellUpdate,
   CellConflict,
   ColumnsApi,
+  ConnectCrmInput,
+  ConnectSlackInput,
   ConsumptionBucket,
   CreateViewInput,
   CreditsApi,
   EnrichmentApi,
   EnrichmentEvent,
   EstimateResult,
+  FormulaApi,
+  HttpApi,
+  HttpEvent,
+  InboundWebhookCreated,
+  IntegrationApi,
   ListRecordsOptions,
   ListRecordsResult,
   MembersApi,
   PatchCellsResult,
+  PlatformAnalytics,
+  PlatformApi,
+  PlatformSession,
+  PlatformWorkspaceSummary,
   RecordsApi,
   RunHandle,
   RunOptions,
+  SeatUsage,
   Session,
   TablesApi,
   UpdateColumnInput,
+  UpsertAgentConfigInput,
   UpsertAiConfigInput,
+  UpsertAutomationInput,
   UpsertConfigInput,
   UpsertCredentialInput,
+  UpsertFormulaConfigInput,
+  UpsertHttpConfigInput,
+  UpsertInboundWebhookInput,
+  UpsertOutboundWebhookInput,
   UpdateViewInput,
   ViewsApi,
   WorkspacesApi,
 } from './api'
+import type {
+  CreditPurchase,
+  Invoice,
+  Plan,
+  PlatformAuditEntry,
+  PlatformUser,
+  Subscription,
+} from '@cascade/core'
 import { ApiError, BudgetError, ForbiddenError, NotFoundError, ValidationError } from './errors'
 import { STORAGE_KEY, Store } from './store'
-import type { SessionState, StoreData } from './store'
+import type { PlatformSessionState, SessionState, StoreData } from './store'
 import { buildSeed, generateRows } from './seed'
+import { PLANS, planById, planByTier } from './plans'
 import { buildCacheKey, byoActive, isEmptyInput, MockEnrichmentEngine } from './enrichmentEngine'
 import type { RunTarget } from './enrichmentEngine'
 import { buildAiCacheKey, MockAiEngine } from './aiEngine'
 import type { AiRunTarget } from './aiEngine'
+import { buildAgentCacheKey, MockAgentEngine } from './agentEngine'
+import type { AgentRunTarget } from './agentEngine'
+import { buildHttpCacheKey, getJsonPath, MockHttpEngine } from './httpEngine'
+import type { HttpRunTarget } from './httpEngine'
 import { AI_MODELS, aiModelByKey, resolveAiModel } from './aiModels'
 
 export interface MockApiOptions {
@@ -128,6 +194,20 @@ interface AiListener {
   cb: (e: AiEvent) => void
 }
 
+/** A subscriber to agent events, filtered by run or table. */
+interface AgentListener {
+  runId?: string
+  tableId?: string
+  cb: (e: AgentEvent) => void
+}
+
+/** A subscriber to HTTP events, filtered by run or table. */
+interface HttpListener {
+  runId?: string
+  tableId?: string
+  cb: (e: HttpEvent) => void
+}
+
 export class MockApi implements CascadeApi {
   private store: Store
   private readonly key: string
@@ -135,8 +215,12 @@ export class MockApi implements CascadeApi {
   private readonly engineSync: boolean
   private engine!: MockEnrichmentEngine
   private aiEngine!: MockAiEngine
+  private agentEngine!: MockAgentEngine
+  private httpEngine!: MockHttpEngine
   private listeners = new Set<EnrichmentListener>()
   private aiListeners = new Set<AiListener>()
+  private agentListeners = new Set<AgentListener>()
+  private httpListeners = new Set<HttpListener>()
 
   constructor(opts: MockApiOptions = {}) {
     this.latencyOn = opts.latency ?? true
@@ -168,8 +252,24 @@ export class MockApi implements CascadeApi {
       now: () => new Date().toISOString(),
       schedule,
     })
+    this.agentEngine = new MockAgentEngine({
+      store: this.store,
+      persist: () => this.persist(),
+      emit: (e) => this.emitAgent(e),
+      now: () => new Date().toISOString(),
+      schedule,
+    })
+    this.httpEngine = new MockHttpEngine({
+      store: this.store,
+      persist: () => this.persist(),
+      emit: (e) => this.emitHttp(e),
+      now: () => new Date().toISOString(),
+      schedule,
+    })
     this.engine.reconcileOnLoad()
     this.aiEngine.reconcileOnLoad()
+    this.agentEngine.reconcileOnLoad()
+    this.httpEngine.reconcileOnLoad()
   }
 
   private emitEnrichment(e: EnrichmentEvent): void {
@@ -196,6 +296,34 @@ export class MockApi implements CascadeApi {
         l.cb(e)
       } catch {
         /* a subscriber throwing must not break the run */
+      }
+    }
+  }
+
+  private emitAgent(e: AgentEvent): void {
+    for (const l of this.agentListeners) {
+      const runId = e.type === 'cell' ? e.runId : e.type === 'run' ? e.run.id : undefined
+      const tableId = e.type === 'cell' ? e.tableId : e.type === 'run' ? e.run.tableId : undefined
+      if (l.runId && l.runId !== runId) continue
+      if (l.tableId && l.tableId !== tableId) continue
+      try {
+        l.cb(e)
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+
+  private emitHttp(e: HttpEvent): void {
+    for (const l of this.httpListeners) {
+      const runId = e.type === 'cell' ? e.runId : e.type === 'run' ? e.run.id : undefined
+      const tableId = e.type === 'cell' ? e.tableId : e.type === 'run' ? e.run.tableId : undefined
+      if (l.runId && l.runId !== runId) continue
+      if (l.tableId && l.tableId !== tableId) continue
+      try {
+        l.cb(e)
+      } catch {
+        /* ignore */
       }
     }
   }
@@ -424,6 +552,7 @@ export class MockApi implements CascadeApi {
         name: input.workspaceName?.trim() || `${user.name}'s workspace`,
         ownerUserId: user.id,
         createdAt: new Date().toISOString(),
+        status: 'active',
       }
       const member: Member = {
         id: newId(),
@@ -439,6 +568,8 @@ export class MockApi implements CascadeApi {
       this.store.data.users.push(user)
       this.store.data.workspaces.push(workspace)
       this.store.data.members.push(member)
+      // US-4.1 — put the new workspace on the selected (or Free) plan.
+      this.provisionBilling(workspace.id, input.planId)
       const state: SessionState = {
         userId: user.id,
         workspaceId: workspace.id,
@@ -519,7 +650,7 @@ export class MockApi implements CascadeApi {
       if (!actor) throw new ApiError('Not authenticated', 'unauthenticated', 401)
       const name = input.name.trim()
       if (!name) throw new ValidationError('Workspace name is required')
-      const workspace: Workspace = { id: newId(), name, ownerUserId: uid, createdAt: new Date().toISOString() }
+      const workspace: Workspace = { id: newId(), name, ownerUserId: uid, createdAt: new Date().toISOString(), status: 'active' }
       this.store.data.workspaces.push(workspace)
       this.store.data.members.push({
         id: newId(),
@@ -532,6 +663,7 @@ export class MockApi implements CascadeApi {
         invitedBy: null,
         createdAt: new Date().toISOString(),
       })
+      this.provisionBilling(workspace.id, undefined) // new workspaces start on Free
       this.persist()
       return snap(workspace)
     },
@@ -559,6 +691,12 @@ export class MockApi implements CascadeApi {
       }
       if (this.store.data.invites.some((i) => i.workspaceId === workspaceId && i.email.toLowerCase() === email && i.status === 'pending')) {
         throw new ValidationError('An invitation is already pending for that email')
+      }
+      // US-4.14 — enforce the plan's seat limit (active members + pending invites).
+      const plan = this.planFor(workspaceId)
+      const seatsUsed = this.seatsUsed(workspaceId)
+      if (seatsExceeded(plan, seatsUsed)) {
+        throw new ValidationError(`Your plan includes ${plan?.seatLimit ?? 0} seats. Upgrade in Billing to invite more people.`)
       }
       const invite: Invite = {
         id: newId(),
@@ -937,9 +1075,8 @@ export class MockApi implements CascadeApi {
         this.store.addCells(cells)
       }
       this.persist()
-      // US-2.7 / US-3.8 — auto-run enrichment and AI columns on the new row.
-      this.triggerAutoRun(table, [record.id])
-      this.triggerAiAutoRun(table, [record.id])
+      // US-2.7 / US-3.8 — auto-run operations, recompute formulas, fire triggers.
+      this.afterRecordsAdded(table, [record.id])
       return this.toRowWithCells(record, columns)
     },
 
@@ -992,11 +1129,13 @@ export class MockApi implements CascadeApi {
       // Snapshot each record's updatedAt BEFORE any write so a multi-cell edit
       // of one row doesn't self-conflict on the second cell.
       const originalTs = new Map<string, string>()
+      // Downstream reactions to fire once all writes land (US-3.6 / US-3.8 / US-3.10).
+      const touched: Array<{ table: TableMeta; recordId: string; columnId: string; columnName: string }> = []
 
       for (const edit of edits) {
         const record = this.store.data.records.find((r) => r.id === edit.recordId)
         if (!record) throw new NotFoundError('Record not found')
-        const { role } = this.tableScope(record.tableId)
+        const { table, role } = this.tableScope(record.tableId)
         this.assertWrite(role)
         const column = this.store.data.columns.find((c) => c.id === edit.columnId && c.tableId === record.tableId)
         if (!column) throw new NotFoundError('Column not found')
@@ -1022,7 +1161,12 @@ export class MockApi implements CascadeApi {
         this.store.setCell({ recordId: record.id, columnId: column.id, value: res.value, meta: existing ? existing.meta : {} })
         record.updatedAt = now
         updated.push({ recordId: record.id, columnId: column.id, value: res.value, updatedAt: now })
+        touched.push({ table, recordId: record.id, columnId: column.id, columnName: column.name })
       }
+
+      // Recompute dependent formula cells, then fire record.updated triggers.
+      for (const t of touched) this.recomputeFormulasForRecord(t.table.id, t.recordId, t.columnName)
+      for (const t of touched) this.fireRowEvent(t.table, t.recordId, 'record.updated', t.columnId)
 
       this.persist()
       return { updated, conflicts }
@@ -1683,6 +1827,19 @@ export class MockApi implements CascadeApi {
     })
   }
 
+  /**
+   * After new rows are added (manual add or inbound webhook): auto-run every
+   * operation kind, compute formulas, then fire `record.created` triggers.
+   */
+  private afterRecordsAdded(table: TableMeta, recordIds: string[]): void {
+    this.triggerAutoRun(table, recordIds)
+    this.triggerAiAutoRun(table, recordIds)
+    this.triggerAgentAutoRun(table, recordIds)
+    this.triggerHttpAutoRun(table, recordIds)
+    for (const rid of recordIds) this.recomputeFormulasForRecord(table.id, rid)
+    for (const rid of recordIds) this.fireRowEvent(table, rid, 'record.created')
+  }
+
   ai: AiApi = {
     models: {
       list: async (workspaceId: string) => {
@@ -1839,6 +1996,1386 @@ export class MockApi implements CascadeApi {
         this.aiListeners.delete(listener)
       }
     },
+  }
+
+  // ======================================================================
+  // Generic metered-op helpers (shared by agent + HTTP columns; AI keeps its
+  // own bespoke copy). A metered config has a columnId + credits + USD cost.
+  // ======================================================================
+
+  private meteredCandidates<C extends { columnId: string }>(
+    tableId: string,
+    scope: RunScope,
+    getConfigs: (tableId: string) => C[],
+  ): Array<{ recordId: string; config: C }> {
+    const configs = getConfigs(tableId).filter((c) => scope.columnIds.includes(c.columnId))
+    let recordIds: string[]
+    if (scope.mode === 'selected') recordIds = scope.recordIds ?? []
+    else recordIds = this.store.data.records.filter((r) => r.tableId === tableId).sort((a, b) => a.position - b.position).map((r) => r.id)
+    const out: Array<{ recordId: string; config: C }> = []
+    for (const rid of recordIds) for (const config of configs) out.push({ recordId: rid, config })
+    return out
+  }
+
+  private computeMeteredEstimate<C extends { columnId: string; credits: number; providerCostUsd: number }>(
+    tableId: string,
+    scope: RunScope,
+    forceFresh: boolean,
+    canMargin: boolean,
+    getConfigs: (tableId: string) => C[],
+    refsPresent: (recordId: string, c: C) => boolean,
+    readMeta: (meta: Cell['meta'] | undefined) => { status: EnrichmentCellStatus } | undefined,
+    cacheWarm: (recordId: string, c: C) => boolean,
+  ): EstimateResult {
+    const table = this.store.data.tables.find((t) => t.id === tableId)
+    const wc = table ? this.store.getWorkspaceCredit(table.workspaceId) : undefined
+    const cands = this.meteredCandidates(tableId, scope, getConfigs)
+    let totalTargeted = 0
+    let skippedCached = 0
+    let skippedEmptyInput = 0
+    let skippedAlreadyFilled = 0
+    let maxCredits = 0
+    let maxProviderCostUsd = 0
+    let rows = 0
+    const perColMap = new Map<string, { rows: number; maxCredits: number }>()
+
+    for (const { recordId, config } of cands) {
+      totalTargeted += 1
+      if (!refsPresent(recordId, config)) {
+        skippedEmptyInput += 1
+        continue
+      }
+      if (scope.mode === 'empty-only') {
+        const cell = this.store.getCell(recordId, config.columnId)
+        const e = readMeta(cell?.meta)
+        if (cell && !isEmptyInput(cell.value) && (!e || e.status !== 'failed')) {
+          skippedAlreadyFilled += 1
+          continue
+        }
+      }
+      if (!forceFresh && cacheWarm(recordId, config)) {
+        skippedCached += 1
+        continue
+      }
+      rows += 1
+      maxCredits += config.credits
+      maxProviderCostUsd += config.providerCostUsd
+      const pc = perColMap.get(config.columnId) ?? { rows: 0, maxCredits: 0 }
+      pc.rows += 1
+      pc.maxCredits += config.credits
+      perColMap.set(config.columnId, pc)
+    }
+
+    const perRunCap = wc?.perRunCap ?? Infinity
+    const balance = wc?.balance ?? 0
+    return {
+      rows,
+      totalTargeted,
+      skippedCached,
+      skippedEmptyInput,
+      skippedAlreadyFilled,
+      maxCredits,
+      maxProviderCostUsd: canMargin ? maxProviderCostUsd : null,
+      perColumn: [...perColMap.entries()].map(([columnId, v]) => ({ columnId, rows: v.rows, maxCredits: v.maxCredits })),
+      blockedByPerRunCap: maxCredits > perRunCap,
+      blockedByBudget: maxCredits > balance,
+    }
+  }
+
+  private buildMeteredRun(table: TableMeta, scope: RunScope, forceFresh: boolean, total: number, triggeredByName: string, runsArray: EnrichmentRun[]): EnrichmentRun {
+    const uid = this.store.data.session?.userId ?? ''
+    const run: EnrichmentRun = {
+      id: newId(),
+      workspaceId: table.workspaceId,
+      tableId: table.id,
+      triggeredBy: uid,
+      triggeredByName,
+      scope,
+      forceFresh,
+      status: 'queued',
+      counts: { processed: 0, total, success: 0, empty: 0, failed: 0, cached: 0 },
+      creditsConsumed: 0,
+      providerCostUsd: 0,
+      startedAt: new Date().toISOString(),
+      finishedAt: null,
+    }
+    runsArray.push(run)
+    return run
+  }
+
+  /** Guard a run against the per-run cap + exhausted budget (mirrors ai.run). */
+  private assertRunBudget(table: TableMeta, est: EstimateResult): void {
+    const wc = this.store.getWorkspaceCredit(table.workspaceId)
+    const perRunCap = wc?.perRunCap ?? Infinity
+    const balance = wc?.balance ?? 0
+    if (balance <= 0 && est.maxCredits > 0) {
+      throw new BudgetError('The workspace budget is exhausted — this run is paused', { maxCredits: est.maxCredits, cap: perRunCap })
+    }
+    if (est.maxCredits > perRunCap) {
+      throw new BudgetError(`This run could use up to ${est.maxCredits.toLocaleString('en-US')} credits, above the per-run cap of ${perRunCap.toLocaleString('en-US')}`, { maxCredits: est.maxCredits, cap: perRunCap })
+    }
+  }
+
+  // ======================================================================
+  // Web-research agent columns (Phase 3, US-3.3/3.4)
+  // ======================================================================
+
+  private validateAgentConfig(table: TableMeta, input: UpsertAgentConfigInput): {
+    model: AgentColumnConfig['model']
+    objective: string
+    outputSchema: AgentColumnConfig['outputSchema']
+    outputMapping: Record<string, string>
+    maxSteps: number
+    maxPages: number
+    credits: number
+    providerCostUsd: number
+  } {
+    const objective = (input.objective ?? '').trim()
+    if (!objective) throw new ValidationError('Write a research objective for the agent')
+    const modelInfo = resolveAiModel(input.model)
+    if (!modelInfo) throw new ValidationError('Choose a valid model')
+    const schema = input.outputSchema ?? []
+    const mapping = input.outputMapping ?? {}
+    const colIds = new Set(this.store.data.columns.filter((c) => c.tableId === table.id).map((c) => c.id))
+    const seen = new Set<string>()
+    for (const field of schema) {
+      const name = field.name?.trim()
+      if (!name) throw new ValidationError('Each output field needs a name')
+      if (seen.has(name.toLowerCase())) throw new ValidationError(`Duplicate output field “${name}”`)
+      seen.add(name.toLowerCase())
+      const destId = mapping[field.name]
+      if (destId && !colIds.has(destId)) throw new ValidationError(`Field “${name}” maps to a column that isn’t in this table`)
+    }
+    const maxSteps = Math.max(1, Math.min(20, input.maxSteps ?? 5))
+    const maxPages = Math.max(1, Math.min(20, input.maxPages ?? 5))
+    // Agent research is pricier than a single LLM call: cost scales with pages.
+    const credits = modelInfo.credits * 2
+    const providerCostUsd = modelInfo.providerCostUsd * maxPages
+    return { model: input.model, objective, outputSchema: schema, outputMapping: mapping, maxSteps, maxPages, credits, providerCostUsd }
+  }
+
+  private buildAgentTargets(tableId: string, scope: RunScope): AgentRunTarget[] {
+    const cands = this.meteredCandidates(tableId, scope, (t) => this.store.getAgentConfigsForTable(t))
+    const targets: AgentRunTarget[] = []
+    let order = 0
+    for (const { recordId, config } of cands) {
+      if (scope.mode === 'empty-only') {
+        const cell = this.store.getCell(recordId, config.columnId)
+        const e = readAgent(cell?.meta)
+        if (cell && !isEmptyInput(cell.value) && (!e || e.status !== 'failed')) continue
+      }
+      targets.push({ recordId, anchorColumnId: config.columnId, config, orderIndex: order++ })
+    }
+    return targets
+  }
+
+  private computeAgentEstimate(tableId: string, scope: RunScope, forceFresh: boolean, canMargin: boolean): EstimateResult {
+    return this.computeMeteredEstimate(
+      tableId, scope, forceFresh, canMargin,
+      (t) => this.store.getAgentConfigsForTable(t),
+      (rid, c) => this.agentEngine.refsPresent(rid, c),
+      (meta) => readAgent(meta),
+      (rid, c) => this.agentEngine.cacheWarm(rid, c),
+    )
+  }
+
+  private triggerAgentAutoRun(table: TableMeta, recordIds: string[]): void {
+    if (!this.store.data.session) return
+    this.agentEngine.autoRun(table.id, recordIds, (targets) => {
+      const wc = this.store.getWorkspaceCredit(table.workspaceId)
+      if (!wc || wc.balance <= 0) return null
+      const cols = [...new Set(targets.map((t) => t.anchorColumnId))]
+      const est = this.computeAgentEstimate(table.id, { mode: 'selected', recordIds, columnIds: cols }, false, true)
+      if (est.maxCredits > wc.perRunCap) return null
+      return this.buildMeteredRun(table, { mode: 'selected', recordIds, columnIds: cols }, false, targets.length, 'Auto-run', this.store.data.agentRuns)
+    })
+  }
+
+  agent: AgentApi = {
+    models: {
+      list: async (workspaceId: string) => {
+        await this.delay()
+        const role = this.roleFor(workspaceId)
+        return AI_MODELS.map((m) => this.snapAiModel(m, canViewMargin(role)))
+      },
+    },
+
+    configs: {
+      get: async (columnId: string) => {
+        await this.delay()
+        this.columnScope(columnId)
+        const cfg = this.store.getAgentConfig(columnId)
+        return cfg ? snap(cfg) : null
+      },
+      list: async (tableId: string) => {
+        await this.delay()
+        this.tableScope(tableId)
+        return snapList(this.store.getAgentConfigsForTable(tableId))
+      },
+      upsert: async (input: UpsertAgentConfigInput) => {
+        await this.delay()
+        const { column, table, role } = this.columnScope(input.columnId)
+        this.assertWrite(role)
+        const v = this.validateAgentConfig(table, input)
+        let cfg = this.store.getAgentConfig(input.columnId)
+        if (cfg) {
+          cfg.model = v.model
+          cfg.objective = v.objective
+          cfg.outputSchema = v.outputSchema
+          cfg.outputMapping = v.outputMapping
+          cfg.maxSteps = v.maxSteps
+          cfg.maxPages = v.maxPages
+          cfg.credits = v.credits
+          cfg.providerCostUsd = v.providerCostUsd
+          if (input.cacheTtlDays !== undefined) cfg.cacheTtlDays = input.cacheTtlDays
+          if (input.autoRun !== undefined) cfg.autoRun = input.autoRun
+          if (input.forceFreshDefault !== undefined) cfg.forceFreshDefault = input.forceFreshDefault
+        } else {
+          cfg = {
+            id: newId(),
+            columnId: input.columnId,
+            model: v.model,
+            objective: v.objective,
+            outputSchema: v.outputSchema,
+            outputMapping: v.outputMapping,
+            maxSteps: v.maxSteps,
+            maxPages: v.maxPages,
+            cacheTtlDays: input.cacheTtlDays ?? 30,
+            autoRun: input.autoRun ?? false,
+            forceFreshDefault: input.forceFreshDefault ?? false,
+            credits: v.credits,
+            providerCostUsd: v.providerCostUsd,
+          }
+          this.store.data.agentColumnConfigs.push(cfg)
+        }
+        this.writeAudit(table.workspaceId, 'column.agentConfig', 'agentColumn', input.columnId, { name: column.name, model: v.model.model })
+        this.persist()
+        return snap(cfg)
+      },
+      remove: async (columnId: string) => {
+        await this.delay()
+        const { table, role } = this.columnScope(columnId)
+        this.assertWrite(role)
+        this.store.data.agentColumnConfigs = this.store.data.agentColumnConfigs.filter((c) => c.columnId !== columnId)
+        this.writeAudit(table.workspaceId, 'column.agentConfig', 'agentColumn', columnId, { removed: true })
+        this.persist()
+      },
+    },
+
+    runs: {
+      list: async (workspaceId: string, opts) => {
+        await this.delay()
+        const canMargin = canViewMargin(this.roleFor(workspaceId))
+        let runs = this.store.data.agentRuns.filter((r) => r.workspaceId === workspaceId)
+        if (opts?.tableId) runs = runs.filter((r) => r.tableId === opts.tableId)
+        runs = runs.slice().sort((a, b) => (a.startedAt < b.startedAt ? 1 : a.startedAt > b.startedAt ? -1 : 0))
+        const offset = opts?.offset ?? 0
+        const limit = opts?.limit ?? runs.length
+        return runs.slice(offset, offset + limit).map((r) => this.snapAiRun(r, canMargin))
+      },
+      get: async (runId: string) => {
+        await this.delay()
+        const run = this.store.data.agentRuns.find((r) => r.id === runId)
+        if (!run) throw new NotFoundError('Run not found')
+        return this.snapAiRun(run, canViewMargin(this.roleFor(run.workspaceId)))
+      },
+    },
+
+    estimate: async (tableId: string, scope: RunScope, opts) => {
+      await this.delay()
+      const { role } = this.tableScope(tableId)
+      return this.computeAgentEstimate(tableId, scope, opts?.forceFresh ?? false, canViewMargin(role))
+    },
+
+    run: async (tableId: string, scope: RunScope, opts?: RunOptions): Promise<RunHandle> => {
+      await this.delay()
+      const { table, role } = this.tableScope(tableId)
+      this.assertWrite(role)
+      const forceFresh = opts?.forceFresh ?? false
+      const est = this.computeAgentEstimate(tableId, scope, forceFresh, canViewMargin(role))
+      this.assertRunBudget(table, est)
+      const targets = this.buildAgentTargets(tableId, scope)
+      const run = this.buildMeteredRun(table, scope, forceFresh, targets.length, this.user(this.session().userId)?.name ?? 'Someone', this.store.data.agentRuns)
+      this.writeAudit(table.workspaceId, 'agent.run', 'agentColumn', run.id, { mode: scope.mode, columns: scope.columnIds.length, rows: targets.length, forceFresh })
+      this.persist()
+      this.agentEngine.startRun(run, targets)
+      return { runId: run.id }
+    },
+
+    results: async (recordId: string, columnId: string) => {
+      await this.delay()
+      const canMargin = canViewMargin(this.columnScope(columnId).role)
+      return this.store.data.agentResults
+        .filter((r) => r.recordId === recordId && r.columnId === columnId)
+        .sort((a, b) => (a.fetchedAt < b.fetchedAt ? 1 : a.fetchedAt > b.fetchedAt ? -1 : 0))
+        .map((r) => ({ ...r, sources: r.sources.map((s) => ({ ...s })), providerCostUsd: canMargin ? r.providerCostUsd : 0 }))
+    },
+
+    cacheStats: async (workspaceId: string) => {
+      await this.delay()
+      const canMargin = canViewMargin(this.roleFor(workspaceId))
+      const runIds = new Set(this.store.data.agentRuns.filter((r) => r.workspaceId === workspaceId).map((r) => r.id))
+      let savedCr = 0
+      let savedUsd = 0
+      for (const r of this.store.data.agentResults) {
+        if (!r.fromCache || !runIds.has(r.runId)) continue
+        const cfg = this.store.getAgentConfig(r.columnId)
+        if (cfg) {
+          savedCr += cfg.credits
+          savedUsd += cfg.providerCostUsd
+        }
+      }
+      return { entries: this.store.data.agentCache.length, hitSavingsCredits: savedCr, hitSavingsUsd: canMargin ? savedUsd : null }
+    },
+
+    subscribe: (target, cb) => {
+      const listener: AgentListener = { runId: target.runId, tableId: target.tableId, cb }
+      this.agentListeners.add(listener)
+      return () => {
+        this.agentListeners.delete(listener)
+      }
+    },
+  }
+
+  // ======================================================================
+  // HTTP columns (Phase 3, US-3.5)
+  // ======================================================================
+
+  private validateHttpConfig(table: TableMeta, input: UpsertHttpConfigInput): {
+    method: HttpColumnConfig['method']
+    urlTemplate: string
+    headers: HttpColumnConfig['headers']
+    bodyTemplate: string
+    responsePath: string
+    responseMapping: Record<string, string>
+    outputMapping: Record<string, string>
+    credits: number
+    providerCostUsd: number
+  } {
+    const urlTemplate = (input.urlTemplate ?? '').trim()
+    if (!urlTemplate) throw new ValidationError('Enter a request URL')
+    if (!/\{\{|^https?:\/\//i.test(urlTemplate)) throw new ValidationError('The URL must start with http(s):// (or a {{Column}} reference)')
+    const mapping = input.responseMapping ?? {}
+    const outputMapping = input.outputMapping ?? {}
+    const colIds = new Set(this.store.data.columns.filter((c) => c.tableId === table.id).map((c) => c.id))
+    for (const [field, destId] of Object.entries(outputMapping)) {
+      if (destId && !colIds.has(destId)) throw new ValidationError(`Field “${field}” maps to a column that isn’t in this table`)
+    }
+    // Sanitize headers: a header with a secretRef stores only a masked value.
+    const headers = (input.headers ?? []).map((h) => {
+      if (h.secretRef) {
+        const secret = this.store.getHttpSecret(h.secretRef)
+        return { key: h.key, value: secret ? secret.maskedHint : '••••', secretRef: h.secretRef }
+      }
+      return { key: h.key, value: h.value }
+    })
+    return {
+      method: input.method,
+      urlTemplate,
+      headers,
+      bodyTemplate: input.bodyTemplate ?? '',
+      responsePath: (input.responsePath ?? '$').trim() || '$',
+      responseMapping: mapping,
+      outputMapping,
+      credits: 1,
+      providerCostUsd: 0.0005,
+    }
+  }
+
+  private buildHttpTargets(tableId: string, scope: RunScope): HttpRunTarget[] {
+    const cands = this.meteredCandidates(tableId, scope, (t) => this.store.getHttpConfigsForTable(t))
+    const targets: HttpRunTarget[] = []
+    let order = 0
+    for (const { recordId, config } of cands) {
+      if (scope.mode === 'empty-only') {
+        const cell = this.store.getCell(recordId, config.columnId)
+        const e = readHttp(cell?.meta)
+        if (cell && !isEmptyInput(cell.value) && (!e || e.status !== 'failed')) continue
+      }
+      targets.push({ recordId, anchorColumnId: config.columnId, config, orderIndex: order++ })
+    }
+    return targets
+  }
+
+  private computeHttpEstimate(tableId: string, scope: RunScope, forceFresh: boolean, canMargin: boolean): EstimateResult {
+    return this.computeMeteredEstimate(
+      tableId, scope, forceFresh, canMargin,
+      (t) => this.store.getHttpConfigsForTable(t),
+      (rid, c) => this.httpEngine.refsPresent(rid, c),
+      (meta) => readHttp(meta),
+      (rid, c) => this.httpEngine.cacheWarm(rid, c),
+    )
+  }
+
+  private triggerHttpAutoRun(table: TableMeta, recordIds: string[]): void {
+    if (!this.store.data.session) return
+    this.httpEngine.autoRun(table.id, recordIds, (targets) => {
+      const wc = this.store.getWorkspaceCredit(table.workspaceId)
+      if (!wc || wc.balance <= 0) return null
+      const cols = [...new Set(targets.map((t) => t.anchorColumnId))]
+      const est = this.computeHttpEstimate(table.id, { mode: 'selected', recordIds, columnIds: cols }, false, true)
+      if (est.maxCredits > wc.perRunCap) return null
+      return this.buildMeteredRun(table, { mode: 'selected', recordIds, columnIds: cols }, false, targets.length, 'Auto-run', this.store.data.httpRuns)
+    })
+  }
+
+  http: HttpApi = {
+    secrets: {
+      list: async (workspaceId: string) => {
+        await this.delay()
+        this.roleFor(workspaceId)
+        return snapList(this.store.data.httpSecrets.filter((s) => s.workspaceId === workspaceId))
+      },
+      create: async (workspaceId: string, input) => {
+        await this.delay()
+        const role = this.roleFor(workspaceId)
+        this.assertWrite(role)
+        const name = (input.name ?? '').trim()
+        const token = (input.token ?? '').trim()
+        if (!name) throw new ValidationError('Name the secret')
+        if (!token) throw new ValidationError('Enter the secret value')
+        // The plaintext token is accepted but NEVER stored/echoed (FR-3.5) — only
+        // a masked hint of the last 4 chars is kept.
+        const secret = {
+          id: newId(),
+          workspaceId,
+          name,
+          maskedHint: `••••${token.slice(-4)}`,
+          createdAt: new Date().toISOString(),
+        }
+        this.store.data.httpSecrets.push(secret)
+        this.persist()
+        return snap(secret)
+      },
+      remove: async (workspaceId: string, secretId: string) => {
+        await this.delay()
+        this.assertWrite(this.roleFor(workspaceId))
+        this.store.data.httpSecrets = this.store.data.httpSecrets.filter((s) => !(s.id === secretId && s.workspaceId === workspaceId))
+        this.persist()
+      },
+    },
+
+    configs: {
+      get: async (columnId: string) => {
+        await this.delay()
+        this.columnScope(columnId)
+        const cfg = this.store.getHttpConfig(columnId)
+        return cfg ? snap(cfg) : null
+      },
+      list: async (tableId: string) => {
+        await this.delay()
+        this.tableScope(tableId)
+        return snapList(this.store.getHttpConfigsForTable(tableId))
+      },
+      upsert: async (input: UpsertHttpConfigInput) => {
+        await this.delay()
+        const { column, table, role } = this.columnScope(input.columnId)
+        this.assertWrite(role)
+        const v = this.validateHttpConfig(table, input)
+        let cfg = this.store.getHttpConfig(input.columnId)
+        if (cfg) {
+          Object.assign(cfg, v)
+          if (input.cacheTtlDays !== undefined) cfg.cacheTtlDays = input.cacheTtlDays
+          if (input.autoRun !== undefined) cfg.autoRun = input.autoRun
+          if (input.forceFreshDefault !== undefined) cfg.forceFreshDefault = input.forceFreshDefault
+        } else {
+          cfg = {
+            id: newId(),
+            columnId: input.columnId,
+            ...v,
+            cacheTtlDays: input.cacheTtlDays ?? 7,
+            autoRun: input.autoRun ?? false,
+            forceFreshDefault: input.forceFreshDefault ?? false,
+          }
+          this.store.data.httpColumnConfigs.push(cfg)
+        }
+        this.writeAudit(table.workspaceId, 'column.httpConfig', 'httpColumn', input.columnId, { name: column.name, method: v.method })
+        this.persist()
+        return snap(cfg)
+      },
+      remove: async (columnId: string) => {
+        await this.delay()
+        const { table, role } = this.columnScope(columnId)
+        this.assertWrite(role)
+        this.store.data.httpColumnConfigs = this.store.data.httpColumnConfigs.filter((c) => c.columnId !== columnId)
+        this.writeAudit(table.workspaceId, 'column.httpConfig', 'httpColumn', columnId, { removed: true })
+        this.persist()
+      },
+    },
+
+    runs: {
+      list: async (workspaceId: string, opts) => {
+        await this.delay()
+        const canMargin = canViewMargin(this.roleFor(workspaceId))
+        let runs = this.store.data.httpRuns.filter((r) => r.workspaceId === workspaceId)
+        if (opts?.tableId) runs = runs.filter((r) => r.tableId === opts.tableId)
+        runs = runs.slice().sort((a, b) => (a.startedAt < b.startedAt ? 1 : a.startedAt > b.startedAt ? -1 : 0))
+        const offset = opts?.offset ?? 0
+        const limit = opts?.limit ?? runs.length
+        return runs.slice(offset, offset + limit).map((r) => this.snapAiRun(r, canMargin))
+      },
+      get: async (runId: string) => {
+        await this.delay()
+        const run = this.store.data.httpRuns.find((r) => r.id === runId)
+        if (!run) throw new NotFoundError('Run not found')
+        return this.snapAiRun(run, canViewMargin(this.roleFor(run.workspaceId)))
+      },
+    },
+
+    estimate: async (tableId: string, scope: RunScope, opts) => {
+      await this.delay()
+      const { role } = this.tableScope(tableId)
+      return this.computeHttpEstimate(tableId, scope, opts?.forceFresh ?? false, canViewMargin(role))
+    },
+
+    run: async (tableId: string, scope: RunScope, opts?: RunOptions): Promise<RunHandle> => {
+      await this.delay()
+      const { table, role } = this.tableScope(tableId)
+      this.assertWrite(role)
+      const forceFresh = opts?.forceFresh ?? false
+      const est = this.computeHttpEstimate(tableId, scope, forceFresh, canViewMargin(role))
+      this.assertRunBudget(table, est)
+      const targets = this.buildHttpTargets(tableId, scope)
+      const run = this.buildMeteredRun(table, scope, forceFresh, targets.length, this.user(this.session().userId)?.name ?? 'Someone', this.store.data.httpRuns)
+      this.writeAudit(table.workspaceId, 'http.run', 'httpColumn', run.id, { mode: scope.mode, columns: scope.columnIds.length, rows: targets.length, forceFresh })
+      this.persist()
+      this.httpEngine.startRun(run, targets)
+      return { runId: run.id }
+    },
+
+    results: async (recordId: string, columnId: string) => {
+      await this.delay()
+      const canMargin = canViewMargin(this.columnScope(columnId).role)
+      return this.store.data.httpResults
+        .filter((r) => r.recordId === recordId && r.columnId === columnId)
+        .sort((a, b) => (a.fetchedAt < b.fetchedAt ? 1 : a.fetchedAt > b.fetchedAt ? -1 : 0))
+        .map((r) => ({ ...r, providerCostUsd: canMargin ? r.providerCostUsd : 0 }))
+    },
+
+    cacheStats: async (workspaceId: string) => {
+      await this.delay()
+      const canMargin = canViewMargin(this.roleFor(workspaceId))
+      const runIds = new Set(this.store.data.httpRuns.filter((r) => r.workspaceId === workspaceId).map((r) => r.id))
+      let savedCr = 0
+      let savedUsd = 0
+      for (const r of this.store.data.httpResults) {
+        if (!r.fromCache || !runIds.has(r.runId)) continue
+        const cfg = this.store.getHttpConfig(r.columnId)
+        if (cfg) {
+          savedCr += cfg.credits
+          savedUsd += cfg.providerCostUsd
+        }
+      }
+      return { entries: this.store.data.httpCache.length, hitSavingsCredits: savedCr, hitSavingsUsd: canMargin ? savedUsd : null }
+    },
+
+    subscribe: (target, cb) => {
+      const listener: HttpListener = { runId: target.runId, tableId: target.tableId, cb }
+      this.httpListeners.add(listener)
+      return () => {
+        this.httpListeners.delete(listener)
+      }
+    },
+  }
+
+  // ======================================================================
+  // Formula columns (Phase 3, US-3.6) — synchronous, no credits.
+  // ======================================================================
+
+  private formulaNameToColumn(anchorColumnId: string): Map<string, string> {
+    const anchor = this.store.data.columns.find((c) => c.id === anchorColumnId)
+    const map = new Map<string, string>()
+    for (const c of this.store.data.columns) {
+      if (c.tableId === anchor?.tableId) map.set(c.name.trim().toLowerCase(), c.id)
+    }
+    return map
+  }
+
+  /** Compute one formula cell for a record; writes value + meta.formula. */
+  private computeFormulaCell(recordId: string, cfg: FormulaColumnConfig): boolean {
+    const anchor = this.store.data.columns.find((c) => c.id === cfg.columnId)
+    if (!anchor) return false
+    const nameToCol = this.formulaNameToColumn(cfg.columnId)
+    const res = evaluateFormula(cfg.expression, (name) => {
+      const colId = nameToCol.get(name.trim().toLowerCase())
+      if (!colId || colId === cfg.columnId) return undefined
+      return this.store.getCell(recordId, colId)?.value ?? undefined
+    })
+    const existing = this.store.getCell(recordId, cfg.columnId)
+    const ts = new Date().toISOString()
+    if (res.error) {
+      this.store.setCell({ recordId, columnId: cfg.columnId, value: existing?.value ?? null, meta: { ...(existing?.meta ?? {}), formula: { status: 'error', error: res.error, computedAt: ts } } })
+      return false
+    }
+    // Coerce through the anchor column type so it sorts/filters/CSVs correctly.
+    const v = columnTypeRegistry[anchor.type].validate(res.value, anchor.config)
+    const value = v.ok ? v.value : res.value
+    this.store.setCell({ recordId, columnId: cfg.columnId, value, meta: { ...(existing?.meta ?? {}), formula: { status: 'ok', computedAt: ts } } })
+    return true
+  }
+
+  private recomputeFormulaColumn(cfg: FormulaColumnConfig): { computed: number; errors: number } {
+    const anchor = this.store.data.columns.find((c) => c.id === cfg.columnId)
+    if (!anchor) return { computed: 0, errors: 0 }
+    let computed = 0
+    let errors = 0
+    for (const r of this.store.data.records.filter((r) => r.tableId === anchor.tableId)) {
+      if (this.computeFormulaCell(r.id, cfg)) computed += 1
+      else errors += 1
+    }
+    return { computed, errors }
+  }
+
+  /** Recompute formula cells in a row, optionally only those referencing a column. */
+  private recomputeFormulasForRecord(tableId: string, recordId: string, changedColumnName?: string): void {
+    const configs = this.store.getFormulaConfigsForTable(tableId)
+    if (configs.length === 0) return
+    for (const cfg of configs) {
+      if (changedColumnName) {
+        const refs = extractFormulaRefs(cfg.expression).map((r) => r.toLowerCase())
+        if (!refs.includes(changedColumnName.toLowerCase())) continue
+      }
+      this.computeFormulaCell(recordId, cfg)
+    }
+  }
+
+  formula: FormulaApi = {
+    get: async (columnId: string) => {
+      await this.delay()
+      this.columnScope(columnId)
+      const cfg = this.store.getFormulaConfig(columnId)
+      return cfg ? snap(cfg) : null
+    },
+    list: async (tableId: string) => {
+      await this.delay()
+      this.tableScope(tableId)
+      return snapList(this.store.getFormulaConfigsForTable(tableId))
+    },
+    upsert: async (input: UpsertFormulaConfigInput) => {
+      await this.delay()
+      const { column, table, role } = this.columnScope(input.columnId)
+      this.assertWrite(role)
+      const expression = (input.expression ?? '').trim()
+      if (!expression) throw new ValidationError('Enter a formula expression')
+      const err = validateFormula(expression)
+      if (err) throw new ValidationError(`Invalid formula: ${err}`)
+      let cfg = this.store.getFormulaConfig(input.columnId)
+      if (cfg) {
+        cfg.expression = expression
+      } else {
+        cfg = { id: newId(), columnId: input.columnId, expression }
+        this.store.data.formulaColumnConfigs.push(cfg)
+      }
+      this.writeAudit(table.workspaceId, 'column.formulaConfig', 'formulaColumn', input.columnId, { name: column.name })
+      // Compute immediately so the column fills the moment it's configured.
+      this.recomputeFormulaColumn(cfg)
+      this.persist()
+      return snap(cfg)
+    },
+    remove: async (columnId: string) => {
+      await this.delay()
+      const { table, role } = this.columnScope(columnId)
+      this.assertWrite(role)
+      this.store.data.formulaColumnConfigs = this.store.data.formulaColumnConfigs.filter((c) => c.columnId !== columnId)
+      this.writeAudit(table.workspaceId, 'column.formulaConfig', 'formulaColumn', columnId, { removed: true })
+      this.persist()
+    },
+    validate: async (expression: string) => {
+      await this.delay()
+      return { error: validateFormula((expression ?? '').trim()) }
+    },
+    recomputeTable: async (tableId: string) => {
+      await this.delay()
+      const { role } = this.tableScope(tableId)
+      this.assertWrite(role)
+      let computed = 0
+      let errors = 0
+      for (const cfg of this.store.getFormulaConfigsForTable(tableId)) {
+        const r = this.recomputeFormulaColumn(cfg)
+        computed += r.computed
+        errors += r.errors
+      }
+      this.persist()
+      return { computed, errors }
+    },
+  }
+
+  // ======================================================================
+  // Automation layer (Phase 3, US-3.7–3.10)
+  // ======================================================================
+
+  /** Log a row into the unified integration event feed (US-3.15). */
+  private logIntegrationEvent(
+    workspaceId: string,
+    source: IntegrationEventSource,
+    status: IntegrationEventStatus,
+    summary: string,
+    detail: Record<string, unknown>,
+    tableId?: string,
+    refId?: string,
+  ): IntegrationEvent {
+    const ev: IntegrationEvent = {
+      id: newId(),
+      workspaceId,
+      source,
+      status,
+      summary,
+      detail,
+      tableId,
+      refId,
+      createdAt: new Date().toISOString(),
+    }
+    this.store.data.integrationEvents.push(ev)
+    return ev
+  }
+
+  private assertManageAutomations(role: Role): void {
+    if (!canManageAutomations(role)) throw new ForbiddenError('Only owners and admins can manage automations')
+  }
+  private assertManageIntegrations(role: Role): void {
+    if (!canManageIntegrations(role)) throw new ForbiddenError('Only owners and admins can manage integrations')
+  }
+
+  private nextRunFor(schedule: Automation['schedule'], from = Date.now()): string {
+    const s = schedule
+    if (!s) return new Date(from + 3600_000).toISOString()
+    if (s.cadence === 'hourly') return new Date(from + 3600_000).toISOString()
+    if (s.cadence === 'daily') return new Date(from + 86400_000).toISOString()
+    return new Date(from + 7 * 86400_000).toISOString()
+  }
+
+  /** Kick off a run for one column via the engine that owns its kind. */
+  private startColumnRun(table: TableMeta, columnId: string, forceFresh: boolean): { affected: number; kind: string } {
+    const scope: RunScope = { mode: 'whole', columnIds: [columnId] }
+    if (this.store.getFormulaConfig(columnId)) {
+      const cfg = this.store.getFormulaConfig(columnId)!
+      const r = this.recomputeFormulaColumn(cfg)
+      return { affected: r.computed + r.errors, kind: 'formula' }
+    }
+    if (this.store.getAgentConfig(columnId)) {
+      const targets = this.buildAgentTargets(table.id, scope)
+      const run = this.buildMeteredRun(table, scope, forceFresh, targets.length, 'Automation', this.store.data.agentRuns)
+      this.agentEngine.startRun(run, targets)
+      return { affected: targets.length, kind: 'agent' }
+    }
+    if (this.store.getHttpConfig(columnId)) {
+      const targets = this.buildHttpTargets(table.id, scope)
+      const run = this.buildMeteredRun(table, scope, forceFresh, targets.length, 'Automation', this.store.data.httpRuns)
+      this.httpEngine.startRun(run, targets)
+      return { affected: targets.length, kind: 'http' }
+    }
+    if (this.store.getAiConfig(columnId)) {
+      const targets = this.buildAiTargets(table.id, scope)
+      const run = this.buildAiRun(table, scope, forceFresh, targets.length, 'Automation')
+      this.aiEngine.startRun(run, targets)
+      return { affected: targets.length, kind: 'ai' }
+    }
+    // Enrichment column.
+    const targets = this.buildTargets(table.id, scope)
+    const run = this.buildRun(table, scope, forceFresh, targets.length, 'Automation')
+    this.engine.startRun(run, targets)
+    return { affected: targets.length, kind: 'enrichment' }
+  }
+
+  /** Execute an automation now, recording a run + an integration event. */
+  private executeAutomation(automation: Automation, trigger: Automation['trigger']): AutomationRun {
+    const table = this.store.data.tables.find((t) => t.id === automation.tableId)
+    const startedAt = new Date().toISOString()
+    let status: AutomationRunStatus = 'success'
+    let affected = 0
+    let detail = ''
+    try {
+      if (!table) {
+        status = 'skipped'
+        detail = 'target table no longer exists'
+      } else if (automation.action === 'run_column' && automation.targetColumnId) {
+        const r = this.startColumnRun(table, automation.targetColumnId, automation.forceFresh)
+        affected = r.affected
+        detail = affected > 0 ? `Queued ${affected} ${r.kind} cell${affected === 1 ? '' : 's'}` : 'Nothing to run'
+        if (affected === 0) status = 'skipped'
+      } else if (automation.action === 'run_table') {
+        const cols = this.runnableColumnIds(table.id)
+        for (const colId of cols) affected += this.startColumnRun(table, colId, automation.forceFresh).affected
+        detail = affected > 0 ? `Queued ${affected} cells across ${cols.length} columns` : 'Nothing to run'
+        if (affected === 0) status = 'skipped'
+      } else {
+        status = 'skipped'
+        detail = 'no target column configured'
+      }
+    } catch (e) {
+      status = 'failed'
+      detail = e instanceof Error ? e.message : 'automation failed'
+    }
+    const finishedAt = new Date().toISOString()
+    const runRow: AutomationRun = {
+      id: newId(),
+      workspaceId: automation.workspaceId,
+      automationId: automation.id,
+      trigger,
+      status,
+      affected,
+      detail,
+      startedAt,
+      finishedAt,
+    }
+    this.store.data.automationRuns.push(runRow)
+    automation.lastRunAt = finishedAt
+    automation.lastStatus = status
+    if (automation.trigger === 'schedule') automation.nextRunAt = this.nextRunFor(automation.schedule)
+    this.logIntegrationEvent(automation.workspaceId, automation.trigger === 'schedule' ? 'schedule' : 'row_event', status, `${automation.name}: ${detail}`, { automationId: automation.id, trigger }, automation.tableId, automation.id)
+    return runRow
+  }
+
+  /** All columns in a table that have an executable config (any operation kind). */
+  private runnableColumnIds(tableId: string): string[] {
+    const out: string[] = []
+    for (const c of this.store.data.columns.filter((c) => c.tableId === tableId)) {
+      if (
+        this.store.getConfig(c.id) ||
+        this.store.getAiConfig(c.id) ||
+        this.store.getAgentConfig(c.id) ||
+        this.store.getHttpConfig(c.id)
+      ) {
+        out.push(c.id)
+      }
+    }
+    return out
+  }
+
+  /** Fire row-event automations + outbound webhooks for a record change. */
+  private fireRowEvent(table: TableMeta, recordId: string, event: RowEvent, changedColumnId?: string): void {
+    // Row-event automations (US-3.8).
+    for (const a of this.store.getAutomationsForWorkspace(table.workspaceId)) {
+      if (!a.isEnabled || a.trigger !== 'row_event' || a.tableId !== table.id) continue
+      if (a.rowEvent?.event !== event) continue
+      if (event === 'record.updated' && a.rowEvent?.watchColumnId && a.rowEvent.watchColumnId !== changedColumnId) continue
+      this.executeAutomation(a, 'row_event')
+    }
+    // Outbound webhooks (US-3.10).
+    for (const w of this.store.data.outboundWebhooks) {
+      if (!w.isEnabled || w.workspaceId !== table.workspaceId || w.tableId !== table.id || w.event !== event) continue
+      if (!this.outboundConditionMet(w, recordId, changedColumnId)) continue
+      this.deliverOutbound(w, table, recordId, event)
+    }
+  }
+
+  private outboundConditionMet(w: OutboundWebhook, recordId: string, changedColumnId?: string): boolean {
+    const c = w.condition
+    if (!c) return true
+    if (c.op === 'changed') return c.columnId === changedColumnId
+    const val = this.store.getCell(recordId, c.columnId)?.value ?? null
+    if (c.op === 'notEmpty') return !isEmptyInput(val)
+    if (c.op === 'equals') return String(val ?? '') === String(c.value ?? '')
+    return true
+  }
+
+  private deliverOutbound(w: OutboundWebhook, table: TableMeta, recordId: string, event: RowEvent): void {
+    // Deterministic mock delivery: ~92% succeed.
+    const roll = (newId().charCodeAt(0) + recordId.length) % 100
+    const ok = roll >= 8
+    w.lastDeliveryAt = new Date().toISOString()
+    if (ok) {
+      w.deliveredCount += 1
+      w.lastStatus = 'delivered'
+    } else {
+      w.failedCount += 1
+      w.lastStatus = 'failed'
+    }
+    this.logIntegrationEvent(
+      table.workspaceId,
+      'webhook_out',
+      ok ? 'success' : 'failed',
+      `${w.name} → POST ${w.url} (${event})${ok ? '' : ' — failed, will retry'}`,
+      { webhookId: w.id, recordId, event, url: w.url },
+      table.id,
+      recordId,
+    )
+  }
+
+  automation: AutomationApi = {
+    automations: {
+      list: async (workspaceId: string) => {
+        await this.delay()
+        this.roleFor(workspaceId)
+        return snapList(this.store.getAutomationsForWorkspace(workspaceId)).sort(byCreatedDesc)
+      },
+      upsert: async (workspaceId: string, input: UpsertAutomationInput) => {
+        await this.delay()
+        const role = this.roleFor(workspaceId)
+        this.assertManageAutomations(role)
+        const table = this.store.data.tables.find((t) => t.id === input.tableId && t.workspaceId === workspaceId)
+        if (!table) throw new NotFoundError('Table not found')
+        const name = (input.name ?? '').trim()
+        if (!name) throw new ValidationError('Name the automation')
+        if (input.action === 'run_column' && !input.targetColumnId) throw new ValidationError('Choose a column to run')
+        let a = input.id ? this.store.getAutomation(input.id) : undefined
+        if (a && a.workspaceId !== workspaceId) throw new NotFoundError()
+        const schedule = input.trigger === 'schedule' ? (input.schedule ?? { cadence: 'daily' as const }) : undefined
+        if (a) {
+          a.name = name
+          a.tableId = input.tableId
+          a.trigger = input.trigger
+          a.action = input.action
+          a.targetColumnId = input.targetColumnId
+          a.forceFresh = input.forceFresh ?? a.forceFresh
+          a.schedule = schedule
+          a.rowEvent = input.trigger === 'row_event' ? (input.rowEvent ?? { event: 'record.created' }) : undefined
+          if (input.isEnabled !== undefined) a.isEnabled = input.isEnabled
+          a.nextRunAt = input.trigger === 'schedule' ? this.nextRunFor(schedule) : null
+          this.writeAudit(workspaceId, 'automation.update', 'automation', a.id, { name })
+        } else {
+          a = {
+            id: newId(),
+            workspaceId,
+            tableId: input.tableId,
+            name,
+            trigger: input.trigger,
+            action: input.action,
+            targetColumnId: input.targetColumnId,
+            forceFresh: input.forceFresh ?? false,
+            schedule,
+            rowEvent: input.trigger === 'row_event' ? (input.rowEvent ?? { event: 'record.created' }) : undefined,
+            isEnabled: input.isEnabled ?? true,
+            createdBy: this.session().userId,
+            createdAt: new Date().toISOString(),
+            nextRunAt: input.trigger === 'schedule' ? this.nextRunFor(schedule) : null,
+            lastRunAt: null,
+            lastStatus: null,
+          }
+          this.store.data.automations.push(a)
+          this.writeAudit(workspaceId, 'automation.create', 'automation', a.id, { name, trigger: input.trigger })
+        }
+        this.persist()
+        return snap(a)
+      },
+      setEnabled: async (workspaceId: string, id: string, enabled: boolean) => {
+        await this.delay()
+        this.assertManageAutomations(this.roleFor(workspaceId))
+        const a = this.store.getAutomation(id)
+        if (!a || a.workspaceId !== workspaceId) throw new NotFoundError()
+        a.isEnabled = enabled
+        this.writeAudit(workspaceId, 'automation.update', 'automation', id, { enabled })
+        this.persist()
+        return snap(a)
+      },
+      remove: async (workspaceId: string, id: string) => {
+        await this.delay()
+        this.assertManageAutomations(this.roleFor(workspaceId))
+        const a = this.store.getAutomation(id)
+        if (!a || a.workspaceId !== workspaceId) throw new NotFoundError()
+        this.store.data.automations = this.store.data.automations.filter((x) => x.id !== id)
+        this.writeAudit(workspaceId, 'automation.remove', 'automation', id, { name: a.name })
+        this.persist()
+      },
+      runNow: async (workspaceId: string, id: string) => {
+        await this.delay()
+        const role = this.roleFor(workspaceId)
+        this.assertManageAutomations(role)
+        this.assertWrite(role)
+        const a = this.store.getAutomation(id)
+        if (!a || a.workspaceId !== workspaceId) throw new NotFoundError()
+        this.writeAudit(workspaceId, 'automation.run', 'automation', id, { name: a.name })
+        const run = this.executeAutomation(a, a.trigger)
+        this.persist()
+        return snap(run)
+      },
+      runs: async (workspaceId: string, opts) => {
+        await this.delay()
+        this.roleFor(workspaceId)
+        let runs = this.store.data.automationRuns.filter((r) => r.workspaceId === workspaceId)
+        if (opts?.automationId) runs = runs.filter((r) => r.automationId === opts.automationId)
+        runs = runs.sort((a, b) => (a.startedAt < b.startedAt ? 1 : a.startedAt > b.startedAt ? -1 : 0))
+        return snapList(runs.slice(0, opts?.limit ?? runs.length))
+      },
+    },
+
+    webhooks: {
+      listInbound: async (workspaceId: string) => {
+        await this.delay()
+        this.roleFor(workspaceId)
+        return snapList(this.store.data.inboundWebhooks.filter((w) => w.workspaceId === workspaceId)).sort(byCreatedDesc)
+      },
+      createInbound: async (workspaceId: string, input: UpsertInboundWebhookInput) => {
+        await this.delay()
+        this.assertManageAutomations(this.roleFor(workspaceId))
+        const table = this.store.data.tables.find((t) => t.id === input.tableId && t.workspaceId === workspaceId)
+        if (!table) throw new NotFoundError('Table not found')
+        const name = (input.name ?? '').trim()
+        if (!name) throw new ValidationError('Name the webhook')
+        const slug = `${slugify(name)}-${newId().slice(0, 6)}`
+        const secret = `whsec_${newId()}${newId()}`.replace(/-/g, '').slice(0, 32)
+        const webhook: InboundWebhook = {
+          id: newId(),
+          workspaceId,
+          tableId: input.tableId,
+          name,
+          slug,
+          secretHint: `••••${secret.slice(-4)}`,
+          mapping: input.mapping ?? {},
+          isEnabled: input.isEnabled ?? true,
+          createdAt: new Date().toISOString(),
+          lastReceivedAt: null,
+          receivedCount: 0,
+        }
+        this.store.data.inboundWebhooks.push(webhook)
+        this.writeAudit(workspaceId, 'webhook.inbound.create', 'webhook', webhook.id, { name })
+        this.persist()
+        // The full URL + secret are shown ONCE; the store keeps only the hint.
+        const created: InboundWebhookCreated = { webhook: snap(webhook), url: `https://hooks.cascade.app/in/${slug}`, secret }
+        return created
+      },
+      setInboundEnabled: async (workspaceId: string, id: string, enabled: boolean) => {
+        await this.delay()
+        this.assertManageAutomations(this.roleFor(workspaceId))
+        const w = this.store.data.inboundWebhooks.find((x) => x.id === id && x.workspaceId === workspaceId)
+        if (!w) throw new NotFoundError()
+        w.isEnabled = enabled
+        this.persist()
+        return snap(w)
+      },
+      removeInbound: async (workspaceId: string, id: string) => {
+        await this.delay()
+        this.assertManageAutomations(this.roleFor(workspaceId))
+        const w = this.store.data.inboundWebhooks.find((x) => x.id === id && x.workspaceId === workspaceId)
+        if (!w) throw new NotFoundError()
+        this.store.data.inboundWebhooks = this.store.data.inboundWebhooks.filter((x) => x.id !== id)
+        this.writeAudit(workspaceId, 'webhook.inbound.remove', 'webhook', id, { name: w.name })
+        this.persist()
+      },
+      simulateInbound: async (slug: string, secret: string, payload: Record<string, unknown>) => {
+        await this.delay()
+        const w = this.store.getInboundWebhookBySlug(slug)
+        if (!w || !w.isEnabled) return { ok: false, reason: 'unknown or disabled endpoint' }
+        // Authenticate by the secret's last 4 (the full secret is only known to
+        // the caller who created it; the mock verifies the hint).
+        if (!secret || `••••${secret.slice(-4)}` !== w.secretHint) return { ok: false, reason: 'invalid secret' }
+        const table = this.store.data.tables.find((t) => t.id === w.tableId)
+        if (!table) return { ok: false, reason: 'table not found' }
+        const columns = this.columnsForTable(w.tableId)
+        // Map incoming JSON fields → columns.
+        const cells: Cell[] = []
+        const position = this.store.data.records.filter((r) => r.tableId === w.tableId).length
+        const record: RecordRow = { id: newId(), tableId: w.tableId, position, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
+        for (const [field, destId] of Object.entries(w.mapping)) {
+          const col = columns.find((c) => c.id === destId)
+          if (!col) continue
+          const raw = payload[field]
+          if (raw == null) continue
+          const v = columnTypeRegistry[col.type].validate(raw, col.config)
+          cells.push({ recordId: record.id, columnId: destId, value: v.ok ? v.value : String(raw), meta: {} })
+        }
+        this.store.data.records.push(record)
+        this.store.addCells(cells)
+        w.receivedCount += 1
+        w.lastReceivedAt = new Date().toISOString()
+        this.logIntegrationEvent(w.workspaceId, 'webhook_in', 'success', `${w.name}: created a row from inbound payload`, { webhookId: w.id, fields: Object.keys(w.mapping).length }, w.tableId, record.id)
+        // New row → downstream auto-runs + formulas + row-event fires.
+        this.afterRecordsAdded(table, [record.id])
+        this.persist()
+        return { ok: true, recordId: record.id }
+      },
+
+      listOutbound: async (workspaceId: string) => {
+        await this.delay()
+        this.roleFor(workspaceId)
+        return snapList(this.store.data.outboundWebhooks.filter((w) => w.workspaceId === workspaceId)).sort(byCreatedDesc)
+      },
+      createOutbound: async (workspaceId: string, input: UpsertOutboundWebhookInput) => {
+        await this.delay()
+        this.assertManageAutomations(this.roleFor(workspaceId))
+        const table = this.store.data.tables.find((t) => t.id === input.tableId && t.workspaceId === workspaceId)
+        if (!table) throw new NotFoundError('Table not found')
+        const name = (input.name ?? '').trim()
+        const url = (input.url ?? '').trim()
+        if (!name) throw new ValidationError('Name the webhook')
+        if (!/^https?:\/\//i.test(url)) throw new ValidationError('Enter a valid https:// URL')
+        const existingId = input.id
+        let w = existingId ? this.store.data.outboundWebhooks.find((x) => x.id === existingId) : undefined
+        if (w && w.workspaceId !== workspaceId) throw new NotFoundError()
+        if (w) {
+          Object.assign(w, { name, url, event: input.event, condition: input.condition, fieldColumnIds: input.fieldColumnIds ?? [], tableId: input.tableId })
+          if (input.isEnabled !== undefined) w.isEnabled = input.isEnabled
+        } else {
+          w = {
+            id: newId(),
+            workspaceId,
+            tableId: input.tableId,
+            name,
+            url,
+            event: input.event,
+            condition: input.condition,
+            fieldColumnIds: input.fieldColumnIds ?? [],
+            isEnabled: input.isEnabled ?? true,
+            createdAt: new Date().toISOString(),
+            lastDeliveryAt: null,
+            lastStatus: null,
+            deliveredCount: 0,
+            failedCount: 0,
+          }
+          this.store.data.outboundWebhooks.push(w)
+        }
+        this.writeAudit(workspaceId, 'webhook.outbound.create', 'webhook', w.id, { name })
+        this.persist()
+        return snap(w)
+      },
+      setOutboundEnabled: async (workspaceId: string, id: string, enabled: boolean) => {
+        await this.delay()
+        this.assertManageAutomations(this.roleFor(workspaceId))
+        const w = this.store.data.outboundWebhooks.find((x) => x.id === id && x.workspaceId === workspaceId)
+        if (!w) throw new NotFoundError()
+        w.isEnabled = enabled
+        this.persist()
+        return snap(w)
+      },
+      removeOutbound: async (workspaceId: string, id: string) => {
+        await this.delay()
+        this.assertManageAutomations(this.roleFor(workspaceId))
+        const w = this.store.data.outboundWebhooks.find((x) => x.id === id && x.workspaceId === workspaceId)
+        if (!w) throw new NotFoundError()
+        this.store.data.outboundWebhooks = this.store.data.outboundWebhooks.filter((x) => x.id !== id)
+        this.writeAudit(workspaceId, 'webhook.outbound.remove', 'webhook', id, { name: w.name })
+        this.persist()
+      },
+    },
+  }
+
+  // ======================================================================
+  // Integration layer (Phase 3, US-3.12–3.15) — CRM, Slack, event history.
+  // ======================================================================
+
+  private snapCrm(c: CrmConnection): CrmConnection {
+    return { ...c, fieldMapping: { ...c.fieldMapping } }
+  }
+
+  integration: IntegrationApi = {
+    crm: {
+      list: async (workspaceId: string) => {
+        await this.delay()
+        this.roleFor(workspaceId)
+        return this.store.data.crmConnections.filter((c) => c.workspaceId === workspaceId).map((c) => this.snapCrm(c))
+      },
+      connect: async (workspaceId: string, input: ConnectCrmInput) => {
+        await this.delay()
+        this.assertManageIntegrations(this.roleFor(workspaceId))
+        const token = (input.token ?? '').trim()
+        if (!token) throw new ValidationError('Enter the API token')
+        const table = this.store.data.tables.find((t) => t.id === input.tableId && t.workspaceId === workspaceId)
+        if (!table) throw new NotFoundError('Table not found')
+        const conn: CrmConnection = {
+          id: newId(),
+          workspaceId,
+          provider: input.provider,
+          accountLabel: (input.accountLabel ?? '').trim() || input.provider,
+          maskedToken: `••••${token.slice(-4)}`,
+          tableId: input.tableId,
+          fieldMapping: input.fieldMapping ?? {},
+          dedupeColumnId: input.dedupeColumnId,
+          isConnected: true,
+          createdAt: new Date().toISOString(),
+          lastSyncAt: null,
+        }
+        this.store.data.crmConnections.push(conn)
+        this.writeAudit(workspaceId, 'integration.connect', 'integration', conn.id, { provider: input.provider })
+        this.logIntegrationEvent(workspaceId, 'crm', 'success', `Connected ${crmLabel(input.provider)}`, { provider: input.provider })
+        this.persist()
+        return this.snapCrm(conn)
+      },
+      updateMapping: async (workspaceId: string, id: string, patch) => {
+        await this.delay()
+        this.assertManageIntegrations(this.roleFor(workspaceId))
+        const conn = this.store.getCrmConnection(id)
+        if (!conn || conn.workspaceId !== workspaceId) throw new NotFoundError()
+        if (patch.fieldMapping) conn.fieldMapping = patch.fieldMapping
+        if (patch.dedupeColumnId !== undefined) conn.dedupeColumnId = patch.dedupeColumnId
+        this.persist()
+        return this.snapCrm(conn)
+      },
+      disconnect: async (workspaceId: string, id: string) => {
+        await this.delay()
+        this.assertManageIntegrations(this.roleFor(workspaceId))
+        const conn = this.store.getCrmConnection(id)
+        if (!conn || conn.workspaceId !== workspaceId) throw new NotFoundError()
+        this.store.data.crmConnections = this.store.data.crmConnections.filter((c) => c.id !== id)
+        this.writeAudit(workspaceId, 'integration.disconnect', 'integration', id, { provider: conn.provider })
+        this.logIntegrationEvent(workspaceId, 'crm', 'success', `Disconnected ${crmLabel(conn.provider)}`, { provider: conn.provider })
+        this.persist()
+      },
+      sync: async (workspaceId: string, id: string, direction: CrmSyncDirection) => {
+        await this.delay()
+        this.assertManageIntegrations(this.roleFor(workspaceId))
+        const conn = this.store.getCrmConnection(id)
+        if (!conn || conn.workspaceId !== workspaceId) throw new NotFoundError()
+        const run = this.runCrmSync(conn, direction)
+        this.persist()
+        return snap(run)
+      },
+      syncRuns: async (workspaceId: string, opts) => {
+        await this.delay()
+        this.roleFor(workspaceId)
+        let runs = this.store.data.crmSyncRuns.filter((r) => r.workspaceId === workspaceId)
+        if (opts?.connectionId) runs = runs.filter((r) => r.connectionId === opts.connectionId)
+        runs = runs.sort((a, b) => (a.startedAt < b.startedAt ? 1 : a.startedAt > b.startedAt ? -1 : 0))
+        return snapList(runs.slice(0, opts?.limit ?? runs.length))
+      },
+    },
+
+    slack: {
+      get: async (workspaceId: string) => {
+        await this.delay()
+        this.roleFor(workspaceId)
+        const s = this.store.getSlackConnection(workspaceId)
+        return s ? snap(s) : null
+      },
+      connect: async (workspaceId: string, input: ConnectSlackInput) => {
+        await this.delay()
+        this.assertManageIntegrations(this.roleFor(workspaceId))
+        const token = (input.token ?? '').trim()
+        if (!token) throw new ValidationError('Enter the Slack token')
+        const channel = (input.defaultChannel ?? '').trim() || '#general'
+        this.store.data.slackConnections = this.store.data.slackConnections.filter((s) => s.workspaceId !== workspaceId)
+        const conn: SlackConnection = {
+          id: newId(),
+          workspaceId,
+          teamName: (input.teamName ?? '').trim() || 'Slack workspace',
+          maskedToken: `••••${token.slice(-4)}`,
+          defaultChannel: channel.startsWith('#') ? channel : `#${channel}`,
+          isConnected: true,
+          createdAt: new Date().toISOString(),
+        }
+        this.store.data.slackConnections.push(conn)
+        this.writeAudit(workspaceId, 'integration.connect', 'integration', conn.id, { provider: 'slack' })
+        this.logIntegrationEvent(workspaceId, 'slack', 'success', `Connected Slack (${conn.teamName})`, { channel: conn.defaultChannel })
+        this.persist()
+        return snap(conn)
+      },
+      disconnect: async (workspaceId: string) => {
+        await this.delay()
+        this.assertManageIntegrations(this.roleFor(workspaceId))
+        const conn = this.store.getSlackConnection(workspaceId)
+        this.store.data.slackConnections = this.store.data.slackConnections.filter((s) => s.workspaceId !== workspaceId)
+        if (conn) {
+          this.writeAudit(workspaceId, 'integration.disconnect', 'integration', conn.id, { provider: 'slack' })
+          this.logIntegrationEvent(workspaceId, 'slack', 'success', 'Disconnected Slack', {})
+        }
+        this.persist()
+      },
+      notify: async (workspaceId: string, input) => {
+        await this.delay()
+        this.assertManageIntegrations(this.roleFor(workspaceId))
+        const conn = this.store.getSlackConnection(workspaceId)
+        if (!conn) throw new ValidationError('Connect Slack first')
+        const channel = (input.channel ?? conn.defaultChannel).trim()
+        const text = (input.text ?? '').trim()
+        if (!text) throw new ValidationError('Enter a message')
+        this.writeAudit(workspaceId, 'slack.notify', 'integration', conn.id, { channel })
+        this.logIntegrationEvent(workspaceId, 'slack', 'success', `Slack → ${channel}: ${text.slice(0, 80)}`, { channel })
+        this.persist()
+        return { ok: true }
+      },
+    },
+
+    events: async (workspaceId: string, opts) => {
+      await this.delay()
+      this.roleFor(workspaceId)
+      let events = this.store.data.integrationEvents.filter((e) => e.workspaceId === workspaceId)
+      if (opts?.source) events = events.filter((e) => e.source === opts.source)
+      events = events.sort(byCreatedDesc)
+      const offset = opts?.offset ?? 0
+      const limit = opts?.limit ?? events.length
+      return snapList(events.slice(offset, offset + limit))
+    },
+  }
+
+  /** Deterministic mock CRM sync producing believable created/updated/skip counts. */
+  private runCrmSync(conn: CrmConnection, direction: CrmSyncDirection): CrmSyncRun {
+    const startedAt = new Date().toISOString()
+    const table = this.store.data.tables.find((t) => t.id === conn.tableId)
+    let created = 0
+    let updated = 0
+    let skipped = 0
+    let failed = 0
+
+    if (table) {
+      if (direction === 'push') {
+        const records = this.store.data.records.filter((r) => r.tableId === conn.tableId)
+        const seenKeys = new Set<string>()
+        for (const r of records) {
+          const key = conn.dedupeColumnId ? String(this.store.getCell(r.id, conn.dedupeColumnId)?.value ?? '') : r.id
+          if (conn.dedupeColumnId && !key) {
+            skipped += 1 // no dedupe key → can't push safely
+            continue
+          }
+          if (seenKeys.has(key)) {
+            skipped += 1 // duplicate within the batch (US-3.12 dedupe)
+            continue
+          }
+          seenKeys.add(key)
+          // Deterministic: ~35% already exist in the CRM → update, else create.
+          if ((hashStr(key) % 100) < 35) updated += 1
+          else created += 1
+        }
+      } else {
+        // Pull: synthesize a deterministic number of inbound CRM records.
+        const n = 4 + (hashStr(conn.id) % 6)
+        const columns = this.columnsForTable(conn.tableId)
+        const existingKeys = new Set(
+          conn.dedupeColumnId
+            ? this.store.data.records.filter((r) => r.tableId === conn.tableId).map((r) => String(this.store.getCell(r.id, conn.dedupeColumnId!)?.value ?? ''))
+            : [],
+        )
+        for (let i = 0; i < n; i++) {
+          const key = `crm-${conn.provider}-${hashStr(conn.id + i)}`
+          if (conn.dedupeColumnId && existingKeys.has(key)) {
+            updated += 1
+            continue
+          }
+          // Create a new row mapped from CRM fields.
+          const position = this.store.data.records.filter((r) => r.tableId === conn.tableId).length
+          const record: RecordRow = { id: newId(), tableId: conn.tableId, position, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
+          const cells: Cell[] = []
+          for (const [crmField, destId] of Object.entries(conn.fieldMapping)) {
+            const col = columns.find((c) => c.id === destId)
+            if (!col) continue
+            const raw = mockCrmValue(crmField, conn.id + i)
+            const v = columnTypeRegistry[col.type].validate(raw, col.config)
+            cells.push({ recordId: record.id, columnId: destId, value: v.ok ? v.value : String(raw), meta: {} })
+          }
+          this.store.data.records.push(record)
+          this.store.addCells(cells)
+          created += 1
+        }
+      }
+    } else {
+      failed = 1
+    }
+
+    const run: CrmSyncRun = {
+      id: newId(),
+      workspaceId: conn.workspaceId,
+      connectionId: conn.id,
+      provider: conn.provider,
+      direction,
+      created,
+      updated,
+      skipped,
+      failed,
+      startedAt,
+      finishedAt: new Date().toISOString(),
+    }
+    this.store.data.crmSyncRuns.push(run)
+    conn.lastSyncAt = run.finishedAt
+    const status: IntegrationEventStatus = failed > 0 ? 'failed' : 'success'
+    this.writeAudit(conn.workspaceId, 'crm.sync', 'integration', conn.id, { direction, created, updated, skipped })
+    this.logIntegrationEvent(
+      conn.workspaceId,
+      'crm',
+      status,
+      `${crmLabel(conn.provider)} ${direction}: ${created} created, ${updated} updated, ${skipped} skipped`,
+      { direction, created, updated, skipped, failed },
+      conn.tableId,
+      conn.id,
+    )
+    return run
   }
 
   // ======================================================================
@@ -2006,6 +3543,459 @@ export class MockApi implements CascadeApi {
   }
 
   // ======================================================================
+  // Billing (Phase 4) — plans, subscription, invoices, credit packs.
+  // Billing consumption derives solely from the Phase 2 credit ledger (FR-4.1).
+  // ======================================================================
+
+  private nowIso(): string {
+    return new Date().toISOString()
+  }
+  private addDaysIso(iso: string, days: number): string {
+    return new Date(Date.parse(iso) + days * 86400_000).toISOString()
+  }
+
+  /** The plan a workspace is subscribed to (catalog copy). */
+  private planFor(workspaceId: string): Plan | null {
+    const sub = this.store.getSubscription(workspaceId)
+    if (!sub) return null
+    return this.store.getPlan(sub.planId) ?? planById(sub.planId) ?? null
+  }
+
+  /** Seats consumed = active members + pending invites (US-4.14). */
+  private seatsUsed(workspaceId: string): number {
+    const members = this.store.data.members.filter((m) => m.workspaceId === workspaceId && m.status === 'active').length
+    const pending = this.store.data.invites.filter((i) => i.workspaceId === workspaceId && i.status === 'pending').length
+    return members + pending
+  }
+
+  /** Grant credits atomically: bump balance + append a positive ledger row (mirrors tryCharge). */
+  private grantCredits(workspaceId: string, credits: number, reason: string): void {
+    if (credits <= 0) return
+    let wc = this.store.getWorkspaceCredit(workspaceId)
+    if (!wc) {
+      wc = { workspaceId, balance: 0, budgetCap: 0, perRunCap: 0 }
+      this.store.data.workspaceCredits.push(wc)
+    }
+    wc.balance += credits
+    this.store.data.creditLedger.push({ id: newId(), workspaceId, delta: credits, reason, balanceAfter: wc.balance, createdAt: this.nowIso() })
+  }
+
+  /** Provision a workspace's subscription + initial included-credit grant. */
+  private provisionBilling(workspaceId: string, planId: string | undefined): Subscription {
+    if (this.store.data.plans.length === 0) this.store.data.plans = PLANS.map((p) => ({ ...p }))
+    const plan = (planId ? planById(planId) : undefined) ?? planByTier('free')!
+    const now = this.nowIso()
+    let sub = this.store.getSubscription(workspaceId)
+    if (!sub) {
+      sub = {
+        id: newId(),
+        workspaceId,
+        planId: plan.id,
+        stripeSubscriptionId: `sub_mock_${newId().slice(0, 8)}`,
+        status: 'active',
+        currentPeriodEnd: this.addDaysIso(now, 30),
+        cancelAtPeriodEnd: false,
+        createdAt: now,
+      }
+      this.store.data.subscriptions.push(sub)
+    } else {
+      sub.planId = plan.id
+    }
+    if (!this.store.getWorkspaceCredit(workspaceId)) {
+      this.store.data.workspaceCredits.push({
+        workspaceId,
+        balance: 0,
+        budgetCap: plan.includedCredits,
+        perRunCap: Math.min(5000, Math.max(500, Math.floor(plan.includedCredits / 4))),
+      })
+      this.grantCredits(workspaceId, plan.includedCredits, `plan:grant:${sub.id}`)
+    }
+    return sub
+  }
+
+  /** Credits consumed (|Σ negative deltas|) for a workspace since a timestamp. */
+  private consumedSince(workspaceId: string, sinceIso?: string): number {
+    let total = 0
+    for (const e of this.store.data.creditLedger) {
+      if (e.workspaceId !== workspaceId || e.delta >= 0) continue
+      if (sinceIso && e.createdAt < sinceIso) continue
+      total += -e.delta
+    }
+    return total
+  }
+
+  /** Provider + LLM cost (COGS) for a workspace since a timestamp, USD. */
+  private cogsUsd(workspaceId: string, sinceIso?: string): number {
+    const sum = (buckets: ConsumptionBucket[]) => buckets.reduce((s, b) => s + (b.providerCostUsd ?? 0), 0)
+    const prov = sum(this.ledgerConsumptionByProvider(workspaceId, true, sinceIso))
+    const model = sum(this.ledgerConsumptionByModel(workspaceId, true, sinceIso))
+    return Math.round((prov + model) * 100) / 100
+  }
+
+  private billingSummary(workspaceId: string): BillingSummary {
+    const sub = this.store.getSubscription(workspaceId) ?? null
+    const plan = this.planFor(workspaceId)
+    const wc = this.store.getWorkspaceCredit(workspaceId)
+    const balance = wc?.balance ?? 0
+    const included = plan?.includedCredits ?? 0
+    const periodStart = sub ? this.addDaysIso(sub.currentPeriodEnd, -30) : undefined
+    const usedThisPeriod = this.consumedSince(workspaceId, periodStart)
+    const overageCredits = Math.max(0, usedThisPeriod - included)
+    const overageUsd = plan && plan.overagePolicy === 'bill' ? overageCredits * plan.overageUsdPerCredit : 0
+    const nextChargeUsd = sub && !sub.cancelAtPeriodEnd && plan ? Math.round((plan.priceUsdMonthly + overageUsd) * 100) / 100 : 0
+    return {
+      subscription: sub ? snap(sub) : null,
+      plan: plan ? { ...plan } : null,
+      balance,
+      includedCredits: included,
+      usedThisPeriod,
+      overageCredits,
+      nextChargeUsd,
+      renewsAt: sub?.currentPeriodEnd ?? null,
+      cancelAtPeriodEnd: sub?.cancelAtPeriodEnd ?? false,
+      seats: { used: this.seatsUsed(workspaceId), limit: plan?.seatLimit ?? 0 },
+    }
+  }
+
+  billing: BillingApi = {
+    plans: {
+      list: async () => {
+        await this.delay()
+        return this.store.data.plans.length ? snapList(this.store.data.plans) : PLANS.map((p) => ({ ...p }))
+      },
+    },
+    summary: async (workspaceId: string) => {
+      await this.delay()
+      this.roleFor(workspaceId)
+      return this.billingSummary(workspaceId)
+    },
+    changePlan: async (workspaceId: string, planId: string) => {
+      await this.delay()
+      const role = this.roleFor(workspaceId)
+      if (!canManageSubscription(role)) throw new ForbiddenError('Only the workspace owner can change the plan')
+      const plan = planById(planId) ?? this.store.getPlan(planId)
+      if (!plan) throw new NotFoundError('Plan not found')
+      let sub = this.store.getSubscription(workspaceId)
+      if (!sub) sub = this.provisionBilling(workspaceId, planId)
+      const prevPlan = this.store.getPlan(sub.planId) ?? planById(sub.planId)
+      const upgrading = prevPlan ? PLAN_RANK[plan.tier] > PLAN_RANK[prevPlan.tier] : true
+      // US-4.4 — a downgrade whose seat limit is below current usage is blocked
+      // with a clear message (the workspace must reduce seats first).
+      if (prevPlan && PLAN_RANK[plan.tier] < PLAN_RANK[prevPlan.tier]) {
+        const seats = this.seatsUsed(workspaceId)
+        if (seats > plan.seatLimit) {
+          throw new ValidationError(`${plan.name} allows ${plan.seatLimit} seats but this workspace uses ${seats}. Remove members before downgrading.`)
+        }
+      }
+      sub.planId = plan.id
+      sub.cancelAtPeriodEnd = false
+      sub.status = 'active'
+      // Proration (US-4.4): on upgrade, top the balance UP TO the new plan's
+      // included credits. Using a top-up (not a raw +difference) makes plan
+      // changes idempotent — cycling down→up can't farm free credits.
+      if (upgrading) {
+        const wc = this.store.getWorkspaceCredit(workspaceId)
+        const shortfall = plan.includedCredits - (wc?.balance ?? 0)
+        if (shortfall > 0) this.grantCredits(workspaceId, shortfall, `plan:upgrade:${sub.id}`)
+      }
+      this.writeAudit(workspaceId, 'plan.change', 'subscription', sub.id, { to: plan.name })
+      this.persist()
+      return snap(sub)
+    },
+    setCancel: async (workspaceId: string, cancelAtPeriodEnd: boolean) => {
+      await this.delay()
+      const role = this.roleFor(workspaceId)
+      if (!canManageSubscription(role)) throw new ForbiddenError('Only the workspace owner can change the subscription')
+      const sub = this.store.getSubscription(workspaceId)
+      if (!sub) throw new NotFoundError('No subscription for this workspace')
+      sub.cancelAtPeriodEnd = cancelAtPeriodEnd
+      if (cancelAtPeriodEnd) this.writeAudit(workspaceId, 'subscription.cancel', 'subscription', sub.id, { atPeriodEnd: sub.currentPeriodEnd })
+      this.persist()
+      return snap(sub)
+    },
+    purchaseCredits: async (workspaceId: string, input: { credits: number; amountUsd: number }) => {
+      await this.delay()
+      const role = this.roleFor(workspaceId)
+      if (!canManageSubscription(role)) throw new ForbiddenError('Only the workspace owner can buy credits')
+      if (input.credits <= 0) throw new ValidationError('Choose a credit pack')
+      const now = this.nowIso()
+      const purchase: CreditPurchase = {
+        id: newId(),
+        workspaceId,
+        credits: input.credits,
+        amountUsd: input.amountUsd,
+        stripePaymentId: `pi_mock_${newId().slice(0, 8)}`,
+        createdAt: now,
+      }
+      this.store.data.creditPurchases.push(purchase)
+      this.grantCredits(workspaceId, input.credits, `purchase:${purchase.id}`)
+      const inv: Invoice = {
+        id: newId(),
+        workspaceId,
+        stripeInvoiceId: `in_mock_${newId().slice(0, 8)}`,
+        periodStart: now,
+        periodEnd: now,
+        amountUsd: input.amountUsd,
+        status: 'paid',
+        lines: [{ label: `${input.credits.toLocaleString('en-US')} credit pack`, amountUsd: input.amountUsd, credits: input.credits }],
+        createdAt: now,
+      }
+      this.store.data.invoices.push(inv)
+      this.writeAudit(workspaceId, 'credit.purchase', 'creditPurchase', purchase.id, { credits: input.credits, amountUsd: input.amountUsd })
+      this.persist()
+      return snap(purchase)
+    },
+    purchases: async (workspaceId: string) => {
+      await this.delay()
+      this.roleFor(workspaceId)
+      return snapList(this.store.data.creditPurchases.filter((p) => p.workspaceId === workspaceId).sort(byCreatedDesc))
+    },
+    invoices: async (workspaceId: string) => {
+      await this.delay()
+      const role = this.roleFor(workspaceId)
+      if (!canManageSubscription(role)) throw new ForbiddenError('Only the workspace owner can view invoices')
+      return snapList(this.store.data.invoices.filter((i) => i.workspaceId === workspaceId).sort(byCreatedDesc))
+    },
+    seatUsage: async (workspaceId: string) => {
+      await this.delay()
+      this.roleFor(workspaceId)
+      const plan = this.planFor(workspaceId)
+      return { used: this.seatsUsed(workspaceId), limit: plan?.seatLimit ?? 0 }
+    },
+  }
+
+  // ======================================================================
+  // Platform superadmin (Phase 4) — a SEPARATE session/identity, never a
+  // workspace role (FR-4.2). Cross-tenant; the one place unscoped reads are OK.
+  // ======================================================================
+
+  private resolvePlatformSession(state: PlatformSessionState): PlatformSession | null {
+    const pu = this.store.data.platformUsers.find((p) => p.id === state.platformUserId)
+    if (!pu) return null
+    return { platformUser: snap(pu), token: state.token, expiresAt: state.expiresAt }
+  }
+
+  private platformActor(): PlatformUser {
+    const state = this.store.data.platformSession
+    const pu = state ? this.store.data.platformUsers.find((p) => p.id === state.platformUserId) : undefined
+    if (!pu) throw new ForbiddenError('Superadmin sign-in required')
+    return pu
+  }
+
+  private writePlatformAudit(actor: PlatformUser, action: PlatformAuditEntry['action'], targetType: PlatformAuditEntry['targetType'], targetId: string, detail: Record<string, unknown>): void {
+    this.store.data.platformAudit.push({ id: newId(), platformUserId: actor.id, platformUserName: actor.name, action, targetType, targetId, detail, createdAt: this.nowIso() })
+  }
+
+  private platformWorkspaceSummary(ws: Workspace): PlatformWorkspaceSummary {
+    const owner = this.user(ws.ownerUserId)
+    const sub = this.store.getSubscription(ws.id)
+    const plan = this.planFor(ws.id)
+    const wc = this.store.getWorkspaceCredit(ws.id)
+    const suspended = (ws.status ?? 'active') === 'suspended'
+    const contributes = !!sub && sub.status === 'active' && !sub.cancelAtPeriodEnd && !suspended
+    return {
+      workspace: snap(ws),
+      ownerName: owner?.name ?? '—',
+      ownerEmail: owner?.email ?? '—',
+      plan: plan ? { ...plan } : null,
+      status: sub?.status ?? 'active',
+      balance: wc?.balance ?? 0,
+      seats: this.seatsUsed(ws.id),
+      creditsConsumed: this.consumedSince(ws.id),
+      cogsUsd: this.cogsUsd(ws.id),
+      mrrUsd: contributes ? plan?.priceUsdMonthly ?? 0 : 0,
+      suspended,
+    }
+  }
+
+  private computePlatformAnalytics(sinceIso?: string): PlatformAnalytics {
+    let mrrUsd = 0
+    let cogsUsd = 0
+    let paid = 0
+    let free = 0
+    let active = 0
+    let suspended = 0
+    const byPlan = new Map<string, { name: string; mrr: number; ws: number }>()
+    for (const ws of this.store.data.workspaces) {
+      const sub = this.store.getSubscription(ws.id)
+      const plan = this.planFor(ws.id)
+      const isSuspended = (ws.status ?? 'active') === 'suspended'
+      if (isSuspended) suspended += 1
+      else active += 1
+      const price = plan?.priceUsdMonthly ?? 0
+      const contributes = !!sub && sub.status === 'active' && !sub.cancelAtPeriodEnd && !isSuspended
+      if (price > 0 && contributes) {
+        mrrUsd += price
+        paid += 1
+        if (plan) {
+          const b = byPlan.get(plan.id) ?? { name: plan.name, mrr: 0, ws: 0 }
+          b.mrr += price
+          b.ws += 1
+          byPlan.set(plan.id, b)
+        }
+      } else if (price === 0) {
+        free += 1
+      }
+      cogsUsd += this.cogsUsd(ws.id, sinceIso)
+    }
+    let revenueUsd = 0
+    for (const inv of this.store.data.invoices) {
+      if (inv.status !== 'paid') continue
+      if (sinceIso && inv.createdAt < sinceIso) continue
+      revenueUsd += inv.amountUsd
+    }
+    const grossMarginUsd = Math.round((revenueUsd - cogsUsd) * 100) / 100
+    const marginPct = revenueUsd > 0 ? Math.round((grossMarginUsd / revenueUsd) * 100) : 0
+    const conversion = paid + free > 0 ? Math.round((paid / (paid + free)) * 100) / 100 : 0
+    const byMonth = new Map<string, number>()
+    for (const e of this.store.data.creditLedger) {
+      if (e.delta >= 0) continue
+      const month = e.createdAt.slice(0, 7)
+      byMonth.set(month, (byMonth.get(month) ?? 0) + -e.delta)
+    }
+    const consumptionTrend = [...byMonth.entries()]
+      .sort((a, b) => (a[0] < b[0] ? -1 : 1))
+      .slice(-6)
+      .map(([label, credits]) => ({ label, credits }))
+    return {
+      mrrUsd: Math.round(mrrUsd * 100) / 100,
+      arrUsd: Math.round(mrrUsd * 12 * 100) / 100,
+      activeWorkspaces: active,
+      suspendedWorkspaces: suspended,
+      paidWorkspaces: paid,
+      freeWorkspaces: free,
+      conversion,
+      cogsUsd: Math.round(cogsUsd * 100) / 100,
+      grossMarginUsd,
+      marginPct,
+      mrrByPlan: [...byPlan.entries()].map(([planId, v]) => ({ planId, planName: v.name, mrrUsd: v.mrr, workspaces: v.ws })).sort((a, b) => b.mrrUsd - a.mrrUsd),
+      consumptionTrend,
+    }
+  }
+
+  platform: PlatformApi = {
+    auth: {
+      signIn: async (email: string) => {
+        await this.delay()
+        const pu = this.store.data.platformUsers.find((p) => p.email.toLowerCase() === email.trim().toLowerCase())
+        if (!pu) throw new ApiError('Invalid platform credentials', 'invalid_credentials', 401)
+        const state: PlatformSessionState = { platformUserId: pu.id, token: `mockp-${newId()}`, expiresAt: this.addDaysIso(this.nowIso(), 7) }
+        this.store.data.platformSession = state
+        this.persist()
+        return this.resolvePlatformSession(state)!
+      },
+      currentSession: async () => {
+        await this.delay()
+        const state = this.store.data.platformSession
+        return state ? this.resolvePlatformSession(state) : null
+      },
+      signOut: async () => {
+        await this.delay()
+        this.store.data.platformSession = null
+        this.persist()
+      },
+    },
+    workspaces: {
+      list: async () => {
+        await this.delay()
+        this.platformActor()
+        return this.store.data.workspaces.map((w) => this.platformWorkspaceSummary(w)).sort((a, b) => b.mrrUsd - a.mrrUsd)
+      },
+      get: async (workspaceId: string) => {
+        await this.delay()
+        this.platformActor()
+        const ws = this.store.data.workspaces.find((w) => w.id === workspaceId)
+        if (!ws) throw new NotFoundError('Workspace not found')
+        return this.platformWorkspaceSummary(ws)
+      },
+      members: async (workspaceId: string) => {
+        await this.delay()
+        this.platformActor()
+        return snapList(this.store.data.members.filter((m) => m.workspaceId === workspaceId && m.status === 'active'))
+      },
+      setSuspended: async (workspaceId: string, suspended: boolean, reason: string) => {
+        await this.delay()
+        const actor = this.platformActor()
+        if (!canOperateWorkspaces(actor.platformRole)) throw new ForbiddenError('Platform admin required')
+        const ws = this.store.data.workspaces.find((w) => w.id === workspaceId)
+        if (!ws) throw new NotFoundError('Workspace not found')
+        ws.status = suspended ? 'suspended' : 'active'
+        this.writePlatformAudit(actor, suspended ? 'workspace.suspend' : 'workspace.reactivate', 'workspace', workspaceId, { reason })
+        this.persist()
+        return snap(ws)
+      },
+      deactivateUser: async (workspaceId: string, userId: string, reason: string) => {
+        await this.delay()
+        const actor = this.platformActor()
+        if (!canOperateWorkspaces(actor.platformRole)) throw new ForbiddenError('Platform admin required')
+        const member = this.store.data.members.find((m) => m.workspaceId === workspaceId && m.userId === userId)
+        if (!member) throw new NotFoundError('Member not found')
+        if (member.role === 'owner') throw new ValidationError('Cannot deactivate the workspace owner')
+        member.status = 'suspended'
+        this.writePlatformAudit(actor, 'user.deactivate', 'user', userId, { workspaceId, email: member.email, reason })
+        this.persist()
+      },
+      compCredits: async (workspaceId: string, credits: number, reason: string) => {
+        await this.delay()
+        const actor = this.platformActor()
+        if (!canIssueBillingExceptions(actor.platformRole)) throw new ForbiddenError('Platform admin required')
+        if (credits <= 0) throw new ValidationError('Enter a positive credit amount')
+        if (!reason.trim()) throw new ValidationError('A reason is required for comped credits')
+        if (!this.store.data.workspaces.some((w) => w.id === workspaceId)) throw new NotFoundError('Workspace not found')
+        this.grantCredits(workspaceId, credits, `comp:${reason.trim()}`)
+        this.writePlatformAudit(actor, 'credit.comp', 'workspace', workspaceId, { credits, reason: reason.trim() })
+        this.persist()
+      },
+      overridePlan: async (workspaceId: string, planId: string, reason: string) => {
+        await this.delay()
+        const actor = this.platformActor()
+        if (!canIssueBillingExceptions(actor.platformRole)) throw new ForbiddenError('Platform admin required')
+        const plan = planById(planId) ?? this.store.getPlan(planId)
+        if (!plan) throw new NotFoundError('Plan not found')
+        let sub = this.store.getSubscription(workspaceId)
+        if (!sub) sub = this.provisionBilling(workspaceId, planId)
+        else sub.planId = plan.id
+        this.writePlatformAudit(actor, 'plan.override', 'subscription', sub.id, { to: plan.name, reason })
+        this.persist()
+        return snap(sub)
+      },
+    },
+    invoices: {
+      list: async (workspaceId: string) => {
+        await this.delay()
+        this.platformActor()
+        return snapList(this.store.data.invoices.filter((i) => i.workspaceId === workspaceId).sort(byCreatedDesc))
+      },
+      refund: async (invoiceId: string, reason: string) => {
+        await this.delay()
+        const actor = this.platformActor()
+        if (!canIssueBillingExceptions(actor.platformRole)) throw new ForbiddenError('Platform admin required')
+        if (!reason.trim()) throw new ValidationError('A reason is required for a refund')
+        const inv = this.store.data.invoices.find((i) => i.id === invoiceId)
+        if (!inv) throw new NotFoundError('Invoice not found')
+        if (inv.status === 'refunded') throw new ValidationError('Invoice already refunded')
+        inv.status = 'refunded'
+        this.writePlatformAudit(actor, 'refund.issue', 'invoice', invoiceId, { amountUsd: inv.amountUsd, workspaceId: inv.workspaceId, reason: reason.trim() })
+        this.persist()
+        return snap(inv)
+      },
+    },
+    analytics: async (opts) => {
+      await this.delay()
+      this.platformActor()
+      return this.computePlatformAnalytics(opts?.since)
+    },
+    audit: async (opts) => {
+      await this.delay()
+      this.platformActor()
+      const entries = this.store.data.platformAudit.slice().sort(byCreatedDesc)
+      const offset = opts?.offset ?? 0
+      const limit = opts?.limit ?? entries.length
+      return snapList(entries.slice(offset, offset + limit))
+    },
+  }
+
+  // ======================================================================
   // Debug / perf helpers (not part of the CascadeApi contract)
   // ======================================================================
 
@@ -2019,9 +4009,24 @@ export class MockApi implements CascadeApi {
     await this.aiEngine.whenIdle()
   }
 
-  /** Resolves when neither engine has an active run (tests). */
+  /** Resolves when no agent run is active (tests). */
+  async __drainAgent(): Promise<void> {
+    await this.agentEngine.whenIdle()
+  }
+
+  /** Resolves when no HTTP run is active (tests). */
+  async __drainHttp(): Promise<void> {
+    await this.httpEngine.whenIdle()
+  }
+
+  /** Resolves when no engine has an active run (tests). */
   async __drain(): Promise<void> {
-    await Promise.all([this.engine.whenIdle(), this.aiEngine.whenIdle()])
+    await Promise.all([
+      this.engine.whenIdle(),
+      this.aiEngine.whenIdle(),
+      this.agentEngine.whenIdle(),
+      this.httpEngine.whenIdle(),
+    ])
   }
 
   /** Append `n` synthesised rows to a table for perf testing. Returns new count. */
@@ -2059,4 +4064,45 @@ function snap<T>(x: T): T {
 }
 function snapList<T>(xs: T[]): T[] {
   return xs.map((x) => ({ ...x }))
+}
+/** Newest-first sort by an ISO `createdAt` field. */
+function byCreatedDesc(a: { createdAt: string }, b: { createdAt: string }): number {
+  return a.createdAt < b.createdAt ? 1 : a.createdAt > b.createdAt ? -1 : 0
+}
+
+// --- Phase 3 automation/integration helpers --------------------------------
+
+function slugify(s: string): string {
+  return s.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 32) || 'hook'
+}
+
+/** Small deterministic hash for mock CRM counts (distinct from the FNV in core). */
+function hashStr(s: string): number {
+  let h = 2166136261
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i)
+    h = Math.imul(h, 16777619)
+  }
+  return h >>> 0
+}
+
+function crmLabel(p: CrmProvider): string {
+  return p === 'hubspot' ? 'HubSpot' : p === 'salesforce' ? 'Salesforce' : 'Pipedrive'
+}
+
+const CRM_COMPANIES = ['Northwind', 'Zephyr Labs', 'Acme Co', 'Globex', 'Umbra', 'Vertex', 'Lumen', 'Cobalt']
+const CRM_CITIES = ['Austin', 'Denver', 'Berlin', 'Toronto', 'Lisbon', 'Boston']
+
+/** A deterministic mock CRM field value for a pulled record. */
+function mockCrmValue(field: string, seed: string): unknown {
+  const h = hashStr(field + seed)
+  const f = field.toLowerCase()
+  if (f.includes('email')) return `contact${h % 900 + 100}@${CRM_COMPANIES[h % CRM_COMPANIES.length]!.toLowerCase().replace(/\s+/g, '')}.com`
+  if (f.includes('name') || f.includes('company') || f.includes('account')) return CRM_COMPANIES[h % CRM_COMPANIES.length]
+  if (f.includes('domain') || f.includes('website') || f.includes('url')) return `https://${CRM_COMPANIES[h % CRM_COMPANIES.length]!.toLowerCase().replace(/\s+/g, '')}.com`
+  if (f.includes('city') || f.includes('location')) return CRM_CITIES[h % CRM_CITIES.length]
+  if (f.includes('employee') || f.includes('size') || f.includes('count')) return 20 + (h % 4800)
+  if (f.includes('revenue') || f.includes('amount') || f.includes('value')) return (1 + (h % 90)) * 100000
+  if (f.includes('phone')) return `+1 ${200 + (h % 799)} 555 ${String(h % 10000).padStart(4, '0')}`
+  return CRM_COMPANIES[h % CRM_COMPANIES.length]
 }

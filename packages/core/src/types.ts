@@ -33,6 +33,10 @@ export type ColumnType =
   // Phase 3 — an AI column stores its primary output as text; execution config
   // lives in a side-table (AiColumnConfig) keyed by the column id.
   | 'ai'
+  // Phase 3 rest — web-research agent, HTTP call, and computed formula columns.
+  | 'agent'
+  | 'http'
+  | 'formula'
 
 // ---------------------------------------------------------------------------
 // Select options
@@ -96,6 +100,15 @@ export interface PhoneConfig {
 export interface AiFieldConfig {
   type: 'ai'
 }
+export interface AgentFieldConfig {
+  type: 'agent'
+}
+export interface HttpFieldConfig {
+  type: 'http'
+}
+export interface FormulaFieldConfig {
+  type: 'formula'
+}
 
 export type ColumnConfig =
   | TextConfig
@@ -110,6 +123,9 @@ export type ColumnConfig =
   | EmailConfig
   | PhoneConfig
   | AiFieldConfig
+  | AgentFieldConfig
+  | HttpFieldConfig
+  | FormulaFieldConfig
 
 /** Maps a column type to its concrete config shape (for strongly-typed access). */
 export interface ColumnConfigByType {
@@ -125,6 +141,9 @@ export interface ColumnConfigByType {
   email: EmailConfig
   phone: PhoneConfig
   ai: AiFieldConfig
+  agent: AgentFieldConfig
+  http: HttpFieldConfig
+  formula: FormulaFieldConfig
 }
 
 // ---------------------------------------------------------------------------
@@ -146,11 +165,16 @@ export type CellValue = string | number | boolean | string[] | null
 // Core entities
 // ---------------------------------------------------------------------------
 
+/** A workspace's operational status (Phase 4 — superadmin can suspend). */
+export type WorkspaceStatus = 'active' | 'suspended'
+
 export interface Workspace {
   id: string
   name: string
   ownerUserId: string
   createdAt: string
+  /** Phase 4 — 'active' by default; superadmin can suspend (US-4.5). */
+  status?: WorkspaceStatus
 }
 
 export interface User {
@@ -254,6 +278,12 @@ export interface CellMeta {
   enrichment?: EnrichmentCellMeta
   /** Phase 3 — per-cell AI provenance/status, a sibling of `enrichment`. */
   ai?: AiCellMeta
+  /** Phase 3 rest — web-research agent provenance (with source citations). */
+  agent?: AgentCellMeta
+  /** Phase 3 rest — HTTP-call provenance (with status code). */
+  http?: HttpCellMeta
+  /** Phase 3 rest — computed-formula status (synchronous; error carrier). */
+  formula?: FormulaCellMeta
   [key: string]: unknown
 }
 
@@ -267,6 +297,24 @@ export function readEnrichment(meta: CellMeta | undefined | null): EnrichmentCel
 export function readAi(meta: CellMeta | undefined | null): AiCellMeta | undefined {
   const a = meta?.[AI_META_KEY]
   return a && typeof a === 'object' ? (a as AiCellMeta) : undefined
+}
+
+/** Typed reader over the `cell.meta.agent` slot (Phase 3 rest). */
+export function readAgent(meta: CellMeta | undefined | null): AgentCellMeta | undefined {
+  const a = meta?.[AGENT_META_KEY]
+  return a && typeof a === 'object' ? (a as AgentCellMeta) : undefined
+}
+
+/** Typed reader over the `cell.meta.http` slot (Phase 3 rest). */
+export function readHttp(meta: CellMeta | undefined | null): HttpCellMeta | undefined {
+  const h = meta?.[HTTP_META_KEY]
+  return h && typeof h === 'object' ? (h as HttpCellMeta) : undefined
+}
+
+/** Typed reader over the `cell.meta.formula` slot (Phase 3 rest). */
+export function readFormula(meta: CellMeta | undefined | null): FormulaCellMeta | undefined {
+  const f = meta?.[FORMULA_META_KEY]
+  return f && typeof f === 'object' ? (f as FormulaCellMeta) : undefined
 }
 
 export interface Cell {
@@ -335,6 +383,28 @@ export type AuditAction =
   | 'budget.update'
   | 'column.aiConfig'
   | 'ai.run'
+  | 'plan.change'
+  | 'credit.purchase'
+  | 'subscription.cancel'
+  | 'column.agentConfig'
+  | 'agent.run'
+  | 'column.httpConfig'
+  | 'http.run'
+  | 'column.formulaConfig'
+  | 'automation.create'
+  | 'automation.update'
+  | 'automation.remove'
+  | 'automation.run'
+  | 'webhook.inbound.create'
+  | 'webhook.inbound.remove'
+  | 'webhook.inbound.receive'
+  | 'webhook.outbound.create'
+  | 'webhook.outbound.remove'
+  | 'webhook.outbound.deliver'
+  | 'integration.connect'
+  | 'integration.disconnect'
+  | 'crm.sync'
+  | 'slack.notify'
 
 export type AuditTargetType =
   | 'table'
@@ -349,6 +419,15 @@ export type AuditTargetType =
   | 'enrichmentRun'
   | 'aiColumn'
   | 'aiRun'
+  | 'subscription'
+  | 'creditPurchase'
+  | 'plan'
+  | 'agentColumn'
+  | 'httpColumn'
+  | 'formulaColumn'
+  | 'automation'
+  | 'webhook'
+  | 'integration'
 
 export interface AuditEntry {
   id: string
@@ -661,4 +740,546 @@ export interface AiCache {
   cost: number
   fetchedAt: string
   expiresAt: string
+}
+
+// ---------------------------------------------------------------------------
+// Web-research agent columns (Phase 3, US-3.3 / US-3.4). A multi-step agent
+// that "browses" (mock) up to maxPages, extracts a structured answer, and cites
+// its sources. Reuses the AI model catalog + the shared operation pipeline; the
+// only new surface is source citations + step/page caps.
+// ---------------------------------------------------------------------------
+
+export type AgentOperation = 'research'
+
+/** A cited source the agent "visited" to produce its answer (US-3.4 provenance). */
+export interface AgentSource {
+  url: string
+  title: string
+  /** The snippet the agent drew the value from. */
+  snippet?: string
+}
+
+/** Execution config attached to an `agent` column. Keyed by columnId (side-table). */
+export interface AgentColumnConfig {
+  id: string
+  columnId: string
+  /** The LLM used for extraction/synthesis (reuses the AI catalog). */
+  model: AiModel
+  /** The research question; {{Column}} refs substituted per row (FR-3.3). */
+  objective: string
+  /** [] → single free-text answer in the anchor; else fan-out like AI. */
+  outputSchema: AiOutputField[]
+  outputMapping: Record<string, string>
+  /** Hard cap on reasoning/browse steps (US-3.3). */
+  maxSteps: number
+  /** Hard cap on pages fetched per run (US-3.3 / cost control). */
+  maxPages: number
+  cacheTtlDays: number
+  autoRun: boolean
+  forceFreshDefault: boolean
+  credits: number
+  providerCostUsd: number
+}
+
+export const AGENT_META_KEY = 'agent' as const
+
+/** Per-cell agent provenance/status stamped onto `cell.meta.agent`. Persisted. */
+export interface AgentCellMeta {
+  status: EnrichmentCellStatus
+  modelKey: string | null
+  runId: string | null
+  fieldName?: string | null
+  /** Steps taken / pages fetched, for the provenance card. */
+  steps?: number
+  pages?: number
+  /** Number of sources cited (full list lives on AgentCellResult). */
+  sourceCount?: number
+  confidence?: number | null
+  credits: number
+  fromCache: boolean
+  reason?: string
+  fetchedAt: string | null
+  valueSource: ValueSource
+}
+
+/** Per-cell agent result provenance (mirrors AiCellResult + citations). */
+export interface AgentCellResult {
+  id: string
+  recordId: string
+  columnId: string
+  runId: string
+  modelKey: string | null
+  operation: AgentOperation | null
+  fieldName?: string | null
+  status: EnrichmentCellStatus
+  valueJson: CellValue
+  /** The objective after {{ref}} substitution (US-3.15 explainability). */
+  objectiveResolved?: string
+  /** The cited sources (US-3.4). */
+  sources: AgentSource[]
+  steps: number
+  pages: number
+  confidence: number | null
+  credits: number
+  providerCostUsd: number
+  fromCache: boolean
+  reason?: string
+  fetchedAt: string
+}
+
+/** TTL cache entry for agent runs. */
+export interface AgentCache {
+  id: string
+  cacheKey: string
+  modelKey: string
+  /** `{ text, structured, sources, steps, pages, confidence }`. */
+  resultJson: unknown
+  cost: number
+  fetchedAt: string
+  expiresAt: string
+}
+
+// ---------------------------------------------------------------------------
+// HTTP columns (Phase 3, US-3.5). Call an external API per row with a
+// templated URL / headers / body; map a JSON-path out of the response into the
+// cell (and optional fan-out columns). Secrets are referenced by name and are
+// NEVER returned to the client (FR-3.5) — only a masked hint.
+// ---------------------------------------------------------------------------
+
+export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
+export type HttpOperation = 'request'
+
+/** One request header. `secretRef` (if set) resolves server-side; `value` is masked. */
+export interface HttpHeader {
+  key: string
+  /** Literal value, OR a masked placeholder when `secretRef` is set. */
+  value: string
+  /** Name of a stored secret; the real value is injected server-side only. */
+  secretRef?: string
+}
+
+/** A stored secret for HTTP auth. The token is write-only — never returned (FR-3.5). */
+export interface HttpSecret {
+  id: string
+  workspaceId: string
+  name: string
+  /** Last 4 chars, for display only (e.g. "••••ab12"). */
+  maskedHint: string
+  createdAt: string
+}
+
+/** Execution config attached to an `http` column. Keyed by columnId (side-table). */
+export interface HttpColumnConfig {
+  id: string
+  columnId: string
+  method: HttpMethod
+  /** {{Column}} refs substituted per row. */
+  urlTemplate: string
+  headers: HttpHeader[]
+  /** Templated request body (for non-GET). */
+  bodyTemplate: string
+  /** Anchor output: a JSON path into the response (e.g. `data.name`, `$`). */
+  responsePath: string
+  /** field label → JSON path, fanned out to columns via outputMapping. */
+  responseMapping: Record<string, string>
+  outputMapping: Record<string, string>
+  cacheTtlDays: number
+  autoRun: boolean
+  forceFreshDefault: boolean
+  credits: number
+  providerCostUsd: number
+}
+
+export const HTTP_META_KEY = 'http' as const
+
+/** Per-cell HTTP provenance/status stamped onto `cell.meta.http`. Persisted. */
+export interface HttpCellMeta {
+  status: EnrichmentCellStatus
+  runId: string | null
+  fieldName?: string | null
+  method?: HttpMethod
+  /** The HTTP status code of the (mock) response. */
+  statusCode?: number | null
+  credits: number
+  fromCache: boolean
+  reason?: string
+  fetchedAt: string | null
+  valueSource: ValueSource
+}
+
+/** Per-cell HTTP result provenance. */
+export interface HttpCellResult {
+  id: string
+  recordId: string
+  columnId: string
+  runId: string
+  operation: HttpOperation | null
+  fieldName?: string | null
+  status: EnrichmentCellStatus
+  valueJson: CellValue
+  method: HttpMethod
+  /** The resolved request URL (US-3.15 explainability; secrets stay masked). */
+  requestUrl?: string
+  statusCode: number | null
+  credits: number
+  providerCostUsd: number
+  fromCache: boolean
+  reason?: string
+  fetchedAt: string
+}
+
+/** TTL cache entry for HTTP responses. */
+export interface HttpCache {
+  id: string
+  cacheKey: string
+  resultJson: unknown
+  cost: number
+  fetchedAt: string
+  expiresAt: string
+}
+
+// ---------------------------------------------------------------------------
+// Formula columns (Phase 3, US-3.6). A computed column: a safe expression over
+// other columns (see core/formula.ts). Synchronous, no credits, recomputes when
+// a referenced cell changes. The cell holds the computed value; errors surface
+// on cell.meta.formula.
+// ---------------------------------------------------------------------------
+
+/** Execution config attached to a `formula` column. Keyed by columnId. */
+export interface FormulaColumnConfig {
+  id: string
+  columnId: string
+  /** The expression source (parsed/evaluated by core/formula.ts). */
+  expression: string
+}
+
+export const FORMULA_META_KEY = 'formula' as const
+
+/** Per-cell formula status — `ok` with a value, or `error` with a message. */
+export interface FormulaCellMeta {
+  status: 'ok' | 'error'
+  error?: string
+  computedAt: string
+}
+
+// ---------------------------------------------------------------------------
+// SaaS billing + platform superadmin (Phase 4) — plans, subscriptions, credit
+// purchases, invoices, and a SEPARATE platform-staff identity that is never a
+// workspace role (FR-4.2). Billing consumption derives SOLELY from the Phase 2
+// credit ledger (FR-4.1) — purchases/comps are positive-delta ledger rows.
+// ---------------------------------------------------------------------------
+
+export type PlanTier = 'free' | 'starter' | 'growth' | 'scale'
+
+/** How metered usage beyond included credits is handled. */
+export type OveragePolicy = 'block' | 'bill'
+
+/** Feature access gated by plan (data-driven entitlements, FR-4.6). */
+export interface PlanEntitlements {
+  aiColumns: boolean
+  prioritySupport: boolean
+  sso: boolean
+}
+
+/** A subscription plan. Data-driven so plans change without code (FR-4.6). */
+export interface Plan {
+  id: string
+  tier: PlanTier
+  name: string
+  /** Monthly price in USD (0 for free). */
+  priceUsdMonthly: number
+  /** Credits included each billing period. */
+  includedCredits: number
+  /** Max active members + pending invites (US-4.14). */
+  seatLimit: number
+  overagePolicy: OveragePolicy
+  /** $ per extra credit when overagePolicy === 'bill'. */
+  overageUsdPerCredit: number
+  entitlements: PlanEntitlements
+  /** One-line marketing blurb for the plan card. */
+  blurb: string
+  /** Feature bullets for the plan card. */
+  features: string[]
+}
+
+export type SubscriptionStatus = 'active' | 'trialing' | 'past_due' | 'canceled'
+
+export interface Subscription {
+  id: string
+  workspaceId: string
+  planId: string
+  /** Mock Stripe subscription id. */
+  stripeSubscriptionId: string
+  status: SubscriptionStatus
+  /** ISO date the current period ends / renews. */
+  currentPeriodEnd: string
+  /** True once the owner cancels; access continues until currentPeriodEnd (US-4.4). */
+  cancelAtPeriodEnd: boolean
+  createdAt: string
+}
+
+/** A one-off credit-pack purchase (top-up). Grants credits to the ledger (US-4.2). */
+export interface CreditPurchase {
+  id: string
+  workspaceId: string
+  credits: number
+  amountUsd: number
+  /** Mock Stripe payment id. */
+  stripePaymentId: string
+  createdAt: string
+}
+
+export type InvoiceStatus = 'paid' | 'open' | 'void' | 'refunded'
+
+export interface InvoiceLineItem {
+  label: string
+  amountUsd: number
+  /** Credits this line represents, if usage-based. */
+  credits?: number
+}
+
+export interface Invoice {
+  id: string
+  workspaceId: string
+  /** Mock Stripe invoice id. */
+  stripeInvoiceId: string
+  periodStart: string
+  periodEnd: string
+  amountUsd: number
+  status: InvoiceStatus
+  lines: InvoiceLineItem[]
+  createdAt: string
+}
+
+// --- Platform superadmin (SDTC staff; separate from workspace users — FR-4.2) ---
+
+/** Platform-staff roles. NEVER a workspace Role; a distinct authority ladder. */
+export type PlatformRole = 'support' | 'admin'
+
+export interface PlatformUser {
+  id: string
+  email: string
+  name: string
+  platformRole: PlatformRole
+  createdAt: string
+}
+
+/** Append-only platform audit — global, not workspace-scoped (US-4.8). */
+export type PlatformAuditAction =
+  | 'workspace.suspend'
+  | 'workspace.reactivate'
+  | 'user.deactivate'
+  | 'credit.comp'
+  | 'refund.issue'
+  | 'plan.override'
+
+export interface PlatformAuditEntry {
+  id: string
+  platformUserId: string
+  platformUserName: string
+  action: PlatformAuditAction
+  targetType: 'workspace' | 'user' | 'subscription' | 'invoice'
+  targetId: string
+  detail: Record<string, unknown>
+  createdAt: string
+}
+
+// ===========================================================================
+// AUTOMATION LAYER (Phase 3, US-3.7–3.10) — schedules, row-event triggers,
+// and inbound/outbound webhooks. An automation runs a target column (or a
+// whole table) on a trigger. All executions land in the unified integration
+// event log (US-3.15) alongside CRM/Slack activity.
+// ===========================================================================
+
+/** What fires an automation. */
+export type AutomationTrigger = 'schedule' | 'row_event'
+
+/** Which column operation an automation drives on fire. */
+export type AutomationAction = 'run_column' | 'run_table'
+
+/** How often a scheduled automation runs (US-3.7). */
+export type ScheduleCadence = 'hourly' | 'daily' | 'weekly'
+
+/** Which record change fires a row-event automation (US-3.8). */
+export type RowEvent = 'record.created' | 'record.updated'
+
+export interface ScheduleConfig {
+  cadence: ScheduleCadence
+  /** 0–23, for daily/weekly. */
+  hour?: number
+  /** 0–6 (Sun–Sat), for weekly. */
+  weekday?: number
+}
+
+export interface RowEventConfig {
+  event: RowEvent
+  /** Only fire when this column changes (updated); empty = any. */
+  watchColumnId?: string
+}
+
+/** A configured automation (US-3.7/3.8). */
+export interface Automation {
+  id: string
+  workspaceId: string
+  tableId: string
+  name: string
+  trigger: AutomationTrigger
+  action: AutomationAction
+  /** The column the action runs (required for run_column). */
+  targetColumnId?: string
+  /** Only forceFresh when true; else honor cache. */
+  forceFresh: boolean
+  schedule?: ScheduleConfig
+  rowEvent?: RowEventConfig
+  isEnabled: boolean
+  createdBy: string
+  createdAt: string
+  /** ISO — when the scheduler will next fire (schedule triggers only). */
+  nextRunAt?: string | null
+  lastRunAt?: string | null
+  /** Terminal status of the last fire. */
+  lastStatus?: AutomationRunStatus | null
+}
+
+export type AutomationRunStatus = 'success' | 'partial' | 'failed' | 'skipped'
+
+/** One automation execution (feeds the integration event log). */
+export interface AutomationRun {
+  id: string
+  workspaceId: string
+  automationId: string
+  trigger: AutomationTrigger
+  status: AutomationRunStatus
+  /** Records/cells touched. */
+  affected: number
+  detail: string
+  startedAt: string
+  finishedAt: string
+}
+
+// --- Webhooks (US-3.9 inbound, US-3.10 outbound) ---------------------------
+
+/** An inbound webhook endpoint: external POSTs create/update rows (US-3.9). */
+export interface InboundWebhook {
+  id: string
+  workspaceId: string
+  tableId: string
+  name: string
+  /** Path token in the mock URL: /hooks/in/{slug}. */
+  slug: string
+  /** Shared secret; requests must present it (masked to the client after create). */
+  secretHint: string
+  /** Incoming JSON field → destination columnId. */
+  mapping: Record<string, string>
+  isEnabled: boolean
+  createdAt: string
+  lastReceivedAt?: string | null
+  receivedCount: number
+}
+
+/** Fire condition for an outbound webhook (a simple column comparison). */
+export interface OutboundCondition {
+  columnId: string
+  op: 'changed' | 'equals' | 'notEmpty'
+  value?: string
+}
+
+/** An outbound webhook: on a row event/condition, POST selected fields (US-3.10). */
+export interface OutboundWebhook {
+  id: string
+  workspaceId: string
+  tableId: string
+  name: string
+  url: string
+  event: RowEvent
+  condition?: OutboundCondition
+  /** Columns included in the payload (empty = all). */
+  fieldColumnIds: string[]
+  isEnabled: boolean
+  createdAt: string
+  lastDeliveryAt?: string | null
+  /** For the delivery log / retry display. */
+  lastStatus?: 'delivered' | 'failed' | 'retrying' | null
+  deliveredCount: number
+  failedCount: number
+}
+
+// ===========================================================================
+// INTEGRATION LAYER (Phase 3, US-3.12–3.14) — CRM push/pull + Slack. Tokens
+// are write-only (never returned; FR-3.5). All activity + webhook + automation
+// runs surface in one unified event history (US-3.15).
+// ===========================================================================
+
+export type CrmProvider = 'hubspot' | 'salesforce' | 'pipedrive'
+
+/** A connected CRM. `token` is never stored in the client-returned shape. */
+export interface CrmConnection {
+  id: string
+  workspaceId: string
+  provider: CrmProvider
+  /** Display label (e.g. the connected account/domain). */
+  accountLabel: string
+  maskedToken: string
+  /** The table this connection syncs. */
+  tableId: string
+  /** CRM object → columnId (both push + pull). */
+  fieldMapping: Record<string, string>
+  /** Which columnId is the dedupe key (email/domain). */
+  dedupeColumnId?: string
+  isConnected: boolean
+  createdAt: string
+  lastSyncAt?: string | null
+}
+
+export type CrmSyncDirection = 'push' | 'pull'
+
+export interface CrmSyncRun {
+  id: string
+  workspaceId: string
+  connectionId: string
+  provider: CrmProvider
+  direction: CrmSyncDirection
+  created: number
+  updated: number
+  skipped: number
+  failed: number
+  startedAt: string
+  finishedAt: string
+}
+
+/** A connected Slack workspace for notifications (US-3.14). */
+export interface SlackConnection {
+  id: string
+  workspaceId: string
+  teamName: string
+  maskedToken: string
+  defaultChannel: string
+  isConnected: boolean
+  createdAt: string
+}
+
+/** Unified activity feed across automations, webhooks, CRM, Slack (US-3.15). */
+export type IntegrationEventSource =
+  | 'schedule'
+  | 'row_event'
+  | 'webhook_in'
+  | 'webhook_out'
+  | 'crm'
+  | 'slack'
+
+export type IntegrationEventStatus = 'success' | 'partial' | 'failed' | 'skipped'
+
+export interface IntegrationEvent {
+  id: string
+  workspaceId: string
+  source: IntegrationEventSource
+  status: IntegrationEventStatus
+  /** Human-readable summary line. */
+  summary: string
+  /** Structured detail for the expandable row. */
+  detail: Record<string, unknown>
+  /** Optional links back to the originating object. */
+  tableId?: string
+  refId?: string
+  createdAt: string
 }

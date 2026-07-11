@@ -6,6 +6,12 @@ import type { EnrichStatus } from './EnrichCell'
 import type { ProviderRef } from './Waterfall'
 import styles from './provenance.module.css'
 
+/** Show just the host of a source URL in the citation list. */
+function sourceHost(url: string): string {
+  const m = /^[a-z]+:\/\/([^/]+)/i.exec(url)
+  return m?.[1] ?? url
+}
+
 const STATUS_LABEL: Record<EnrichStatus, string> = {
   queued: 'Queued',
   running: 'Running',
@@ -53,12 +59,14 @@ export interface ProvenanceCardProps {
   promptSnippet?: string
   /** Structured-output field breakdown (US-3.2). */
   fields?: ProvenanceField[]
+  /** Web-research agent source citations (US-3.4). */
+  sources?: { url: string; title?: string }[]
 }
 
 // The content of the per-cell provenance popover: which provider/step supplied
 // the value, when, at what cost (or "from cache"), and — for failures — the
 // reason plus a retry affordance.
-export function ProvenanceCard({ status, value, provider, step, operation, at, cost, costUsd, fromCache, confidence, reason, onRetry, model, promptSnippet, fields }: ProvenanceCardProps) {
+export function ProvenanceCard({ status, value, provider, step, operation, at, cost, costUsd, fromCache, confidence, reason, onRetry, model, promptSnippet, fields, sources }: ProvenanceCardProps) {
   return (
     <div className={styles.card}>
       <div className={styles.head}>
@@ -98,6 +106,18 @@ export function ProvenanceCard({ status, value, provider, step, operation, at, c
                 <span className={styles.fieldValue}>{f.value}</span>
               )}
             </div>
+          ))}
+        </div>
+      ) : null}
+
+      {sources && sources.length > 0 ? (
+        <div className={styles.sources}>
+          <span className={styles.meta}>sources · {sources.length}</span>
+          {sources.map((s, i) => (
+            <a key={`${s.url}-${i}`} className={styles.sourceRow} href={s.url} target="_blank" rel="noreferrer">
+              {s.title ? `${s.title} — ` : ''}
+              {sourceHost(s.url)}
+            </a>
           ))}
         </div>
       ) : null}

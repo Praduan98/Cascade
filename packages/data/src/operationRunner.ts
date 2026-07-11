@@ -108,8 +108,8 @@ export abstract class OperationRunner<TTarget extends OpTarget, TOutcome extends
   protected abstract emitBudget(workspaceId: string, balance: number, paused: boolean): void
   /** The runs array to strand on reconcile. */
   protected abstract runsList(): EnrichmentRun[]
-  /** The `cell.meta.<key>` slot this operation writes ('enrichment' | 'ai'). */
-  protected abstract cellMetaKey(): 'enrichment' | 'ai'
+  /** The `cell.meta.<key>` slot this operation writes ('enrichment' | 'ai' | 'agent' | 'http'). */
+  protected abstract cellMetaKey(): 'enrichment' | 'ai' | 'agent' | 'http'
 
   // ---- public API --------------------------------------------------------
 

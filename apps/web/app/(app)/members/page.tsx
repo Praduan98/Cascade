@@ -1,9 +1,10 @@
 'use client'
 import { useState } from 'react'
+import Link from 'next/link'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { getApi } from '@cascade/data'
 import type { Invite, Member as MemberRecord, Role } from '@cascade/core'
-import { canManageMembers, ROLE_LABELS } from '@cascade/core'
+import { canManageMembers, canManageSubscription, ROLE_LABELS } from '@cascade/core'
 import {
   Alert,
   Avatar,
@@ -96,6 +97,7 @@ export default function MembersPage() {
   const { toast } = useToast()
 
   const canManage = role ? canManageMembers(role) : false
+  const canUpgrade = role ? canManageSubscription(role) : false
   const workspaceId = workspace?.id
   const currentUserId = user?.id
 
@@ -117,12 +119,20 @@ export default function MembersPage() {
     queryFn: () => getApi().members.listPendingInvites(workspaceId!),
     enabled: !!workspaceId && canManage,
   })
+  // US-4.14 — per-plan seat usage (active members + pending invites vs limit).
+  const seatQuery = useQuery({
+    queryKey: ['billing', 'seats', workspaceId],
+    queryFn: () => getApi().billing.seatUsage(workspaceId!),
+    enabled: !!workspaceId && canManage,
+  })
 
   function invalidateMembers() {
     void qc.invalidateQueries({ queryKey: ['members', workspaceId] })
+    void qc.invalidateQueries({ queryKey: ['billing', 'seats', workspaceId] })
   }
   function invalidateInvites() {
     void qc.invalidateQueries({ queryKey: ['pendingInvites', workspaceId] })
+    void qc.invalidateQueries({ queryKey: ['billing', 'seats', workspaceId] })
   }
 
   const inviteMutation = useMutation({
@@ -202,10 +212,13 @@ export default function MembersPage() {
   const memberCount = members.length
   const pendingCount = invites.length
 
+  const seats = seatQuery.data
+  const seatsFull = !!seats && seats.used >= seats.limit
   const subtitle = membersQuery.isLoading
     ? 'Loading…'
     : `${memberCount} ${memberCount === 1 ? 'member' : 'members'}` +
       (canManage && pendingCount > 0 ? ` · ${pendingCount} pending` : '') +
+      (canManage && seats ? ` · ${seats.used}/${seats.limit} seats` : '') +
       ` in ${workspace.name}`
 
   return (
@@ -215,11 +228,18 @@ export default function MembersPage() {
           <h1>Members</h1>
           <div className={styles.count}>{subtitle}</div>
         </div>
-        {canManage && (
-          <Button variant="primary" onClick={() => setInviteOpen(true)}>
-            Invite
-          </Button>
-        )}
+        {canManage &&
+          (seatsFull ? (
+            canUpgrade ? (
+              <Link href="/billing" className="btn btn-secondary">Upgrade for more seats</Link>
+            ) : (
+              <span className={styles.count}>Seat limit reached — ask the owner to upgrade</span>
+            )
+          ) : (
+            <Button variant="primary" onClick={() => setInviteOpen(true)}>
+              Invite
+            </Button>
+          ))}
       </header>
 
       {membersQuery.isError && (
