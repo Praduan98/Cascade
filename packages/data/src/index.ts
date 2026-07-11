@@ -23,9 +23,11 @@ import type { MockApiOptions } from './mockApi'
 
 let singleton: CascadeApi | null = null
 
-/** The process-wide API singleton (MockApi in Phase 1). */
+/** The process-wide API singleton (MockApi in Phase 1). The app starts signed
+ *  out so it opens on the sign-in screen; tests inject their own signed-in
+ *  MockApi via setApi(). */
 export function getApi(): CascadeApi {
-  if (!singleton) singleton = new MockApi()
+  if (!singleton) singleton = new MockApi({ startSignedIn: false })
   return singleton
 }
 
