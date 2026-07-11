@@ -45,6 +45,9 @@ export default function Home() {
               <Link href="/home" className="btn btn-primary btn-lg">
                 Start enriching
               </Link>
+              <Link href="/kitchen-sink" className="btn btn-secondary btn-lg">
+                View the component gallery
+              </Link>
             </div>
             <div className={`${styles.trust} ${styles.r5}`}>
               <span className={styles.trustLabel}>Providers, in one waterfall</span>
