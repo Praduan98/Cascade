@@ -125,6 +125,14 @@
   background: var(--grad-brand);
   flex: none;
 }
+/* A real workspace logo sits on a white chip so dark marks stay legible. */
+.sh-ws .wsq.wsqLogo {
+  background-color: #fff;
+  background-size: 80%;
+  background-position: center;
+  background-repeat: no-repeat;
+  box-shadow: inset 0 0 0 1px var(--border);
+}
 .sh-ws .wsn {
   font-weight: 700;
   font-size: var(--fs-sm);

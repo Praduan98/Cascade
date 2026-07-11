@@ -12,6 +12,7 @@ import {
 } from '@cascade/ui'
 import { useSession } from '../../session'
 import { CreateTableDialog } from './CreateTableDialog'
+import { workspaceLogo } from './workspaceLogos'
 import styles from '../app-shell.module.css'
 
 // ---- Tiny inline stroke icons (styled to 15px by shell.module.css) ----
@@ -156,11 +157,17 @@ function WorkspaceMenu() {
 
   return (
     <div className={styles.wsWrap} ref={ref}>
-      <WorkspaceSwitcher name={workspace?.name ?? 'Workspace'} expanded={open} onClick={() => setOpen((o) => !o)} />
+      <WorkspaceSwitcher
+        name={workspace?.name ?? 'Workspace'}
+        logo={workspaceLogo(workspace)}
+        expanded={open}
+        onClick={() => setOpen((o) => !o)}
+      />
       {open && (
         <div className={styles.wsMenu} role="menu">
           {workspaces.map((ws) => {
             const active = ws.id === workspace?.id
+            const logo = workspaceLogo(ws)
             return (
               <button
                 key={ws.id}
@@ -173,7 +180,10 @@ function WorkspaceMenu() {
                   setOpen(false)
                 }}
               >
-                <span className={styles.wsDot} />
+                <span
+                  className={[styles.wsDot, logo ? styles.wsDotLogo : ''].filter(Boolean).join(' ')}
+                  style={logo ? { backgroundImage: `url(${logo})` } : undefined}
+                />
                 <span className={styles.wsName}>{ws.name}</span>
                 {active && <CheckIcon />}
               </button>
