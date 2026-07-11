@@ -25,6 +25,7 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-3);
+  transition: color var(--dur-2) var(--ease);
 }
 .stepDot b {
   width: 20px;
@@ -36,6 +37,8 @@
   background: var(--surface-2);
   color: var(--text-3);
   font-weight: 700;
+  transition: border-color var(--dur-2) var(--ease), background var(--dur-2) var(--ease),
+    color var(--dur-2) var(--ease);
 }
 .stepDot.active {
   color: var(--text);
@@ -54,6 +57,20 @@
   width: 14px;
   height: 1px;
   background: var(--border);
+}
+
+/* ---- Per-step body entrance ----
+   Keyed on the current step in the wizard so React remounts it on step change,
+   replaying this subtle transform/opacity settle. Height/layout is untouched, so
+   nothing reflows. Neutralised for reduced-motion by the global token reset. */
+.stepBody {
+  animation: stepIn var(--dur-2) var(--ease);
+}
+@keyframes stepIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
 }
 
 /* ---- Body scroll region ---- */

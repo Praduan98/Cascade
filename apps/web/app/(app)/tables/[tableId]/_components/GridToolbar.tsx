@@ -54,6 +54,7 @@ interface Props {
   onRunHttp: () => void
   onAddFormulaColumn: () => void
   remountGrid: () => void
+  refreshGrid: () => void
 }
 
 function IconBack() {
@@ -111,7 +112,10 @@ function IconExport() {
 function IconSparkle() {
   return (
     <svg className={styles.btnIcon} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10z" />
+      {/* Four-point sparkle: 8 vertices (outer tip + inner notch per arm),
+          symmetric about the viewBox centre (12,12). The previous path dropped
+          the top-left notch, leaving that arm a lopsided solid wedge. */}
+      <path d="M12 3 14.2 9.8 21 12 14.2 14.2 12 21 9.8 14.2 3 12 9.8 9.8Z" />
     </svg>
   )
 }
@@ -143,6 +147,7 @@ export function GridToolbar({
   onRunHttp,
   onAddFormulaColumn,
   remountGrid,
+  refreshGrid,
 }: Props) {
   const { toast } = useToast()
   const [exporting, setExporting] = useState(false)
@@ -192,6 +197,7 @@ export function GridToolbar({
           writable={writable}
           onChangeView={onChangeView}
           remountGrid={remountGrid}
+          refreshGrid={refreshGrid}
         />
 
         <span className={styles.divider} />

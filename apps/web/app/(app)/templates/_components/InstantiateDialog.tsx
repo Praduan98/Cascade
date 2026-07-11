@@ -47,8 +47,10 @@ export function InstantiateDialog(props: {
   workspaceId: string
   template: Template | null
   onInstantiated: (table: TableMeta) => void
+  /** True while the post-create navigation to the new table is in flight. */
+  navigating?: boolean
 }) {
-  const { open, onOpenChange, workspaceId, template, onInstantiated } = props
+  const { open, onOpenChange, workspaceId, template, onInstantiated, navigating = false } = props
   const { role } = useSession()
   const writable = role ? canWrite(role) : false
 
@@ -87,8 +89,13 @@ export function InstantiateDialog(props: {
           <DialogClose asChild>
             <Button variant="ghost">Cancel</Button>
           </DialogClose>
-          <Button variant="primary" onClick={submit} disabled={!template || !writable || mutation.isPending || !name.trim()}>
-            {mutation.isPending ? 'Creating…' : 'Create table'}
+          <Button
+            variant="primary"
+            onClick={submit}
+            loading={mutation.isPending || navigating}
+            disabled={!template || !writable || !name.trim()}
+          >
+            {mutation.isPending || navigating ? 'Creating…' : 'Create table'}
           </Button>
         </>
       }

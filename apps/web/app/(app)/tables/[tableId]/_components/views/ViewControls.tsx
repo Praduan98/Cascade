@@ -26,11 +26,13 @@ interface Props {
   activeViewId: string
   writable: boolean
   onChangeView: (id: string) => void
-  /** Force the grid to re-read after the active view's config changes. */
+  /** Full grid re-mount — needed when column structure/visibility changes. */
   remountGrid: () => void
+  /** In-place row refresh — for filter/sort changes (no blank remount). */
+  refreshGrid: () => void
 }
 
-export function ViewControls({ tableId, columns, views, activeViewId, writable, onChangeView, remountGrid }: Props) {
+export function ViewControls({ tableId, columns, views, activeViewId, writable, onChangeView, remountGrid, refreshGrid }: Props) {
   const qc = useQueryClient()
   const { toast } = useToast()
 
@@ -38,10 +40,13 @@ export function ViewControls({ tableId, columns, views, activeViewId, writable, 
 
   const updateMutation = useMutation({
     mutationFn: (patch: UpdateViewInput) => getApi().views.update(activeViewId, patch),
-    onSuccess: () => {
+    onSuccess: (_data, patch) => {
       void qc.invalidateQueries({ queryKey: ['views', tableId] })
       void qc.invalidateQueries({ queryKey: ['rowCount', tableId] })
-      remountGrid()
+      // Filter/sort only change which rows show → in-place row refresh (keeps the
+      // canvas, scroll, selection). Column visibility/order needs a full re-read.
+      if ('columnState' in patch) remountGrid()
+      else refreshGrid()
     },
     onError: (err) => toast(errorMessage(err, 'Could not update this view'), { variant: 'error' }),
   })

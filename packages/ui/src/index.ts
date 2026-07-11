@@ -14,6 +14,7 @@ export { Chip } from './Chip'
 export type { ChipTone } from './Chip'
 export { Card, Panel } from './Surface'
 export { Kbd } from './Kbd'
+export { Collapse } from './Collapse'
 
 // ---- Forms ----
 export { Field } from './Field'

@@ -6,8 +6,9 @@
 import dynamic from 'next/dynamic'
 import type { ComponentType } from 'react'
 import type { TableGridProps } from './TableGrid'
+import { TableGridSkeleton } from './TableGridSkeleton'
 
 export const TableGridDynamic: ComponentType<TableGridProps> = dynamic(
   () => import('./TableGrid').then((m) => m.TableGrid),
-  { ssr: false, loading: () => null },
+  { ssr: false, loading: () => <TableGridSkeleton /> },
 )

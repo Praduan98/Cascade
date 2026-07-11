@@ -66,9 +66,25 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   }
 
   if (status !== 'authenticated') {
+    // Static skeleton of the app frame (topbar + sidebar rail + content blocks)
+    // at the real shell's dimensions, so the swap to content is a same-size
+    // fade rather than a spinner-then-content jump. Reduced-motion is handled
+    // globally in tokens.css (the resting state is a visible dim frame).
     return (
-      <div className={styles.loading}>
-        <div className={styles.spinner} role="status" aria-label="Loading" />
+      <div className={styles.skeleton} role="status" aria-label="Loading">
+        <div className={styles.skTopbar} />
+        <div className={styles.skBody}>
+          <div className={styles.skRail}>
+            <div className={styles.skRailItem} />
+            <div className={styles.skRailItem} />
+            <div className={styles.skRailItem} />
+            <div className={styles.skRailItem} />
+          </div>
+          <div className={styles.skMain}>
+            <div className={styles.skBlock} />
+            <div className={styles.skBlock} />
+          </div>
+        </div>
       </div>
     )
   }

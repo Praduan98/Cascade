@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { getApi } from '@cascade/data'
@@ -16,9 +16,13 @@ export default function SettingsPage() {
   const canManage = role ? canManageWorkspace(role) : false
   const writable = role ? canWrite(role) : false
 
+  // Keep the trigger in a pending state through the navigation + destination
+  // fetch that follows a successful reset, not just the async reset itself.
+  const [isNavigating, startNavigation] = useTransition()
+
   const replayOnboarding = useMutation({
     mutationFn: () => getApi().onboarding.reset(workspace!.id),
-    onSuccess: () => router.push('/onboarding'),
+    onSuccess: () => startNavigation(() => router.push('/onboarding')),
     onError: (err) => toast(errorMessage(err, 'Could not restart onboarding'), { variant: 'error' }),
   })
 
@@ -129,8 +133,13 @@ export default function SettingsPage() {
             <p>Replay the guided onboarding to build and run a table from a template.</p>
           </div>
           <div className={styles.formRow}>
-            <Button variant="secondary" disabled={replayOnboarding.isPending} onClick={() => replayOnboarding.mutate()}>
-              {replayOnboarding.isPending ? 'Starting…' : 'Replay onboarding'}
+            <Button
+              variant="secondary"
+              loading={replayOnboarding.isPending || isNavigating}
+              disabled={replayOnboarding.isPending || isNavigating}
+              onClick={() => replayOnboarding.mutate()}
+            >
+              {replayOnboarding.isPending || isNavigating ? 'Starting…' : 'Replay onboarding'}
             </Button>
           </div>
         </Card>

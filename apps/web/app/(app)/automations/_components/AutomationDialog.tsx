@@ -10,7 +10,7 @@ import type {
   ScheduleCadence,
   TableMeta,
 } from '@cascade/core'
-import { Button, Dialog, DialogClose, Field, Input, Select, Seg, Switch, useToast } from '@cascade/ui'
+import { Button, Collapse, Dialog, DialogClose, Field, Input, Select, Seg, Switch, useToast } from '@cascade/ui'
 import { errorMessage } from '../../../lib/ui'
 import styles from '../automations.module.css'
 
@@ -175,7 +175,7 @@ export function AutomationDialog({
               <option value="weekly">Weekly</option>
             </Select>
           </Field>
-          {cadence !== 'hourly' && (
+          <Collapse in={cadence !== 'hourly'}>
             <Field label="Hour (0–23)" htmlFor="auto-hour">
               <Input
                 id="auto-hour"
@@ -186,7 +186,7 @@ export function AutomationDialog({
                 onChange={(e) => setHour(e.target.value)}
               />
             </Field>
-          )}
+          </Collapse>
         </div>
       ) : (
         <div className={styles.condRow}>
@@ -196,7 +196,7 @@ export function AutomationDialog({
               <option value="record.updated">Record updated</option>
             </Select>
           </Field>
-          {rowEvent === 'record.updated' && (
+          <Collapse in={rowEvent === 'record.updated'}>
             <Field label="Watch column" htmlFor="auto-watch" hint="Optional — fire only when this changes.">
               <Select
                 id="auto-watch"
@@ -211,7 +211,7 @@ export function AutomationDialog({
                 ))}
               </Select>
             </Field>
-          )}
+          </Collapse>
         </div>
       )}
 
@@ -228,7 +228,7 @@ export function AutomationDialog({
         />
       </Field>
 
-      {action === 'run_column' && (
+      <Collapse in={action === 'run_column'}>
         <Field label="Target column (required)" htmlFor="auto-target">
           <Select
             id="auto-target"
@@ -243,7 +243,7 @@ export function AutomationDialog({
             ))}
           </Select>
         </Field>
-      )}
+      </Collapse>
 
       <Field label="Force fresh" hint="Ignore cached results and re-run every targeted cell.">
         <Switch checked={forceFresh} onCheckedChange={setForceFresh} aria-label="Force fresh" />

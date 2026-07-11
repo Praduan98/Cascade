@@ -106,12 +106,14 @@ export function RunDialog({ open, onOpenChange, tableId, columns, selection, onS
         </p>
       )}
 
+      {/* Plain conditionals (not Collapse) so these role="status" alerts are
+          inserted into the DOM and announced when a run becomes blocked. */}
       {est?.blockedByPerRunCap && (
         <Alert variant="error" title="Over the per-run cap">
           This run could use up to {nf.format(est.maxCredits)} credits, above the per-run cap. Raise the cap in Usage &amp; credits, then retry.
         </Alert>
       )}
-      {est?.blockedByBudget && !est.blockedByPerRunCap && (
+      {est?.blockedByBudget && !est?.blockedByPerRunCap && (
         <Alert variant="error" title="Budget exhausted">
           The workspace budget is spent. Raise the budget in Usage &amp; credits to resume enrichment.
         </Alert>

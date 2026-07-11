@@ -4,7 +4,7 @@
 // cr/row" or a "Free" tag) before the user instantiates. Instantiating creates a
 // real table with configured columns and navigates straight into it.
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { getApi } from '@cascade/data'
@@ -163,6 +163,10 @@ export default function TemplatesPage() {
   const [filter, setFilter] = useState<Filter>('all')
   const [active, setActive] = useState<Template | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
+  // Keep the instantiate flow in a pending state through the post-creation
+  // navigation + destination fetch, so the dialog stays visible (rather than
+  // flashing to a blank page) and duplicate navigations are coalesced.
+  const [isNavigating, startNavigation] = useTransition()
 
   const templatesQuery = useQuery({
     queryKey: ['templates'],
@@ -186,7 +190,7 @@ export default function TemplatesPage() {
     // new table appears in the nav, matching CreateTableDialog's flow.
     if (workspace) void qc.invalidateQueries({ queryKey: ['tables', workspace.id] })
     toast(`Created “${table.name}”`, { variant: 'success' })
-    router.push(`/tables/${table.id}`)
+    startNavigation(() => router.push(`/tables/${table.id}`))
   }
 
   if (!workspace) {
@@ -266,6 +270,7 @@ export default function TemplatesPage() {
         workspaceId={workspace.id}
         template={active}
         onInstantiated={handleInstantiated}
+        navigating={isNavigating}
       />
     </div>
   )

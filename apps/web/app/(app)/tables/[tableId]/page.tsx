@@ -376,7 +376,9 @@ export default function TableSurfacePage() {
   }
   function onRowsDeleted() {
     void qc.invalidateQueries({ queryKey: ['rowCount', tableId] })
-    remountGrid()
+    // Rows-only change → in-place reload (same as the in-grid delete path),
+    // not a full remount/blank.
+    setRefreshToken((t) => t + 1)
   }
 
   const deleteColumnMutation = useMutation({
@@ -496,6 +498,7 @@ export default function TableSurfacePage() {
         onRunHttp={() => setHttpRunOpen(true)}
         onAddFormulaColumn={() => requestSmartColumn('formula', '')}
         remountGrid={remountGrid}
+        refreshGrid={() => setRefreshToken((t) => t + 1)}
       />
 
       {activeRunId && <RunProgress runId={activeRunId} onDone={() => setActiveRunId(null)} />}

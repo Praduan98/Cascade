@@ -1,4 +1,5 @@
 'use client'
+import { useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Avatar,
@@ -20,13 +21,17 @@ export function UserMenu() {
   const { user, membership, switchUser, signOut } = useSession()
   const router = useRouter()
   const { toast } = useToast()
+  // Keep the account trigger in a pending/disabled state through the
+  // navigation + destination fetch that follows a switch or sign-out, so the
+  // control signals progress and can't be re-triggered during the dead time.
+  const [isNavigating, startNavigation] = useTransition()
 
   if (!user) return null
 
   async function onSwitch(userId: string) {
     try {
       await switchUser(userId)
-      router.replace('/tables')
+      startNavigation(() => router.replace('/tables'))
     } catch (err) {
       toast(errorMessage(err, 'Could not switch account'), { variant: 'error' })
     }
@@ -36,14 +41,20 @@ export function UserMenu() {
     try {
       await signOut()
     } finally {
-      router.replace('/sign-in')
+      startNavigation(() => router.replace('/sign-in'))
     }
   }
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button type="button" className={styles.userBtn} aria-label="Account menu">
+        <button
+          type="button"
+          className={styles.userBtn}
+          aria-label="Account menu"
+          aria-busy={isNavigating || undefined}
+          data-loading={isNavigating || undefined}
+        >
           <Avatar initials={initials(user.name)} size={28} />
           <span className={styles.userName}>{user.name}</span>
           <svg
@@ -77,7 +88,7 @@ export function UserMenu() {
           return (
             <DropdownMenuItem
               key={u.id}
-              disabled={isCurrent}
+              disabled={isCurrent || isNavigating}
               onSelect={() => {
                 if (!isCurrent) void onSwitch(u.id)
               }}
@@ -94,8 +105,8 @@ export function UserMenu() {
           )
         })}
         <DropdownMenuSeparator />
-        <DropdownMenuItem danger onSelect={() => void onSignOut()}>
-          Sign out
+        <DropdownMenuItem danger disabled={isNavigating} onSelect={() => void onSignOut()}>
+          {isNavigating ? 'Signing out…' : 'Sign out'}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

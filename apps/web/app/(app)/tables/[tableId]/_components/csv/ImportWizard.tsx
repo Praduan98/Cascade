@@ -361,6 +361,9 @@ export function ImportWizard({ open, onOpenChange, tableId, columns, onImported 
     >
       {step !== 'done' && <StepBar step={step} />}
 
+      {/* Keyed on `step` so React remounts the body on each step change, replaying
+          the subtle stepIn entrance (transform/opacity only). */}
+      <div key={step} className={styles.stepBody}>
       {/* -------------------- Upload -------------------- */}
       {step === 'upload' && (
         <div>
@@ -675,6 +678,7 @@ export function ImportWizard({ open, onOpenChange, tableId, columns, onImported 
           </div>
         </div>
       )}
+      </div>
     </Dialog>
   )
 }

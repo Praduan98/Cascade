@@ -6,7 +6,7 @@
 // Frontend-only on the mock API. The coordinator wires the first-run trigger and
 // a "revisit onboarding" entry point elsewhere; this page is self-contained.
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -46,6 +46,9 @@ export default function OnboardingPage() {
 
   const [step, setStep] = useState<1 | 2 | 3>(1)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  // Drives the finish button's loading/disabled state across the router.push so
+  // there's no dead time between the mutation resolving and the route committing.
+  const [isNavigating, startTransition] = useTransition()
 
   const balanceQuery = useQuery({
     queryKey: ['credits', 'balance', workspaceId],
@@ -73,7 +76,7 @@ export default function OnboardingPage() {
   })
   const complete = useMutation({
     mutationFn: (tableId: string) => getApi().onboarding.complete(workspaceId!, { tableId }),
-    onSuccess: (_r, tableId) => router.push(`/tables/${tableId}`),
+    onSuccess: (_r, tableId) => startTransition(() => router.push(`/tables/${tableId}`)),
     onError: (e) => toast(errorMessage(e, 'Could not finish onboarding'), { variant: 'error' }),
   })
   const skip = useMutation({
@@ -126,7 +129,7 @@ export default function OnboardingPage() {
 
       {/* ---- Step 1: Welcome ---- */}
       {step === 1 && (
-        <Card className={styles.card}>
+        <Card key={step} className={[styles.card, styles.stepBody].join(' ')}>
           <span className={styles.kicker}>Welcome to {workspace.name}</span>
           <h1 ref={headingRef} tabIndex={-1} className={styles.title}>
             Turn a list into enriched, ready-to-work data
@@ -185,7 +188,7 @@ export default function OnboardingPage() {
 
       {/* ---- Step 2: Pick a starting point ---- */}
       {step === 2 && (
-        <Card className={styles.card}>
+        <Card key={step} className={[styles.card, styles.stepBody].join(' ')}>
           <span className={styles.kicker}>Step 2 of 3</span>
           <h1 ref={headingRef} tabIndex={-1} className={styles.title}>
             Pick a starting point
@@ -225,7 +228,7 @@ export default function OnboardingPage() {
 
       {/* ---- Step 3: Create + run ---- */}
       {step === 3 && (
-        <Card className={styles.card}>
+        <Card key={step} className={[styles.card, styles.stepBody].join(' ')}>
           <span className={styles.kicker}>Step 3 of 3</span>
 
           {instantiate.isError ? (
@@ -325,10 +328,10 @@ export default function OnboardingPage() {
                 <div className={styles.actionsRight}>
                   <Button
                     variant="primary"
-                    disabled={complete.isPending}
+                    disabled={complete.isPending || isNavigating}
                     onClick={() => complete.mutate(createdTable.id)}
                   >
-                    {complete.isPending ? 'Opening…' : 'Open your table'}
+                    {complete.isPending || isNavigating ? 'Opening…' : 'Open your table'}
                   </Button>
                 </div>
               </div>
