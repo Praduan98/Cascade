@@ -71,6 +71,14 @@ const BillingIcon = () => (
     <path d="M2 10h20" />
   </Icon>
 )
+const TemplateIcon = () => (
+  <Icon>
+    <rect x="3" y="3" width="7" height="7" rx="1" />
+    <rect x="14" y="3" width="7" height="7" rx="1" />
+    <rect x="3" y="14" width="7" height="7" rx="1" />
+    <path d="M14 17h7M17.5 14v7" />
+  </Icon>
+)
 const AutomationIcon = () => (
   <Icon>
     <path d="M13 2 3 14h9l-1 8 10-12h-9z" />
@@ -187,6 +195,11 @@ export function Sidebar() {
         <NavItem href="/tables" active={pathname === '/tables'} icon={<GridIcon />}>
           All tables
         </NavItem>
+        {writable && (
+          <NavItem href="/templates" active={pathname === '/templates'} icon={<TemplateIcon />}>
+            Templates
+          </NavItem>
+        )}
         {writable && (
           <NavItem
             icon={<PlusIcon />}

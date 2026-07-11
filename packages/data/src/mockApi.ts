@@ -39,6 +39,7 @@ import type {
   IntegrationEventStatus,
   Invite,
   Member,
+  OnboardingState,
   OutboundWebhook,
   Provider,
   ProviderCredential,
@@ -47,8 +48,14 @@ import type {
   RowEvent,
   RowWithCells,
   RunScope,
+  SequencerCampaign,
+  SequencerConnection,
+  SequencerProvider,
+  SequencerPushFilter,
+  SequencerPushRun,
   SlackConnection,
   TableMeta,
+  Template,
   User,
   View,
   Workspace,
@@ -107,6 +114,7 @@ import type {
   CellConflict,
   ColumnsApi,
   ConnectCrmInput,
+  ConnectSequencerInput,
   ConnectSlackInput,
   ConsumptionBucket,
   CreateViewInput,
@@ -122,17 +130,20 @@ import type {
   ListRecordsOptions,
   ListRecordsResult,
   MembersApi,
+  OnboardingApi,
   PatchCellsResult,
   PlatformAnalytics,
   PlatformApi,
   PlatformSession,
   PlatformWorkspaceSummary,
+  PushToSequencerInput,
   RecordsApi,
   RunHandle,
   RunOptions,
   SeatUsage,
   Session,
   TablesApi,
+  TemplatesApi,
   UpdateColumnInput,
   UpsertAgentConfigInput,
   UpsertAiConfigInput,
@@ -160,6 +171,7 @@ import { STORAGE_KEY, Store } from './store'
 import type { PlatformSessionState, SessionState, StoreData } from './store'
 import { buildSeed, generateRows } from './seed'
 import { PLANS, planById, planByTier } from './plans'
+import { TEMPLATES, templateById } from './templates'
 import { buildCacheKey, byoActive, isEmptyInput, MockEnrichmentEngine } from './enrichmentEngine'
 import type { RunTarget } from './enrichmentEngine'
 import { buildAiCacheKey, MockAiEngine } from './aiEngine'
@@ -3274,6 +3286,76 @@ export class MockApi implements CascadeApi {
       },
     },
 
+    sequencers: {
+      list: async (workspaceId: string) => {
+        await this.delay()
+        this.roleFor(workspaceId)
+        return snapList(this.store.data.sequencerConnections.filter((c) => c.workspaceId === workspaceId)).sort(byCreatedDesc)
+      },
+      connect: async (workspaceId: string, input: ConnectSequencerInput) => {
+        await this.delay()
+        this.assertManageIntegrations(this.roleFor(workspaceId))
+        const token = (input.token ?? '').trim()
+        if (!token) throw new ValidationError('Enter the API token')
+        const conn: SequencerConnection = {
+          id: newId(),
+          workspaceId,
+          provider: input.provider,
+          accountLabel: (input.accountLabel ?? '').trim() || seqLabel(input.provider),
+          maskedToken: `••••${token.slice(-4)}`,
+          isConnected: true,
+          createdAt: new Date().toISOString(),
+          lastPushAt: null,
+        }
+        this.store.data.sequencerConnections.push(conn)
+        this.writeAudit(workspaceId, 'sequencer.connect', 'sequencer', conn.id, { provider: input.provider })
+        this.logIntegrationEvent(workspaceId, 'sequencer', 'success', `Connected ${seqLabel(input.provider)}`, { provider: input.provider })
+        this.persist()
+        return snap(conn)
+      },
+      disconnect: async (workspaceId: string, id: string) => {
+        await this.delay()
+        this.assertManageIntegrations(this.roleFor(workspaceId))
+        const conn = this.store.getSequencerConnection(id)
+        if (!conn || conn.workspaceId !== workspaceId) throw new NotFoundError()
+        this.store.data.sequencerConnections = this.store.data.sequencerConnections.filter((c) => c.id !== id)
+        this.writeAudit(workspaceId, 'sequencer.disconnect', 'sequencer', id, { provider: conn.provider })
+        this.logIntegrationEvent(workspaceId, 'sequencer', 'success', `Disconnected ${seqLabel(conn.provider)}`, { provider: conn.provider })
+        this.persist()
+      },
+      campaigns: async (workspaceId: string, id: string) => {
+        await this.delay()
+        this.roleFor(workspaceId)
+        const conn = this.store.getSequencerConnection(id)
+        if (!conn || conn.workspaceId !== workspaceId) throw new NotFoundError()
+        return mockCampaignsFor(conn)
+      },
+      push: async (workspaceId: string, id: string, input: PushToSequencerInput) => {
+        await this.delay()
+        const role = this.roleFor(workspaceId)
+        this.assertWrite(role) // pushing a list is a Member action (US-4.10)
+        const conn = this.store.getSequencerConnection(id)
+        if (!conn || conn.workspaceId !== workspaceId) throw new NotFoundError()
+        const table = this.store.data.tables.find((t) => t.id === input.tableId && t.workspaceId === workspaceId)
+        if (!table) throw new NotFoundError('Table not found')
+        if (!input.campaignId) throw new ValidationError('Choose a campaign')
+        const emailCol = Object.keys(input.fieldMapping).find((colId) => (input.fieldMapping[colId] ?? '').toLowerCase().includes('email'))
+        if (!emailCol) throw new ValidationError('Map a column to the sequencer’s email field')
+
+        const run = this.runSequencerPush(conn, table, input, emailCol)
+        this.persist()
+        return snap(run)
+      },
+      pushRuns: async (workspaceId: string, opts) => {
+        await this.delay()
+        this.roleFor(workspaceId)
+        let runs = this.store.data.sequencerPushRuns.filter((r) => r.workspaceId === workspaceId)
+        if (opts?.connectionId) runs = runs.filter((r) => r.connectionId === opts.connectionId)
+        runs = runs.sort((a, b) => (a.startedAt < b.startedAt ? 1 : a.startedAt > b.startedAt ? -1 : 0))
+        return snapList(runs.slice(0, opts?.limit ?? runs.length))
+      },
+    },
+
     events: async (workspaceId: string, opts) => {
       await this.delay()
       this.roleFor(workspaceId)
@@ -3376,6 +3458,278 @@ export class MockApi implements CascadeApi {
       conn.id,
     )
     return run
+  }
+
+  /** Deterministic mock sequencer push honoring the optional row filter (US-4.10). */
+  private runSequencerPush(conn: SequencerConnection, table: TableMeta, input: PushToSequencerInput, emailColId: string): SequencerPushRun {
+    const startedAt = new Date().toISOString()
+    const records = this.store.data.records.filter(
+      (r) => r.tableId === table.id && (!input.recordIds || input.recordIds.includes(r.id)),
+    )
+    let pushed = 0
+    let created = 0
+    let failed = 0
+    let skipped = 0
+    const seenEmails = new Set<string>()
+
+    for (const r of records) {
+      // Filter (e.g. verified-deliverable only) — filtered-out rows are skipped.
+      if (input.filter && !this.pushFilterMet(input.filter, r.id)) {
+        skipped += 1
+        continue
+      }
+      const email = String(this.store.getCell(r.id, emailColId)?.value ?? '').trim().toLowerCase()
+      if (!email) {
+        skipped += 1 // no email to push
+        continue
+      }
+      if (seenEmails.has(email)) {
+        skipped += 1 // duplicate in the batch
+        continue
+      }
+      seenEmails.add(email)
+      pushed += 1
+      // ~92% land as new contacts; a few already exist or bounce at the sequencer.
+      const roll = hashStr(email + conn.id) % 100
+      if (roll < 6) failed += 1
+      else if (roll < 18) skipped += 1 // already in the campaign
+      else created += 1
+    }
+
+    const run: SequencerPushRun = {
+      id: newId(),
+      workspaceId: conn.workspaceId,
+      connectionId: conn.id,
+      provider: conn.provider,
+      campaignName: input.campaignName,
+      pushed,
+      created,
+      failed,
+      skipped,
+      filterApplied: !!input.filter,
+      startedAt,
+      finishedAt: new Date().toISOString(),
+    }
+    this.store.data.sequencerPushRuns.push(run)
+    conn.lastPushAt = run.finishedAt
+    const status: IntegrationEventStatus = failed > 0 ? 'partial' : 'success'
+    this.writeAudit(conn.workspaceId, 'sequencer.push', 'sequencer', conn.id, { campaign: input.campaignName, created, failed, skipped })
+    this.logIntegrationEvent(
+      conn.workspaceId,
+      'sequencer',
+      status,
+      `${seqLabel(conn.provider)} → ${input.campaignName}: ${created} added, ${failed} failed, ${skipped} skipped`,
+      { campaign: input.campaignName, created, failed, skipped },
+      table.id,
+      conn.id,
+    )
+    return run
+  }
+
+  private pushFilterMet(filter: SequencerPushFilter, recordId: string): boolean {
+    const val = this.store.getCell(recordId, filter.columnId)?.value ?? null
+    if (filter.op === 'notEmpty') return !isEmptyInput(val)
+    return String(val ?? '').toLowerCase() === String(filter.value ?? '').toLowerCase()
+  }
+
+  // ======================================================================
+  // Templates (Phase 4, US-4.9) + Onboarding (US-4.12)
+  // ======================================================================
+
+  templates: TemplatesApi = {
+    list: async () => {
+      await this.delay()
+      return snapList(TEMPLATES)
+    },
+    get: async (templateId: string) => {
+      await this.delay()
+      const t = templateById(templateId)
+      return t ? snap(t) : null
+    },
+    instantiate: async (workspaceId: string, templateId: string, opts) => {
+      await this.delay()
+      const role = this.roleFor(workspaceId)
+      this.assertWrite(role)
+      const tpl = templateById(templateId)
+      if (!tpl) throw new NotFoundError('Template not found')
+      return this.instantiateTemplate(workspaceId, tpl, opts?.tableName)
+    },
+  }
+
+  /** Expand a template into a real table with configured columns + sample rows. */
+  private instantiateTemplate(workspaceId: string, tpl: Template, tableName?: string): TableMeta {
+    const now = new Date().toISOString()
+    const name = uniqueName((tableName ?? tpl.tableName).trim() || tpl.tableName, this.store.data.tables.filter((t) => t.workspaceId === workspaceId).map((t) => t.name))
+    const table: TableMeta = { id: newId(), workspaceId, name, createdBy: this.session().userId, createdAt: now }
+    this.store.data.tables.push(table)
+
+    // Columns — map NAME → new columnId.
+    const colIdByName = new Map<string, string>()
+    tpl.columns.forEach((tc, i) => {
+      const col: Column = {
+        id: newId(),
+        tableId: table.id,
+        name: tc.name,
+        type: tc.type,
+        config: tc.config ?? defaultConfigFor(tc.type),
+        position: i,
+        isFrozen: tc.frozen ?? false,
+        width: tc.width ?? 180,
+      }
+      this.store.data.columns.push(col)
+      colIdByName.set(tc.name.trim().toLowerCase(), col.id)
+    })
+    const idFor = (colName: string): string | undefined => colIdByName.get(colName.trim().toLowerCase())
+    const remap = (m: Record<string, string>): Record<string, string> => {
+      const out: Record<string, string> = {}
+      for (const [k, v] of Object.entries(m)) {
+        const id = idFor(v)
+        if (id) out[k] = id
+      }
+      return out
+    }
+
+    // Default view.
+    this.store.data.views.push({
+      id: newId(),
+      tableId: table.id,
+      name: 'All records',
+      filters: emptyFilter(),
+      sorts: [],
+      columnState: tpl.columns.map((tc, i) => ({ columnId: idFor(tc.name)!, visible: true, position: i, width: tc.width ?? 180 })),
+      isDefault: true,
+    })
+
+    // Enrichment configs (resolve providerKey → providerId, names → ids).
+    for (const enr of tpl.enrichment ?? []) {
+      const anchorId = idFor(enr.columnName)
+      if (!anchorId) continue
+      const steps = []
+      for (const s of enr.steps) {
+        const provider = this.store.data.providers.find((p) => p.key === s.providerKey)
+        if (!provider) continue
+        const cost = provider.costConfig[s.operation]
+        steps.push({
+          providerId: provider.id,
+          operation: s.operation,
+          inputMapping: remap(s.inputMapping),
+          outputMapping: remap(s.outputMapping),
+          acceptanceCondition: s.acceptanceCondition,
+          acceptField: s.acceptField,
+          minConfidence: s.minConfidence,
+          credits: cost?.credits ?? 1,
+          providerCostUsd: cost?.providerCostUsd ?? 0,
+        })
+      }
+      if (steps.length > 0) {
+        this.store.data.enrichmentConfigs.push({ id: newId(), columnId: anchorId, autoRun: enr.autoRun ?? false, forceFreshDefault: false, steps })
+      }
+    }
+
+    // AI configs.
+    for (const a of tpl.ai ?? []) {
+      const anchorId = idFor(a.columnName)
+      const modelInfo = resolveAiModel(a.model)
+      if (!anchorId || !modelInfo) continue
+      this.store.data.aiColumnConfigs.push({
+        id: newId(), columnId: anchorId, model: a.model, operation: a.operation, promptTemplate: a.promptTemplate,
+        outputSchema: a.outputSchema ?? [], outputMapping: a.outputMapping ? remap(a.outputMapping) : {},
+        cacheTtlDays: 30, autoRun: false, forceFreshDefault: false, credits: modelInfo.credits, providerCostUsd: modelInfo.providerCostUsd,
+      })
+    }
+
+    // Agent configs.
+    for (const a of tpl.agent ?? []) {
+      const anchorId = idFor(a.columnName)
+      const modelInfo = resolveAiModel(a.model)
+      if (!anchorId || !modelInfo) continue
+      const maxPages = a.maxPages ?? 5
+      this.store.data.agentColumnConfigs.push({
+        id: newId(), columnId: anchorId, model: a.model, objective: a.objective, outputSchema: [], outputMapping: {},
+        maxSteps: a.maxSteps ?? 5, maxPages, cacheTtlDays: 30, autoRun: false, forceFreshDefault: false,
+        credits: modelInfo.credits * 2, providerCostUsd: modelInfo.providerCostUsd * maxPages,
+      })
+    }
+
+    // Formula configs.
+    for (const f of tpl.formula ?? []) {
+      const anchorId = idFor(f.columnName)
+      if (!anchorId) continue
+      this.store.data.formulaColumnConfigs.push({ id: newId(), columnId: anchorId, expression: f.expression })
+    }
+
+    // Sample rows.
+    ;(tpl.sampleRows ?? []).forEach((row, i) => {
+      const record: RecordRow = { id: newId(), tableId: table.id, position: i, createdAt: now, updatedAt: now }
+      this.store.data.records.push(record)
+      const cells: Cell[] = []
+      for (const [colName, raw] of Object.entries(row)) {
+        const colId = idFor(colName)
+        if (!colId || raw == null) continue
+        const col = this.store.data.columns.find((c) => c.id === colId)
+        if (!col) continue
+        const res = columnTypeRegistry[col.type].validate(raw, col.config)
+        cells.push({ recordId: record.id, columnId: colId, value: res.ok ? res.value : (raw as CellValue), meta: {} })
+      }
+      this.store.addCells(cells)
+    })
+
+    // Compute formula cells for the seeded rows.
+    for (const r of this.store.data.records.filter((r) => r.tableId === table.id)) {
+      this.recomputeFormulasForRecord(table.id, r.id)
+    }
+
+    this.writeAudit(workspaceId, 'template.instantiate', 'template', tpl.id, { name, template: tpl.name })
+    this.writeAudit(workspaceId, 'table.create', 'table', table.id, { name, fromTemplate: tpl.id })
+    this.persist()
+    return snap(table)
+  }
+
+  onboarding: OnboardingApi = {
+    get: async (workspaceId: string) => {
+      await this.delay()
+      this.roleFor(workspaceId)
+      return snap(this.onboardingStateFor(workspaceId))
+    },
+    complete: async (workspaceId: string, opts) => {
+      await this.delay()
+      this.roleFor(workspaceId)
+      const st = this.onboardingStateFor(workspaceId)
+      st.status = 'completed'
+      if (opts?.tableId) st.createdTableId = opts.tableId
+      st.updatedAt = new Date().toISOString()
+      this.writeAudit(workspaceId, 'onboarding.complete', 'onboarding', workspaceId, { tableId: opts?.tableId })
+      this.persist()
+      return snap(st)
+    },
+    skip: async (workspaceId: string) => {
+      await this.delay()
+      this.roleFor(workspaceId)
+      const st = this.onboardingStateFor(workspaceId)
+      st.status = 'skipped'
+      st.updatedAt = new Date().toISOString()
+      this.writeAudit(workspaceId, 'onboarding.skip', 'onboarding', workspaceId, {})
+      this.persist()
+      return snap(st)
+    },
+    reset: async (workspaceId: string) => {
+      await this.delay()
+      this.roleFor(workspaceId)
+      const st = this.onboardingStateFor(workspaceId)
+      st.status = 'pending'
+      st.updatedAt = new Date().toISOString()
+      this.persist()
+      return snap(st)
+    },
+  }
+
+  private onboardingStateFor(workspaceId: string): OnboardingState {
+    let st = this.store.getOnboardingState(workspaceId)
+    if (!st) {
+      st = { workspaceId, status: 'pending', createdTableId: null, updatedAt: new Date().toISOString() }
+      this.store.data.onboardingStates.push(st)
+    }
+    return st
   }
 
   // ======================================================================
@@ -4088,6 +4442,32 @@ function hashStr(s: string): number {
 
 function crmLabel(p: CrmProvider): string {
   return p === 'hubspot' ? 'HubSpot' : p === 'salesforce' ? 'Salesforce' : 'Pipedrive'
+}
+
+function seqLabel(p: SequencerProvider): string {
+  return p === 'instantly' ? 'Instantly' : p === 'smartlead' ? 'Smartlead' : 'HeyReach'
+}
+
+/** Deterministic mock campaign catalog per sequencer connection. */
+function mockCampaignsFor(conn: SequencerConnection): SequencerCampaign[] {
+  const base = seqLabel(conn.provider)
+  const names = ['Q3 Outbound', 'Founders — cold', 'Reactivation', 'Event follow-up']
+  return names.map((n, i) => ({
+    id: `camp_${conn.id}_${i}`,
+    name: `${base}: ${n}`,
+    contactCount: 40 + ((hashStr(conn.id + n) % 60)),
+  }))
+}
+
+/** Return `base`, or `base 2`, `base 3`… so an instantiated table never collides. */
+function uniqueName(base: string, existing: string[]): string {
+  const taken = new Set(existing.map((n) => n.trim().toLowerCase()))
+  if (!taken.has(base.trim().toLowerCase())) return base
+  for (let i = 2; i < 999; i++) {
+    const candidate = `${base} ${i}`
+    if (!taken.has(candidate.toLowerCase())) return candidate
+  }
+  return `${base} ${newId().slice(0, 4)}`
 }
 
 const CRM_COMPANIES = ['Northwind', 'Zephyr Labs', 'Acme Co', 'Globex', 'Umbra', 'Vertex', 'Lumen', 'Cobalt']

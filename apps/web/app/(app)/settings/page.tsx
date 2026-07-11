@@ -1,17 +1,26 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useRouter } from 'next/navigation'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { getApi } from '@cascade/data'
-import { canManageWorkspace, ROLE_LABELS } from '@cascade/core'
+import { canManageWorkspace, canWrite, ROLE_LABELS } from '@cascade/core'
 import { Alert, Button, Card, Field, Input, RoleBadge, useToast } from '@cascade/ui'
 import { useSession } from '../../session'
-import { formatDate } from '../../lib/ui'
+import { errorMessage, formatDate } from '../../lib/ui'
 import styles from './settings.module.css'
 
 export default function SettingsPage() {
   const { workspace, role, membership } = useSession()
   const { toast } = useToast()
+  const router = useRouter()
   const canManage = role ? canManageWorkspace(role) : false
+  const writable = role ? canWrite(role) : false
+
+  const replayOnboarding = useMutation({
+    mutationFn: () => getApi().onboarding.reset(workspace!.id),
+    onSuccess: () => router.push('/onboarding'),
+    onError: (err) => toast(errorMessage(err, 'Could not restart onboarding'), { variant: 'error' }),
+  })
 
   const [name, setName] = useState(workspace?.name ?? '')
 
@@ -112,6 +121,20 @@ export default function SettingsPage() {
           </div>
         </div>
       </Card>
+
+      {writable && (
+        <Card className={styles.card}>
+          <div className={styles.cardHead}>
+            <h2>Getting started</h2>
+            <p>Replay the guided onboarding to build and run a table from a template.</p>
+          </div>
+          <div className={styles.formRow}>
+            <Button variant="secondary" disabled={replayOnboarding.isPending} onClick={() => replayOnboarding.mutate()}>
+              {replayOnboarding.isPending ? 'Starting…' : 'Replay onboarding'}
+            </Button>
+          </div>
+        </Card>
+      )}
     </div>
   )
 }

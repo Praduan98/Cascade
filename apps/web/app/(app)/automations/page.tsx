@@ -36,6 +36,7 @@ const SOURCE_LABEL: Record<IntegrationEventSource, string> = {
   webhook_out: 'Outbound webhook',
   crm: 'CRM',
   slack: 'Slack',
+  sequencer: 'Sequencer',
 }
 
 /** The 4-state run/event status maps onto the design-system status pills. */

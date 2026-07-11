@@ -60,6 +60,12 @@ const ACTION_LABEL: Record<AuditAction, string> = {
   'integration.disconnect': 'disconnected an integration',
   'crm.sync': 'synced a CRM',
   'slack.notify': 'sent a Slack notification',
+  'template.instantiate': 'created a table from a template',
+  'sequencer.connect': 'connected a sequencer',
+  'sequencer.disconnect': 'disconnected a sequencer',
+  'sequencer.push': 'pushed a list to a sequencer',
+  'onboarding.complete': 'completed onboarding',
+  'onboarding.skip': 'skipped onboarding',
 }
 
 // A category colour per action family, used for the leading dot.

@@ -22,9 +22,10 @@ import { errorMessage, formatDate } from '../../lib/ui'
 import { ConnectCrmDialog } from './_components/ConnectCrmDialog'
 import { ConnectSlackDialog } from './_components/ConnectSlackDialog'
 import { EditMappingDialog } from './_components/EditMappingDialog'
+import { SequencerSection } from './_components/SequencerSection'
 import styles from './integrations.module.css'
 
-type Section = 'crm' | 'slack' | 'activity'
+type Section = 'crm' | 'sequencers' | 'slack' | 'activity'
 
 const CRM_LABEL: Record<CrmProvider, string> = {
   hubspot: 'HubSpot',
@@ -38,6 +39,7 @@ const SOURCE_LABEL: Record<IntegrationEventSource, string> = {
   webhook_out: 'Outbound webhook',
   crm: 'CRM',
   slack: 'Slack',
+  sequencer: 'Sequencer',
 }
 const EVENT_STATUS: Record<IntegrationEventStatus, 'success' | 'cached' | 'failed' | 'empty'> = {
   success: 'success',
@@ -103,6 +105,7 @@ export default function IntegrationsPage() {
           onChange={setSection}
           options={[
             { value: 'crm', label: 'CRM' },
+            { value: 'sequencers', label: 'Sequencers' },
             { value: 'slack', label: 'Slack' },
             { value: 'activity', label: 'Activity' },
           ]}
@@ -110,6 +113,7 @@ export default function IntegrationsPage() {
       </div>
 
       {section === 'crm' && <CrmSection workspaceId={workspace.id} />}
+      {section === 'sequencers' && <SequencerSection workspaceId={workspace.id} />}
       {section === 'slack' && <SlackSection workspaceId={workspace.id} />}
       {section === 'activity' && <ActivitySection workspaceId={workspace.id} />}
     </div>

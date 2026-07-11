@@ -34,7 +34,10 @@ import type {
   Invite,
   Invoice,
   Member,
+  OnboardingState,
   OutboundWebhook,
+  SequencerConnection,
+  SequencerPushRun,
   Plan,
   PlatformAuditEntry,
   PlatformUser,
@@ -111,6 +114,10 @@ export interface StoreData {
   crmSyncRuns: CrmSyncRun[]
   slackConnections: SlackConnection[]
   integrationEvents: IntegrationEvent[]
+  // --- Phase 4 growth: outbound sequencers + onboarding ---
+  sequencerConnections: SequencerConnection[]
+  sequencerPushRuns: SequencerPushRun[]
+  onboardingStates: OnboardingState[]
   // --- SaaS billing + platform superadmin (Phase 4); billing reuses creditLedger ---
   plans: Plan[]
   subscriptions: Subscription[]
@@ -124,10 +131,11 @@ export interface StoreData {
 export const STORAGE_KEY = 'cascade:store:v1'
 // Bumped 1 → 2 for Phase-2 enrichment; 2 → 3 for Phase-3 AI columns; 3 → 4 for
 // Phase-4 SaaS billing + platform superadmin; 4 → 5 for Phase-3 rest (agent /
-// HTTP / formula columns + automation + integration layer). The load() version
-// guard discards any older localStorage so it reseeds rather than merging a
-// stale shape.
-const SCHEMA_VERSION = 5
+// HTTP / formula columns + automation + integration layer); 5 → 6 for Phase-4
+// growth (templates instantiate + outbound sequencers + onboarding). The load()
+// version guard discards any older localStorage so it reseeds rather than
+// merging a stale shape.
+const SCHEMA_VERSION = 6
 
 export function emptyStoreData(): StoreData {
   return {
@@ -173,6 +181,9 @@ export function emptyStoreData(): StoreData {
     crmSyncRuns: [],
     slackConnections: [],
     integrationEvents: [],
+    sequencerConnections: [],
+    sequencerPushRuns: [],
+    onboardingStates: [],
     plans: [],
     subscriptions: [],
     creditPurchases: [],
@@ -420,6 +431,14 @@ export class Store {
 
   getSlackConnection(workspaceId: string): SlackConnection | undefined {
     return this.data.slackConnections.find((s) => s.workspaceId === workspaceId)
+  }
+
+  getSequencerConnection(id: string): SequencerConnection | undefined {
+    return this.data.sequencerConnections.find((s) => s.id === id)
+  }
+
+  getOnboardingState(workspaceId: string): OnboardingState | undefined {
+    return this.data.onboardingStates.find((o) => o.workspaceId === workspaceId)
   }
 
   // --- SaaS billing access (Phase 4) -------------------------------------

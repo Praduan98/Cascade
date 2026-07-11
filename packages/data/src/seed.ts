@@ -32,7 +32,10 @@ import type {
   InvoiceLineItem,
   Member,
   MultiSelectConfig,
+  OnboardingState,
   OutboundWebhook,
+  SequencerConnection,
+  SequencerPushRun,
   PlatformAuditEntry,
   PlatformUser,
   Provider,
@@ -858,7 +861,30 @@ const slackConnections: SlackConnection[] = [
   },
 ]
 
+const sequencerConnections: SequencerConnection[] = [
+  {
+    id: 'seq_instantly',
+    workspaceId: WS.primary,
+    provider: 'instantly',
+    accountLabel: 'InsightsTap (inst-88)',
+    maskedToken: '••••k29f',
+    isConnected: true,
+    createdAt: CREATED,
+    lastPushAt: '2026-07-09T16:40:00.000Z',
+  },
+]
+
+const sequencerPushRuns: SequencerPushRun[] = [
+  { id: 'seqrun_1', workspaceId: WS.primary, connectionId: 'seq_instantly', provider: 'instantly', campaignName: 'Instantly: Q3 Outbound', pushed: 38, created: 31, failed: 2, skipped: 5, filterApplied: true, startedAt: '2026-07-09T16:39:30.000Z', finishedAt: '2026-07-09T16:40:00.000Z' },
+]
+
+const onboardingStates: OnboardingState[] = [
+  // The seeded demo workspace already has tables → onboarding is done.
+  { workspaceId: WS.primary, status: 'completed', createdTableId: T.companies, updatedAt: CREATED },
+]
+
 const integrationEvents: IntegrationEvent[] = [
+  { id: 'ie_seq', workspaceId: WS.primary, source: 'sequencer', status: 'success', summary: 'Instantly → Q3 Outbound: 31 added, 2 failed, 5 skipped', detail: { campaign: 'Instantly: Q3 Outbound', created: 31, failed: 2, skipped: 5 }, tableId: T.companies, refId: 'seq_instantly', createdAt: '2026-07-09T16:40:02.000Z' },
   { id: 'ie_1', workspaceId: WS.primary, source: 'crm', status: 'success', summary: 'HubSpot push: 41 created, 11 updated, 3 skipped', detail: { direction: 'push', created: 41, updated: 11, skipped: 3 }, tableId: T.companies, refId: 'crm_hubspot', createdAt: '2026-07-10T08:00:05.000Z' },
   { id: 'ie_2', workspaceId: WS.primary, source: 'schedule', status: 'success', summary: 'Refresh company intel daily: Queued 52 agent cells', detail: { automationId: 'auto_daily_intel' }, tableId: T.companies, refId: 'auto_daily_intel', createdAt: '2026-07-11T07:00:02.000Z' },
   { id: 'ie_3', workspaceId: WS.primary, source: 'webhook_in', status: 'success', summary: 'Website lead capture: created a row from inbound payload', detail: { webhookId: 'wh_in_leads', fields: 3 }, tableId: T.companies, refId: 'wh_in_leads', createdAt: '2026-07-09T12:11:00.000Z' },
@@ -1074,6 +1100,9 @@ export function buildSeed(): StoreData {
   data.crmConnections = clone(crmConnections)
   data.slackConnections = clone(slackConnections)
   data.integrationEvents = clone(integrationEvents)
+  data.sequencerConnections = clone(sequencerConnections)
+  data.sequencerPushRuns = clone(sequencerPushRuns)
+  data.onboardingStates = clone(onboardingStates)
 
   // SaaS billing + platform superadmin (Phase 4).
   data.plans = clone(PLANS)

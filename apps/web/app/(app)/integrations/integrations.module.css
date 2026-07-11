@@ -265,6 +265,21 @@
   background: var(--st-failed-soft);
 }
 
+/* ---- Sequencer push filter toggle ---- */
+.filterToggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.filterToggle label {
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+  cursor: pointer;
+}
+.filterFields {
+  margin-top: 12px;
+}
+
 /* ---- Skeletons ---- */
 .skelBlock {
   border-radius: var(--r-sm);

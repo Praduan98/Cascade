@@ -405,6 +405,12 @@ export type AuditAction =
   | 'integration.disconnect'
   | 'crm.sync'
   | 'slack.notify'
+  | 'template.instantiate'
+  | 'sequencer.connect'
+  | 'sequencer.disconnect'
+  | 'sequencer.push'
+  | 'onboarding.complete'
+  | 'onboarding.skip'
 
 export type AuditTargetType =
   | 'table'
@@ -428,6 +434,9 @@ export type AuditTargetType =
   | 'automation'
   | 'webhook'
   | 'integration'
+  | 'template'
+  | 'sequencer'
+  | 'onboarding'
 
 export interface AuditEntry {
   id: string
@@ -1266,6 +1275,7 @@ export type IntegrationEventSource =
   | 'webhook_out'
   | 'crm'
   | 'slack'
+  | 'sequencer'
 
 export type IntegrationEventStatus = 'success' | 'partial' | 'failed' | 'skipped'
 
@@ -1282,4 +1292,154 @@ export interface IntegrationEvent {
   tableId?: string
   refId?: string
   createdAt: string
+}
+
+// ===========================================================================
+// TEMPLATES (Phase 4, US-4.9) — a curated library of pre-built table + column
+// recipes. A template is a serialized definition (columns + configured
+// enrichment/AI/agent by column NAME) that the instantiation routine expands
+// into a real table with configured columns ready to run.
+// ===========================================================================
+
+export type TemplateCategory = 'sales' | 'recruiting' | 'research' | 'operations'
+
+export interface TemplateColumn {
+  name: string
+  type: ColumnType
+  /** Optional explicit config; defaults to defaultConfigFor(type). */
+  config?: ColumnConfig
+  frozen?: boolean
+  width?: number
+}
+
+/** A waterfall step in a template — provider input/output map to column NAMES. */
+export interface TemplateEnrichmentStep {
+  /** provider.key (resolved to providerId on instantiate). */
+  providerKey: string
+  operation: EnrichmentOperation
+  /** provider input field → column NAME. */
+  inputMapping: Record<string, string>
+  /** provider output field → column NAME. */
+  outputMapping: Record<string, string>
+  acceptanceCondition: AcceptanceCondition
+  acceptField?: string
+  minConfidence?: number
+}
+
+export interface TemplateEnrichment {
+  /** The anchor (output) column NAME. */
+  columnName: string
+  autoRun?: boolean
+  steps: TemplateEnrichmentStep[]
+}
+
+export interface TemplateAiColumn {
+  columnName: string
+  model: AiModel
+  operation: AiOperation
+  promptTemplate: string
+  outputSchema?: AiOutputField[]
+  /** schema field → destination column NAME. */
+  outputMapping?: Record<string, string>
+}
+
+export interface TemplateAgentColumn {
+  columnName: string
+  model: AiModel
+  objective: string
+  maxSteps?: number
+  maxPages?: number
+}
+
+export interface TemplateFormulaColumn {
+  columnName: string
+  expression: string
+}
+
+export interface Template {
+  id: string
+  name: string
+  summary: string
+  category: TemplateCategory
+  /** Two-letter monogram for the card. */
+  glyph: string
+  /** Hex accent for the card. */
+  accent: string
+  tags: string[]
+  tableName: string
+  columns: TemplateColumn[]
+  enrichment?: TemplateEnrichment[]
+  ai?: TemplateAiColumn[]
+  agent?: TemplateAgentColumn[]
+  formula?: TemplateFormulaColumn[]
+  /** Sample rows keyed by column NAME (so the instantiated table isn't empty). */
+  sampleRows?: Record<string, CellValue>[]
+  /** Max credits per row when the configured columns run (0 = free). */
+  creditsPerRow: number
+}
+
+// ===========================================================================
+// OUTBOUND SEQUENCERS (Phase 4, US-4.10) — push enriched lists to a sequencing
+// tool (Instantly / Smartlead / HeyReach). Tokens are write-only (masked hint
+// only). Reuses the Phase-3 connector patterns for auth + logging.
+// ===========================================================================
+
+export type SequencerProvider = 'instantly' | 'smartlead' | 'heyreach'
+
+export interface SequencerConnection {
+  id: string
+  workspaceId: string
+  provider: SequencerProvider
+  accountLabel: string
+  maskedToken: string
+  isConnected: boolean
+  createdAt: string
+  lastPushAt?: string | null
+}
+
+/** A campaign/list on the connected sequencer (mock catalog per connection). */
+export interface SequencerCampaign {
+  id: string
+  name: string
+  /** Existing contacts, for a believable "already in campaign" skip count. */
+  contactCount: number
+}
+
+/** How rows are filtered before a push (US-4.10 optional condition). */
+export interface SequencerPushFilter {
+  columnId: string
+  op: 'equals' | 'notEmpty'
+  value?: string
+}
+
+export interface SequencerPushRun {
+  id: string
+  workspaceId: string
+  connectionId: string
+  provider: SequencerProvider
+  campaignName: string
+  /** Rows selected for the push (after the filter). */
+  pushed: number
+  created: number
+  failed: number
+  /** Rows dropped by the filter or already in the campaign. */
+  skipped: number
+  filterApplied: boolean
+  startedAt: string
+  finishedAt: string
+}
+
+// ===========================================================================
+// ONBOARDING (Phase 4, US-4.12) — a guided first-run to a working table. State
+// is per workspace; skippable + revisitable.
+// ===========================================================================
+
+export type OnboardingStatus = 'pending' | 'completed' | 'skipped'
+
+export interface OnboardingState {
+  workspaceId: string
+  status: OnboardingStatus
+  /** The table produced by onboarding (for the "see results" step). */
+  createdTableId?: string | null
+  updatedAt: string
 }

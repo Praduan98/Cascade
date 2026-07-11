@@ -47,6 +47,7 @@ import type {
   Invite,
   Invoice,
   Member,
+  OnboardingState,
   OutboundCondition,
   OutboundWebhook,
   Plan,
@@ -60,8 +61,14 @@ import type {
   RowWithCells,
   RunScope,
   ScheduleConfig,
+  SequencerCampaign,
+  SequencerConnection,
+  SequencerProvider,
+  SequencerPushFilter,
+  SequencerPushRun,
   SlackConnection,
   Subscription,
+  Template,
   SubscriptionStatus,
   TableMeta,
   User,
@@ -641,11 +648,68 @@ export interface SlackApi {
   notify(workspaceId: string, input: { channel?: string; text: string }): Promise<{ ok: boolean }>
 }
 
+// --- Outbound sequencers (Phase 4, US-4.10) --------------------------------
+
+export interface ConnectSequencerInput {
+  provider: SequencerProvider
+  token: string
+  accountLabel: string
+}
+
+export interface PushToSequencerInput {
+  tableId: string
+  campaignId: string
+  campaignName: string
+  /** table column → sequencer field (e.g. email/first_name/company). */
+  fieldMapping: Record<string, string>
+  /** Only push rows meeting this condition (US-4.10 filter). */
+  filter?: SequencerPushFilter
+  /** Restrict to these rows (else the whole table). */
+  recordIds?: string[]
+}
+
+export interface SequencerApi {
+  list(workspaceId: string): Promise<SequencerConnection[]>
+  connect(workspaceId: string, input: ConnectSequencerInput): Promise<SequencerConnection>
+  disconnect(workspaceId: string, id: string): Promise<void>
+  /** Campaigns/lists available on the connection (mock catalog). */
+  campaigns(workspaceId: string, id: string): Promise<SequencerCampaign[]>
+  /** Push mapped rows to a campaign; reports created/failed/skipped (US-4.10). */
+  push(workspaceId: string, id: string, input: PushToSequencerInput): Promise<SequencerPushRun>
+  pushRuns(workspaceId: string, opts?: { connectionId?: string; limit?: number }): Promise<SequencerPushRun[]>
+}
+
 export interface IntegrationApi {
   crm: CrmApi
   slack: SlackApi
-  /** The unified activity feed across automations/webhooks/CRM/Slack (US-3.15). */
+  sequencers: SequencerApi
+  /** The unified activity feed across automations/webhooks/CRM/Slack/sequencers (US-3.15). */
   events(workspaceId: string, opts?: { source?: string; limit?: number; offset?: number }): Promise<IntegrationEvent[]>
+}
+
+// ---------------------------------------------------------------------------
+// Templates (Phase 4, US-4.9) — a curated recipe library; instantiate expands
+// one into a real table with configured columns ready to run.
+// ---------------------------------------------------------------------------
+
+export interface TemplatesApi {
+  list(): Promise<Template[]>
+  get(templateId: string): Promise<Template | null>
+  /** Create a table from a template; returns the new table (columns configured). */
+  instantiate(workspaceId: string, templateId: string, opts?: { tableName?: string }): Promise<TableMeta>
+}
+
+// ---------------------------------------------------------------------------
+// Onboarding (Phase 4, US-4.12) — guided first-run state; skippable/revisitable.
+// ---------------------------------------------------------------------------
+
+export interface OnboardingApi {
+  get(workspaceId: string): Promise<OnboardingState>
+  /** Mark onboarding complete, optionally recording the table it produced. */
+  complete(workspaceId: string, opts?: { tableId?: string }): Promise<OnboardingState>
+  skip(workspaceId: string): Promise<OnboardingState>
+  /** Re-open onboarding (US-4.12 revisit). */
+  reset(workspaceId: string): Promise<OnboardingState>
 }
 
 // ---------------------------------------------------------------------------
@@ -829,6 +893,8 @@ export interface CascadeApi {
   formula: FormulaApi
   automation: AutomationApi
   integration: IntegrationApi
+  templates: TemplatesApi
+  onboarding: OnboardingApi
   credits: CreditsApi
   billing: BillingApi
   platform: PlatformApi

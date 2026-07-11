@@ -7,6 +7,7 @@ import { Sidebar } from './_components/Sidebar'
 import { UserMenu } from './_components/UserMenu'
 import { CreditChip } from './_components/CreditChip'
 import { VerifyBanner } from './_components/VerifyBanner'
+import { OnboardingGate } from './_components/OnboardingGate'
 import styles from './app-shell.module.css'
 
 // The authenticated shell. Redirects to /sign-in when there is no session, and
@@ -44,6 +45,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         }
       />
       {unverified && user && <VerifyBanner email={user.email} />}
+      <OnboardingGate />
       <div className={styles.body}>
         <AppShell sidebar={<Sidebar />}>{children}</AppShell>
       </div>

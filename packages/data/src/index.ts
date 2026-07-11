@@ -11,6 +11,7 @@ export * from './store'
 export * from './seed'
 export { AI_MODELS, aiModelByKey, resolveAiModel, defaultAiModel } from './aiModels'
 export { PLANS, CREDIT_PACKS, planById, planByTier } from './plans'
+export { TEMPLATES, templateById } from './templates'
 export { MockApi } from './mockApi'
 export type { MockApiOptions } from './mockApi'
 
