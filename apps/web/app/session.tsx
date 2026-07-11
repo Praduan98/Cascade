@@ -18,6 +18,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
+import { useRouter } from 'next/navigation'
 import { getApi } from '@cascade/data'
 import type { Member, Role, User, Workspace } from '@cascade/core'
 
@@ -75,6 +76,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([])
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<string>('')
   const [membership, setMembership] = useState<Member | null>(null)
+  const router = useRouter()
 
   const reset = useCallback((next: SessionStatus) => {
     setUser(null)
@@ -141,6 +143,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       switchTargetRef.current = workspaceId
       setActiveWorkspaceId(workspaceId)
       persistWorkspace(workspaceId)
+      // A table from the previous workspace would 404 under the new one, so a
+      // profile change always returns to the Home dashboard.
+      router.replace('/home')
       try {
         const members = await getApi().members.list(workspaceId)
         if (switchTargetRef.current !== workspaceId) return
@@ -149,7 +154,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         /* keep the optimistic switch; role resolves on the next full load */
       }
     },
-    [user, activeWorkspaceId, workspaces],
+    [user, activeWorkspaceId, workspaces, router],
   )
 
   const switchUser = useCallback(
@@ -160,8 +165,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       // drop the persisted preference and let load() pick their default.
       clearPersistedWorkspace()
       await load()
+      router.replace('/home')
     },
-    [load],
+    [load, router],
   )
 
   const signOut = useCallback(async () => {
