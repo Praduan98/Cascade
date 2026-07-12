@@ -191,9 +191,10 @@ export interface MockApiOptions {
   /** Enrichment engine tuning (tests run it synchronously). */
   enrichment?: { sync?: boolean }
   /**
-   * Whether a *fresh* store starts with the seeded owner already signed in
+   * Whether the store starts with the seeded owner already signed in
    * (default true — keeps tests and isolated instances convenient). The app
-   * passes false so it opens on the sign-in screen instead of auto-resuming.
+   * passes false so it always opens on the sign-in screen: any session
+   * persisted to localStorage is cleared on load rather than auto-resumed.
    */
   startSignedIn?: boolean
 }
@@ -245,15 +246,13 @@ export class MockApi implements CascadeApi {
     this.engineSync = opts.enrichment?.sync ?? false
     this.key = opts.storageKey ?? STORAGE_KEY
     const loaded = Store.load(this.key)
-    if (loaded) {
-      this.store = loaded
-    } else {
-      this.store = new Store(opts.seedData ?? buildSeed())
-      // The app opts out of the auto-signed-in seed so it opens on /sign-in;
-      // tests keep the default so their workspace-scoped calls have an actor.
-      if (opts.startSignedIn === false) this.store.data.session = null
-      this.store.save(this.key)
-    }
+    this.store = loaded ?? new Store(opts.seedData ?? buildSeed())
+    // The app passes startSignedIn:false so it ALWAYS opens on /sign-in — clear
+    // any session, whether freshly seeded or restored from localStorage, so a
+    // prior sign-in never auto-resumes. Tests keep the default (signed in) so
+    // their workspace-scoped calls have an actor.
+    if (opts.startSignedIn === false) this.store.data.session = null
+    this.store.save(this.key)
     this.initEngine()
   }
 
